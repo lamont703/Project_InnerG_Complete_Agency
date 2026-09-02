@@ -1,11 +1,19 @@
 #!/usr/bin/env node
 /**
- * AI News Shorts — a headline, your commentary, and the avatar only where it earns its cost.
+ * NEWS DESK — a headline, your commentary, and the avatar only where it earns
+ * its cost. `newsdesk` in lib/video-type.js; ~90s; ~$1.31.
+ *
+ * NOT A HOT TAKE, which is the format this is most easily confused with and the
+ * reason both were renamed off their machinery. A Hot Take is one continuous
+ * 30-second avatar take on an evergreen topic, written from a queue card by
+ * render_queued.js. A News Desk is a reaction to a story that actually broke,
+ * ninety seconds long, from a script written by hand. Both buy HeyGen avatar
+ * seconds, which is why "the avatar video" never identified either of them.
  *
  *   node scripts/render_news_short.js "reference/AI News Video Shorts/astra-script.json"
  *   node scripts/render_news_short.js <script.json> --dry
  *
- * WHY THIS IS NOT render_queued.js's AVATAR PATH. That renders one continuous
+ * WHY THIS IS NOT render_queued.js's HOT TAKE PATH. That renders one continuous
  * avatar take and edits it afterwards. Here the avatar is the expensive part and
  * is only worth paying for where seeing him matters — the open, the pivot, the
  * thesis, the close. The middle is his voice over the headline and b-roll. On
@@ -28,7 +36,9 @@
  * is needed here at all.
  *
  * ITS OWN AVATAR, DELIBERATELY. HEYGEN_NEWS_AVATAR_ID, never HEYGEN_AVATAR_ID,
- * so this format cannot disturb the pipeline that is already working.
+ * so this format cannot disturb the pipeline that is already working. They are
+ * different talking photos — a black hoodie here, a grey one on the Hot Take —
+ * so the two formats are told apart on sight as well as by name.
  */
 require("dotenv").config({ path: ".env.local" });
 const fs = require("fs");
@@ -36,12 +46,31 @@ const os = require("os");
 const path = require("path");
 const { execFileSync, spawnSync } = require("child_process");
 const { createClient } = require("@supabase/supabase-js");
-const { searchVideos, pickBest, download } = require("../lib/pixabay.js");
+const { findClips, markUsed } = require("../lib/broll-library.js");
+const { NEWSDESK, withinBudget } = require("../lib/newsdesk-config.js");
 
 const FF = require("ffmpeg-static");
 const HEYGEN = "https://api.heygen.com";
-const W = 1080, H = 1920, FPS = 25;
-const AVATAR_PER_SEC = 0.0386;
+const W = NEWSDESK.video.width, H = NEWSDESK.video.height, FPS = NEWSDESK.video.fps;
+const AVATAR_PER_SEC = NEWSDESK.avatar.perSec;
+
+/**
+ * THE LONGEST ANY ONE PICTURE MAY STAY ON SCREEN.
+ *
+ * THE BUG THIS IS THE FIX FOR. The renderer used to give each SEGMENT exactly
+ * one visual, so a segment's length was a picture's length. On the first News
+ * Desk that meant a 22.8-second block on one static article screenshot with a
+ * slow zoom, which reads as a frozen frame and is where a viewer leaves.
+ *
+ * The segment is a unit of NARRATION — it ends where a thought ends — and has
+ * no reason to be a unit of PICTURE. So a long segment is now cut into as many
+ * shots as it needs, each with its own visual, and the audio runs across the
+ * cuts untouched.
+ *
+ * SIX SECONDS, not a rounder number, because the b-roll clips are five seconds
+ * and a cap below the clip length would force every one of them to be trimmed.
+ */
+const VISUAL_MAX_SECS = NEWSDESK.visuals.maxSecs;
 
 const arg = (n, d) => {
   const eq = process.argv.find((a) => a.startsWith(`--${n}=`));
@@ -92,18 +121,77 @@ function segmentTimes(words, segments) {
   });
 }
 
-/** A still, filling 9:16, with a slow push so it is never a frozen frame. */
-function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
-  const frames = Math.round(seconds * FPS);
+/**
+ * TWO VIEWS OF ONE SCREENSHOT, which is how the article stops repeating itself.
+ *
+ * The phone screenshot holds two different things worth showing: the HEADLINE,
+ * and the CHART at the bottom — two scatter plots where the AI-driven one is
+ * visibly tighter than the benchmark. That chart IS the finding, drawn, so
+ * showing it is not decoration.
+ *
+ * WHY THE CHART IS NOT SIMPLY CROPPED TO 9:16 LIKE THE HEADLINE. It is a wide
+ * side-by-side figure. Cropping it to a vertical frame tightly enough to fill
+ * the screen cuts off one of the two plots, which destroys the only thing it is
+ * there to show — the COMPARISON. So it is letterboxed on a dark card at full
+ * width instead, and reads as a deliberate cutaway rather than a bad crop.
+ */
+function headlineClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.06) {
+  const frames = Math.max(1, Math.round(seconds * FPS));
   execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-loop", "1", "-i", image,
     "-t", String(seconds), "-r", String(FPS),
     "-vf", `scale=${W * 2}:-2,zoompan=z='${zoomFrom}+(${zoomTo}-${zoomFrom})*on/${frames}':d=1:` +
-           `x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${W}x${H}:fps=${FPS},setsar=1`,
+           `x='iw/2-(iw/zoom/2)':y='0':s=${W}x${H}:fps=${FPS},setsar=1`,
     "-pix_fmt", "yuv420p", "-an", out], { stdio: ["ignore", "ignore", "pipe"] });
 }
 
+/**
+ * The chart, on a dark card, growing slowly.
+ *
+ * TWO CROPS, AND THAT IS THE POINT. Splitting a segment into shots buys nothing
+ * if every shot shows the SAME picture — the cut is invisible and the hold is
+ * unchanged, which is exactly what happened on the first cut of this video: an
+ * 11.4-second "two shot" chart segment that scene detection read as one frame.
+ * So the wide comparison plays first, then the frame pushes into the AI-driven
+ * plot alone, which is both a real cut and the better edit: show the contrast,
+ * then show the thing that got smaller.
+ */
+const CHART_WIDE = NEWSDESK.visuals.chartWide;    // both plots, the comparison
+const CHART_TIGHT = NEWSDESK.visuals.chartTight;  // the AI-driven plot alone
+function chartClip(image, seconds, out, crop = CHART_WIDE) {
+  const frames = Math.max(1, Math.round(seconds * FPS));
+  execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-loop", "1", "-i", image,
+    "-t", String(seconds), "-r", String(FPS),
+    // Card height follows the crop's own aspect, so a tighter crop fills more of
+    // the frame instead of being letterboxed to the wide crop's shape.
+    "-vf", `crop=${crop},scale=${W * 2}:-2,zoompan=z='1.0+${NEWSDESK.visuals.chartZoom}*on/${frames}':d=1:` +
+           `x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':` +
+           `s=${W}x${Math.round(W * Number(crop.split(":")[1]) / Number(crop.split(":")[0]))}:fps=${FPS},` +
+           `pad=${W}:${H}:0:(${H}-ih)/2:color=${NEWSDESK.visuals.chartBg},setsar=1`,
+    "-pix_fmt", "yuv420p", "-an", out], { stdio: ["ignore", "ignore", "pipe"] });
+}
+
+/** A library clip, cropped to fill 9:16, silent, cut to length. */
+function brollClip(src, seconds, out) {
+  execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-stream_loop", "-1", "-i", src,
+    "-t", String(seconds), "-r", String(FPS),
+    "-vf", `fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1`,
+    "-pix_fmt", "yuv420p", "-an", out], { stdio: ["ignore", "ignore", "pipe"] });
+}
+
+/**
+ * Cut a segment's runtime into shots no longer than VISUAL_MAX_SECS.
+ *
+ * EVEN LENGTHS, not "fill six then leave a remainder". A 13-second segment
+ * split greedily is 6 + 6 + 1, and that one-second flash reads as a mistake.
+ * Three shots of 4.3s is the same three pictures without the stutter.
+ */
+function shotLengths(seconds) {
+  const n = Math.max(1, Math.ceil(seconds / VISUAL_MAX_SECS));
+  return Array.from({ length: n }, () => seconds / n);
+}
+
 (async () => {
-  for (const k of ["HEYGEN_API_KEY", "HEYGEN_NEWS_AVATAR_ID", "HEYGEN_VOICE_ID"]) {
+  for (const k of ["HEYGEN_API_KEY", NEWSDESK.avatar.avatarEnv, NEWSDESK.avatar.voiceEnv]) {
     if (!process.env[k]) { console.error(`${k} is not set.`); process.exit(1); }
   }
   const specFile = process.argv[2];
@@ -113,10 +201,20 @@ function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
   fs.mkdirSync(work, { recursive: true });
   const out = arg("out", path.join(work, `${spec.slug}.mp4`));
 
-  const avatarSecsEst = spec.segments.filter((s) => s.mode === "avatar")
-    .reduce((t, s) => t + s.text.split(/\s+/).length / 165 * 60, 0);
+  /*
+   * THE BUDGET GATE, CHECKED BEFORE ANY CREDIT IS SPENT. The ceiling is a
+   * number in lib/newsdesk-config.js, not a habit — a script that can quietly
+   * cost more than agreed is one that eventually will. --over-budget is the
+   * deliberate override, and it has to be typed.
+   */
+  const budget = withinBudget(spec);
   console.log(`\n${spec.slug}`);
-  console.log(`  ${spec.segments.length} segments, ~${avatarSecsEst.toFixed(0)}s of avatar ≈ $${(avatarSecsEst * AVATAR_PER_SEC).toFixed(2)}\n`);
+  console.log(`  ${spec.segments.length} segments, ~${budget.seconds.toFixed(0)}s of avatar ≈ $${budget.usd.toFixed(2)}  (cap $${budget.budget})\n`);
+  if (!budget.ok && !has("over-budget")) {
+    console.error(`This script estimates $${budget.usd.toFixed(2)}, over the $${budget.budget} News Desk cap.`);
+    console.error(`Cut avatar segments, or re-run with --over-budget if you mean it.\n`);
+    process.exit(1);
+  }
 
   /* ---- 1. one narration, one voice ------------------------------------- */
   const narrationFile = path.join(work, "narration.wav");
@@ -130,7 +228,7 @@ function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
     const full = spec.segments.map((s) => s.text).join(" ");
     const tts = await heygen("/v3/voices/speech", {
       method: "POST",
-      body: JSON.stringify({ voice_id: process.env.HEYGEN_VOICE_ID, text: full }),
+      body: JSON.stringify({ voice_id: process.env[NEWSDESK.avatar.voiceEnv], text: full }),
     });
     const url = tts?.data?.audio_url;
     if (!url) throw new Error("TTS returned no audio_url");
@@ -159,6 +257,7 @@ function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
   /* ---- 3. avatar segments, lip-synced to those slices ------------------- */
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   const pieces = [];
+  const usedClipIds = [];   // so one video does not lean on the same clip twice
   let spent = 0;
 
   for (let i = 0; i < spec.segments.length; i++) {
@@ -189,21 +288,21 @@ function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
           "-c:a", "libmp3lame", "-b:a", "192k", mp3], { stdio: "ignore" });
       }
       const key = `news-audio/${spec.slug}-${i}.mp3`;
-      const up = await db.storage.from("entity-photos")
+      const up = await db.storage.from(NEWSDESK.publish.bucket)
         .upload(key, fs.readFileSync(mp3), { contentType: "audio/mpeg", upsert: true });
       if (up.error) throw new Error(`audio upload failed: ${up.error.message}`);
-      const audioUrl = db.storage.from("entity-photos").getPublicUrl(key).data.publicUrl;
+      const audioUrl = db.storage.from(NEWSDESK.publish.bucket).getPublicUrl(key).data.publicUrl;
 
       console.log(`  ${i} avatar ${dur.toFixed(1)}s ≈ $${(dur * AVATAR_PER_SEC).toFixed(2)}`);
       const created = await heygen("/v3/videos", {
         method: "POST",
         body: JSON.stringify({
           type: "avatar",
-          avatar_id: process.env.HEYGEN_NEWS_AVATAR_ID,
+          avatar_id: process.env[NEWSDESK.avatar.avatarEnv],
           audio_url: audioUrl,
           title: `${spec.slug}-${i}`.slice(0, 100),
-          aspect_ratio: "9:16",
-          resolution: "1080p",
+          aspect_ratio: NEWSDESK.avatar.aspectRatio,
+          resolution: NEWSDESK.avatar.resolution,
         }),
       });
       const id = created?.data?.video_id;
@@ -231,34 +330,99 @@ function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
        * from a page that is mostly white, which otherwise blends.
        */
       const bg = path.join(work, `bg-${i}.mp4`);
-      stillClip(spec.headline, dur, bg, 1.0, 1.04);
+      headlineClip(spec.headline, dur, bg, 1.0, 1.04);
       execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", bg, "-i", raw, "-i", slices[i],
         "-filter_complex",
-        `[1:v]scale=${Math.round(W * 0.68)}:-2,setsar=1,pad=iw+8:ih+8:4:4:color=0x111827[av];` +
-        `[0:v][av]overlay=(W-w)/2:H-h-120:shortest=1[v]`,
+        `[1:v]scale=${Math.round(W * NEWSDESK.avatar.widthPct)}:-2,setsar=1,` +
+        `pad=iw+${NEWSDESK.avatar.edgePad * 2}:ih+${NEWSDESK.avatar.edgePad * 2}:${NEWSDESK.avatar.edgePad}:${NEWSDESK.avatar.edgePad}:color=${NEWSDESK.avatar.edgeColor}[av];` +
+        `[0:v][av]overlay=(W-w)/2:H-h-${NEWSDESK.avatar.bottomOffset}:shortest=1[v]`,
         "-map", "[v]", "-map", "2:a", "-r", String(FPS), "-t", String(dur),
-        "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "160k", piece], { stdio: ["ignore", "ignore", "pipe"] });
-    } else if (seg.visual === "broll" && seg.query) {
-      console.log(`  ${i} voice  ${dur.toFixed(1)}s  b-roll "${seg.query}"`);
-      const hits = await searchVideos(seg.query, { perPage: 20 });
-      const pick = pickBest(hits, { seconds: Math.min(dur, 6), query: seg.query });
-      if (!pick) throw new Error(`no b-roll for "${seg.query}" — pick another query rather than shipping the wrong picture`);
-      const got = await download(pick, path.join(".cache", "broll"));
-      execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error",
-        "-stream_loop", "-1", "-i", got.path, "-i", slices[i],
-        "-filter_complex", `[0:v]fps=${FPS},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1[v]`,
-        "-map", "[v]", "-map", "1:a", "-t", String(dur),
-        "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "160k", piece], { stdio: ["ignore", "ignore", "pipe"] });
+        "-c:v", "libx264", "-preset", NEWSDESK.video.preset, "-crf", String(NEWSDESK.video.crfPiece), "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", `${NEWSDESK.video.audioKbps}k`, piece], { stdio: ["ignore", "ignore", "pipe"] });
     } else {
-      console.log(`  ${i} voice  ${dur.toFixed(1)}s  headline`);
-      const bg = path.join(work, `bg-${i}.mp4`);
-      stillClip(spec.headline, dur, bg, 1.0, 1.12);
-      execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", bg, "-i", slices[i],
+      /*
+       * A VOICE SEGMENT IS AS MANY SHOTS AS ITS LENGTH DEMANDS. This is the fix
+       * for the frozen frame: the picture changes on VISUAL_MAX_SECS, the
+       * narration does not, and the two are no longer the same clock.
+       *
+       * The shot LIST is built first, so a segment asking for three b-roll
+       * shots gets three DIFFERENT clips rather than the same one three times —
+       * which would be a cut to nowhere and worse than not cutting at all.
+       */
+      const lens = shotLengths(dur);
+      const views = [];
+      if (seg.visual === "broll") {
+        const tags = seg.tags || [];
+        /*
+         * NO GLOBAL EXCLUSION, and getting this wrong is what made the shot
+         * maths fail the first time. Excluding every clip already used in the
+         * video starves the later segments, and the fallback then repeats one
+         * clip three times INSIDE a single segment — three cuts to the same
+         * picture, which is worse than never cutting.
+         *
+         * Repeating a clip ACROSS segments, forty seconds apart, is barely
+         * noticeable. Repeating one WITHIN a segment is a visible mistake. So
+         * the whole matching set is fetched, unused clips are preferred, and
+         * distinctness is enforced only where it matters — inside the segment.
+         */
+        const hits = await findClips(db, { tags, limit: 50 });
+        if (!hits.length) {
+          throw new Error(`nothing in the b-roll library matches [${tags.join(", ")}] — add a clip or change the tags rather than shipping the wrong picture`);
+        }
+        const fresh = hits.filter((c) => !usedClipIds.includes(c.id));
+        const pool = [...fresh, ...hits.filter((c) => usedClipIds.includes(c.id))];
+        for (let k = 0; k < lens.length; k++) {
+          const clip = pool[k % pool.length];
+          if (k >= pool.length) console.log(`     (only ${pool.length} clip(s) match [${tags.join(", ")}] — one repeats)`);
+          views.push({ kind: "broll", clip });
+        }
+      } else if (seg.visual === "chart") {
+        lens.forEach((_, k) => views.push({ kind: "chart", crop: k % 2 ? CHART_TIGHT : CHART_WIDE }));
+      } else {
+        for (const _ of lens) views.push({ kind: "headline" });
+      }
+
+      console.log(`  ${i} voice  ${dur.toFixed(1)}s  ${lens.length} shot${lens.length > 1 ? "s" : ""}  ${seg.visual ?? "headline"}` +
+        (seg.visual === "broll" ? `  [${views.map((v) => v.clip.tags[0]).join(", ")}]` : ""));
+
+      const shots = [];
+      for (let k = 0; k < lens.length; k++) {
+        const shot = path.join(work, `shot-${i}-${k}.mp4`);
+        const v = views[k];
+        if (v.kind === "broll") {
+          const local = path.join(".cache", "broll-hf", path.basename(v.clip.storage_path || `${v.clip.id}.mp4`));
+          if (!fs.existsSync(local)) {
+            fs.mkdirSync(path.dirname(local), { recursive: true });
+            fs.writeFileSync(local, Buffer.from(await (await fetch(v.clip.url)).arrayBuffer()));
+          }
+          brollClip(local, lens[k], shot);
+          if (!usedClipIds.includes(v.clip.id)) usedClipIds.push(v.clip.id);
+          await markUsed(db, v.clip.id);
+        } else if (v.kind === "chart") {
+          chartClip(spec.headline, lens[k], shot, v.crop);
+        } else {
+          // Alternate the push direction shot to shot so two headline shots in a
+          // row are not the same move twice.
+          headlineClip(spec.headline, lens[k], shot, k % 2 ? 1.10 : 1.0, k % 2 ? 1.0 : 1.10);
+        }
+        shots.push(shot);
+      }
+
+      /*
+       * The shots are joined FIRST, silent, then the segment's audio slice is
+       * laid over the join. Muxing audio into each shot instead would put a
+       * container boundary in the middle of a spoken word at every cut.
+       */
+      const vlist = path.join(work, `shots-${i}.txt`);
+      fs.writeFileSync(vlist, shots.map((sp) => `file '${path.resolve(sp)}'`).join("\n"));
+      const joined = path.join(work, `shots-${i}.mp4`);
+      execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", vlist,
+        "-c", "copy", joined], { stdio: ["ignore", "ignore", "pipe"] });
+
+      execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", joined, "-i", slices[i],
         "-map", "0:v", "-map", "1:a", "-t", String(dur),
-        "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
-        "-c:a", "aac", "-b:a", "160k", piece], { stdio: ["ignore", "ignore", "pipe"] });
+        "-c:v", "libx264", "-preset", NEWSDESK.video.preset, "-crf", String(NEWSDESK.video.crfPiece), "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", `${NEWSDESK.video.audioKbps}k`, piece], { stdio: ["ignore", "ignore", "pipe"] });
     }
     pieces.push(piece);
   }
@@ -269,14 +433,63 @@ function stillClip(image, seconds, out, zoomFrom = 1.0, zoomTo = 1.08) {
   fs.writeFileSync(list, pieces.map((p) => `file '${path.resolve(p)}'`).join("\n"));
   const assembled = path.join(work, "assembled.mp4");
   execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", list,
-    "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", assembled], { stdio: ["ignore", "ignore", "pipe"] });
+    "-c:v", "libx264", "-preset", NEWSDESK.video.preset, "-crf", String(NEWSDESK.video.crfFinal), "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", `${NEWSDESK.video.audioKbps}k`, "-movflags", "+faststart", assembled], { stdio: ["ignore", "ignore", "pipe"] });
 
   fs.copyFileSync(assembled, out);
+
+  /* ---- 5. word timings ON THE ASSEMBLED TIMELINE ------------------------ */
+  /*
+   * WITHOUT THIS THE CAPTIONS PASS SILENTLY DOES NOTHING, and that is not a
+   * theory — it happened on the first News Desk and shipped an uncaptioned
+   * video. Three separate reasons, none of which raises an error:
+   *
+   *   1. add_captions.js reads `.words` off an OBJECT. narration.words.json is
+   *      a bare ARRAY, so it sees zero words, burns nothing, and exits 0.
+   *   2. The HeyGen list carries <start> / <end> marker tokens that
+   *      add_captions.js does not filter. They render as literal on-screen text.
+   *   3. THE TIMINGS ARE ON THE WRONG CLOCK. The narration is continuous; the
+   *      video is its segments cut out and butted together, so every pause
+   *      BETWEEN segments exists in the timings and not in the video. Captions
+   *      driven off the raw narration drift progressively late — about 2.5s by
+   *      the end of a 90-second cut.
+   *
+   * Offsets come from PROBING the finished pieces rather than from
+   * (end - start + 0.12), because ffmpeg rounds each piece to a whole frame and
+   * that rounding is what the concat actually used.
+   */
+  const pieceDur = (f) => {
+    const err = spawnSync(FF, ["-hide_banner", "-i", f], { encoding: "utf8" }).stderr || "";
+    const m = err.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
+    return m ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : 0;
+  };
+  let acc = 0;
+  const offsets = pieces.map((pth) => { const o = acc; acc += pieceDur(pth); return o; });
+
+  const mapped = [];
+  for (const w of words) {
+    if (!w.word || /^<.*>$/.test(w.word)) continue;
+    let si = times.findIndex((t) => w.start >= t.start - 0.001 && w.start <= t.end + 0.2);
+    if (si === -1) {                       // inside a dropped gap — clamp forward
+      si = times.findIndex((t) => t.start > w.start);
+      if (si === -1) si = times.length - 1;
+    }
+    const base = offsets[si] ?? 0;
+    const lim = pieceDur(pieces[si]);
+    mapped.push({
+      word: w.word,
+      start: Number((base + Math.min(Math.max(0, w.start - times[si].start), lim)).toFixed(3)),
+      end: Number((base + Math.min(Math.max(0, w.end - times[si].start), lim)).toFixed(3)),
+    });
+  }
+  const wordsOut = out.replace(/\.mp4$/i, "") + ".words.json";
+  fs.writeFileSync(wordsOut, JSON.stringify({ words: mapped }, null, 2));
+
   const mb = (p) => (fs.statSync(p).size / 1048576).toFixed(2);
   console.log(`\n5/5  done  ${out}  ${mb(out)}MB`);
-  console.log(`     spent ~$${spent.toFixed(2)} on avatar\n`);
-  console.log(`Next: captions and music, using the tools the avatar pipeline already has:`);
-  console.log(`  node scripts/add_captions.js ${out} --words <words.json>`);
+  console.log(`     spent ~$${spent.toFixed(2)} on avatar`);
+  console.log(`     ${mapped.length} word timings rebased onto the ${acc.toFixed(1)}s cut -> ${wordsOut}\n`);
+  console.log(`Next:`);
+  console.log(`  node scripts/add_captions.js ${out} --words ${wordsOut}`);
   console.log(`  node scripts/add_music.js <captioned.mp4> --track "..."\n`);
 })().catch((e) => { console.error(`\n${e.message}\n`); process.exit(1); });
