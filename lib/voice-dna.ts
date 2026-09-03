@@ -294,6 +294,29 @@ barber AND an instructor, not from outside it. This is the same shape as his Q1
 answer about AI: a technological conviction his peers reject, argued from
 experience rather than hype.
 
+ON SMART GLASSES — a prediction, not a warning
+Meta's AI glasses will take the barber and cosmetology industry by storm and
+become the normal thing to do. Stated 2026-09-02 on the CBS report about Meta
+fixing the recording-indicator tamper.
+
+THE REASON IS DEMONSTRATION, and it is the same argument as his Q1 answer about
+AI. Hands-free recording is the number one way this trade will be able to
+showcase and demonstrate what it does, which in turn produces the content that
+gets posted — and "whosoever is going to be the loudest in the room is going to
+be the ones being seen." You cannot hold a phone and fade somebody at the same
+time, so until now the work only got filmed when a second person stood there
+filming it.
+
+TWO OBLIGATIONS COME WITH IT, and they are his, not a compliance note bolted on:
+tell the client explicitly that you are recording, every time; and if you own
+the shop, have a rule about it before it becomes a problem.
+
+WRITE THIS AS OPPORTUNITY, NOT AS ALARM. A first draft framed the story as a
+privacy threat to the room — clients confide in that chair, a stranger might be
+wearing a camera — and he corrected it. The privacy fix is what makes the thing
+USABLE in a shop; it is the setup, not the point. He is consistently
+pro-technology and the alarmed register is not his.
+
 ON ACCOUNTABILITY WHEN A CHILD IS HARMED
 "it is my belief that people men and women should be held accountable for
 unaliving children" — his words, 2026-09-02, on the criminal-responsibility

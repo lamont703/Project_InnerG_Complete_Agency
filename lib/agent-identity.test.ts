@@ -221,6 +221,15 @@ describe("his own guardrails survive editing", () => {
     expect(BELIEFS).toMatch(/instructor/i);
   });
 
+  it("keeps the smart-glasses position framed as opportunity, not alarm", () => {
+    expect(BELIEFS).toMatch(/take the barber and cosmetology industry by storm/i);
+    // the two obligations are his, and a draft that drops them misses the point
+    expect(BELIEFS).toMatch(/tell the client explicitly/i);
+    expect(BELIEFS).toMatch(/have a rule about it/i);
+    // and the register correction that produced it
+    expect(BELIEFS).toMatch(/OPPORTUNITY, NOT AS ALARM/);
+  });
+
   it("marks which beliefs were spoken and which were only endorsed", () => {
     expect(BELIEFS).toMatch(/endorsed, not recorded/i);
   });

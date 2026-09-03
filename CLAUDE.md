@@ -43,7 +43,7 @@ If a clone doesn't have the hooks active, run:
 
 ## Video formats — say the name, not the machinery
 
-**Four formats. Call them by name. `lib/video-type.js` is the registry and the
+**Five formats. Call them by name. `lib/video-type.js` is the registry and the
 one place that prices them.**
 
 | id | say | what it is | length | cost |
@@ -52,6 +52,7 @@ one place that prices them.**
 | `figure` | **Data Reel** | one number from our own data, animated | 9s | free |
 | `hottake` | **Hot Take** | opinion on an evergreen topic, one continuous avatar take | 30s | ~$1.16 |
 | `newsdesk` | **News Desk** | reaction to a headline that actually broke | 90s | ~$1.31 |
+| `reaction` | **Reaction** | cutting between somebody else's clip and our commentary | 60s | ~$1.12 |
 
 ### Why the names changed
 
@@ -77,8 +78,16 @@ is not a second vocabulary to keep alive.
   and b-roll. **It does not render from a queue card**, and `render_queued.js`
   refuses it explicitly rather than falling through and buying a Hot Take.
 
-`newsdesk` is therefore excluded from `AGENT_VIDEO_TYPE_IDS`: the research agent
-must not be able to queue a card no button can render. Adding a format means
+`newsdesk` AND `reaction` are therefore excluded from `AGENT_VIDEO_TYPE_IDS`:
+both render from a hand-written spec carrying source files and in/out points,
+none of which exists on a queue card, so the research agent must not be able to
+queue an idea no button can render.
+
+THE EMAIL AGENT'S SET IS THE INVERSE, and the two are easy to confuse.
+`AGENT_VIDEO_TYPE_IDS` is what can be queued as a CARD. The email agent writes
+SPECS, so its spec formats are exactly the ones excluded there — see
+`SPEC_PROFILES` in lib/video-agent/interpret.ts, which reads them off `PROFILES`
+rather than restating the list. Adding a format means
 adding it to `VIDEO_TYPES`, and only moving it into the agent's list once it can
 render from a card.
 
@@ -135,6 +144,51 @@ reads `.words`, it carries `<start>`/`<end>` marker tokens, and its timings are
 on the narration clock, which still contains the pauses between segments that
 the cut removed. `publish_news_short.js` refuses to run without the rebased
 file for exactly this reason.
+
+## Requesting a video by email — what it will and will not do
+
+**Mail claudedawg113@gmail.com. It replies with a spec, a cost and a six-digit
+code, and renders nothing until that code comes back.** The allowlist is a spam
+filter; the code is the consent. A From: header is spoofable and every approval
+spends real money.
+
+`app/api/cron/video-agent/route.ts` polls and proposes. `scripts/video_agent_worker.js`
+runs locally and is the only thing that spends — it never passes `--over-budget`.
+
+### What each format needs from the email
+
+| format | needs |
+|---|---|
+| `hottake` | nothing but the argument |
+| `newsdesk` | the article screenshot attached |
+| `reaction` | the clip attached, or a Drive link |
+| `lookbook` | a 2x3 grid image attached, plus six style names |
+| `figure` | **the figure itself, stated in the email** |
+
+### Data reels are deliberately assisted, not autonomous
+
+**The agent will not go and find a figure.** Asking for "data reels on data we
+have not shared yet" gets a refusal that explains why, and that is the intended
+behaviour rather than a gap to close.
+
+Choosing a figure means checking what has already run, and checking that a
+column means what its name suggests. Both matter: `continuing_education_flag`
+splits 107,677 / 324,151 and nothing states whether it means required,
+completed or outstanding — see `scripts/shorts/licence-cards.js` — and school
+licences are stored twice in the raw lake, so a row count says 514 schools where
+there are 257. Either of those would have gone on screen under a source line.
+
+So: state the figure in the email, or ask in a live session and do the analysis
+properly. The rule the prompt enforces is that **numbers come from verified
+queries, words come from the model** — never the other way round.
+
+### Two more things a live session is needed for
+
+Generating a Lookbook grid from a concept, and generating b-roll a spec needs
+that `broll_assets` does not already hold. Higgsfield is an assistant tool, not
+a library — no API key exists in this repo. The worker pre-flights both before
+claiming a job, because `render_news_short.js` buys the avatar in segment order
+and would otherwise pay for a render that dies at a b-roll segment.
 
 ## B-roll — search the library before you generate anything
 
