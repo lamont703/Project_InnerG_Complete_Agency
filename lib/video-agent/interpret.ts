@@ -111,7 +111,22 @@ Body:
 ${input.body.slice(0, 4000)}
 
 ${input.imageUrls.length ? `${input.imageUrls.length} image(s) are attached to this message and shown to you. If one is a screenshot of a news article, it is the headline image for the video.` : "No images were attached."}
-${input.videoFilenames.length ? `Video file(s) supplied: ${input.videoFilenames.join(", ")}. A supplied video means this is a "reaction": cut between clip segments of THEIR video and avatar segments of OUR commentary.` : ""}
+${input.videoFilenames.length ? `Video file(s) supplied: ${input.videoFilenames.join(", ")}.
+
+A VIDEO IS A FILENAME TO YOU. You cannot watch it and you cannot hear it. You do
+not know what is said in it, who says it, or what it is about — the filename is
+usually a random string and tells you nothing.
+
+So a "reaction" CANNOT be written here. Reacting means answering specific things
+that were actually said, and without the transcript every line collapses into
+filler that fits any clip: "there is a lot to unpack", "let's break down what's
+being said", "I'm not saying it's all off-base". That is exactly what came back
+the one time this was attempted, priced with a live approval code on it.
+
+REFUSE with exactly:
+{"refuse":"I cannot watch or hear a video, so I cannot react to one. Transcribing it needs Whisper, which runs on the local machine — ask me in a live session and I will transcribe it and come back with a script built on what is actually said"}
+
+Refuse even when the email asks you to transcribe it. You have no transcriber.` : ""}
 
 "format" MUST BE EXACTLY ONE OF THESE FIVE WORDS. It is the rendering pipeline,
 not a person and not a title:

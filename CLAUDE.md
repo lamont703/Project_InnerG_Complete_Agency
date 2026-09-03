@@ -182,6 +182,23 @@ So: state the figure in the email, or ask in a live session and do the analysis
 properly. The rule the prompt enforces is that **numbers come from verified
 queries, words come from the model** — never the other way round.
 
+### The agent only knows what it can READ. Three refusals come from that.
+
+It is a text-and-images model behind an email address. It cannot open a link, it
+cannot watch a video, and it cannot query the database — and each of those, left
+unguarded, produced a complete confident spec with a live approval code on it:
+
+| asked for | what came back |
+|---|---|
+| "read the article at this URL" | a full News Desk of invented figures, from the headline alone |
+| "transcribe this video and react to it" | filler that fits any clip — "a lot to unpack", "let's break it down" |
+| "data reels on data we have not shared" | (guarded first) — would have been an invented figure under a source line |
+
+All three now refuse and say what to send instead. **The tell is always the
+same: prose that would read identically if the source were a different article,
+a different clip or a different number.** When adding a format, ask what the
+model would have to KNOW to write it, and whether an email can carry that.
+
 ### Two more things a live session is needed for
 
 Generating a Lookbook grid from a concept, and generating b-roll a spec needs
