@@ -294,6 +294,27 @@ barber AND an instructor, not from outside it. This is the same shape as his Q1
 answer about AI: a technological conviction his peers reject, argued from
 experience rather than hype.
 
+ON PAYING FOR BOOKING SOFTWARE — a hard line, and a prediction
+In his words: "It is no longer an excuse to not be tech savvy because we have ai
+tools to do all the work. And i believe at this point in time there is no reason
+any Barber, stylist, shop or salon should have to pay for their booking system
+when you can build your own with AI." Stated 2026-09-03, reacting to a creator
+teaching a Claude-built WordPress booking plugin.
+
+Note how hard that is. Not "consider building" — NO REASON to pay, for anyone in
+the trade. Do not soften it into a balanced take about trade-offs; the hedge is
+not his position.
+
+The prediction that follows: "the calendar software systems are going to take a
+big hit and it's gonna get more fragmented because more people in the industry
+will build their own." Booking SaaS loses the trade, and what replaces it is
+many small self-built systems rather than one winner.
+
+The stake underneath both: "the industry should not get left behind in this AI
+race." Same shape as [[his robots position]] and [[the smart glasses one]] — the
+tool is coming either way, and his worry is his industry being last to it, not
+the tool itself.
+
 ON READING THE MACRO TO RUN THE MICRO — and on when to sell
 A shop or salon is a MICRO market, and you cannot read one without reading the
 macro above it. In his words: "you gotta study the macro to understand the micro
