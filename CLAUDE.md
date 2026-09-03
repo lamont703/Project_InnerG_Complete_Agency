@@ -152,8 +152,31 @@ code, and renders nothing until that code comes back.** The allowlist is a spam
 filter; the code is the consent. A From: header is spoofable and every approval
 spends real money.
 
-`app/api/cron/video-agent/route.ts` polls and proposes. `scripts/video_agent_worker.js`
-runs locally and is the only thing that spends — it never passes `--over-budget`.
+### Two halves, and which half does what
+
+**Vercel does intake and consent. THIS MACHINE writes the script and renders.**
+
+| where | what | spends? |
+|---|---|---|
+| `app/api/cron/video-agent/route.ts` (Vercel, */5) | reads the mailbox, creates rows, matches approval codes | no |
+| `scripts/video_agent_propose.mjs` (local) | transcribes the clip, fetches the article, writes the spec, emails the proposal + code | no |
+| `scripts/video_agent_worker.js` (local) | renders what was approved | YES — and it never passes `--over-budget` |
+
+`scripts/video_agent_tick.sh` runs the two local halves in that order, on launchd
+every 300s (`scripts/install_video_agent_launchd.sh` installs it; **re-run that
+after an nvm node upgrade**, since launchd loads no shell profile and the path is
+pinned absolute).
+
+**Propose is local because writing a script means READING the source.** On Vercel
+there is no Whisper, no ffmpeg, and it had a filename and a URL string — so three
+separate times it filled that gap with prose that fit any source, priced, with a
+live approval code. The cost of moving it is latency: nothing is proposed while
+this Mac is asleep. That was chosen knowingly — a late proposal is recoverable,
+one built on a source nobody read is not.
+
+**Keep the two local halves as separate processes.** One reads and sends and
+never spends; the other spends and never interprets. Merging them lets a single
+bug both invent a job and pay for it.
 
 ### What each format needs from the email
 
@@ -194,7 +217,17 @@ unguarded, produced a complete confident spec with a live approval code on it:
 | "transcribe this video and react to it" | filler that fits any clip — "a lot to unpack", "let's break it down" |
 | "data reels on data we have not shared" | (guarded first) — would have been an invented figure under a source line |
 
-All three now refuse and say what to send instead. **The tell is always the
+Two of those are now SOLVED rather than refused, because propose moved to the
+machine that can read: a linked article is fetched and a supplied clip is
+transcribed, and the text goes into the prompt. Data Reels stay refused — that
+one needs judgment about what a column means, not a reader.
+
+**A missing transcript or article still refuses.** An empty field means the read
+was attempted and FAILED; it must never be read as permission to improvise.
+
+**A transcript carries no speaker identity.** It is words on a page — write
+"they" or "the speaker", never "he" or "she" unless the email says so. The first
+grounded reaction called a woman "he" four times. **The tell is always the
 same: prose that would read identically if the source were a different article,
 a different clip or a different number.** When adding a format, ask what the
 model would have to KNOW to write it, and whether an email can carry that.

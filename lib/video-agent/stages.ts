@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import * as gmail from "@/lib/gmail";
-import { PROFILES } from "@/lib/newsdesk-config";
+import { WORDS_PER_MIN, AVATAR_PER_SEC, PROFILES } from "@/lib/newsdesk-config";
 import { missingMaterial } from "@/lib/video-agent/materials";
 import { interpret, NoBriefError, type InterpretInput } from "./interpret";
 import { geminiInterpreter } from "./gemini";
@@ -58,7 +58,15 @@ export interface StageResult { ok: boolean; note: string; revision?: boolean }
  * attention and teaches them the codes do not mean anything.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function proposeForRow(db: any, row: any, opts: { quietOnNoBrief?: boolean } = {}): Promise<StageResult> {
+export async function proposeForRow(
+  db: any,
+  row: any,
+  opts: {
+    quietOnNoBrief?: boolean;
+    clipTranscript?: InterpretInput["clipTranscript"];
+    article?: InterpretInput["article"];
+  } = {},
+): Promise<StageResult> {
   const attachments = (row.attachments ?? []) as Array<Record<string, unknown>>;
   const input: InterpretInput = {
     subject: row.subject ?? "",
@@ -66,11 +74,46 @@ export async function proposeForRow(db: any, row: any, opts: { quietOnNoBrief?: 
     imageUrls: attachments.filter((a) => /^image\//i.test(String(a.mimeType)) && a.url).map((a) => String(a.url)),
     videoFilenames: attachments.filter((a) => /^video\//i.test(String(a.mimeType))).map((a) => String(a.filename)),
     availableTags: await libraryTags(db),
+    /*
+     * Supplied by the LOCAL caller, which is the only one that can read them.
+     * proposeForRow itself stays pure: it does not know how a transcript is
+     * made, only that a missing one means the read failed and the prompt must
+     * refuse rather than improvise.
+     */
+    clipTranscript: opts.clipTranscript ?? null,
+    article: opts.article ?? null,
   };
 
-  let interpreted;
+  let interpreted!: Awaited<ReturnType<typeof interpret>>;
   try {
-    interpreted = await interpret(input, voiceSummary(), geminiInterpreter());
+    /*
+     * ONE RETRY WHEN IT OVERSHOOTS THE CAP, and only for that.
+     *
+     * The budget is a word count the model has to hit while writing sentences,
+     * and missing it by a line is the ordinary failure — the first grounded
+     * reaction came in 21 words long. Refusing outright there is technically
+     * correct and practically useless: it asks a person to re-send an email to
+     * fix an arithmetic problem the model can fix itself, knowing exactly how
+     * much to move and that moving it costs nothing.
+     *
+     * This is NOT silent trimming. It re-asks with the overage stated, the new
+     * spec is priced the same way, and a second overshoot refuses for real.
+     * Nothing renders without a code either way.
+     */
+    for (let attempt = 0; attempt < 2; attempt++) {
+      interpreted = await interpret(input, voiceSummary(), geminiInterpreter());
+      if (interpreted.request.kind !== "spec") break;
+      const prof = PROFILES[interpreted.request.spec.profile as keyof typeof PROFILES];
+      const over = interpreted.estimate.usd - prof.budgetUsd;
+      if (over <= 0 || attempt === 1) break;
+      const words = Math.ceil((over / AVATAR_PER_SEC / 60) * WORDS_PER_MIN);
+      input.revisionNote =
+        `That draft was $${interpreted.estimate.usd.toFixed(2)}, over the $${prof.budgetUsd} cap. ` +
+        `Move about ${words} words OUT of the avatar segments and INTO voice-over-b-roll segments. ` +
+        `Keep every argument and every quote — it is one narration either way, so moving a line ` +
+        `off camera changes nothing about how it sounds. Do NOT shorten the video and do NOT ` +
+        `write a more general script; move the words.`;
+    }
   } catch (err) {
     /*
      * AN EMAIL THAT IS NOT A REQUEST STILL GETS AN ANSWER. Silence is the worst

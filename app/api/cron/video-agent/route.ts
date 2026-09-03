@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { proposeForRow, consentForRow } from "@/lib/video-agent/stages";
+import { consentForRow } from "@/lib/video-agent/stages";
 
 // lib/gmail.js is CommonJS so the local renderer scripts can use it too — see
 // its header. Next resolves it fine; the `require` shape is what keeps one copy.
@@ -216,22 +216,24 @@ export async function GET(req: Request) {
             if (verdict.ok) result.approved++;
             else if (verdict.revision) {
               /*
-               * A reply that is not the code may still be a REVISION. Re-read it
-               * as a brief: if it is one, it supersedes the standing proposal
-               * and gets its own code, which also retires the old one. If it is
-               * not — "thanks", "ok" — proposeForRow stays quiet and this job is
-               * left exactly as it was, code still live.
+               * A reply that is not the code may still be a REVISION. It cannot
+               * be interpreted here any more — propose is local — so the row goes
+               * back to 'received' carrying the new text and the worker picks it
+               * up. A reply that turns out to be "thanks" costs one wasted
+               * interpret and lands back on proposed, which is far cheaper than
+               * the alternative of silently dropping a real revision.
                */
-              const again = await proposeForRow(
-                db,
-                { ...job, body_text: body, gmail_message_id: msg.id,
-                  processed_message_ids: [...(job.processed_message_ids ?? []), msg.id] },
-                { quietOnNoBrief: true },
-              );
-              if (again.ok) result.proposed++;
               await db.from("video_requests").update({
+                status: "received",
+                body_text: body,
+                gmail_message_id: msg.id,
+                consent_nonce: null,
+                consent_nonce_expires_at: null,
+                proposed_spec: null,
+                estimated_cost_usd: null,
                 processed_message_ids: [...(job.processed_message_ids ?? []), msg.id],
               }).eq("id", job.id);
+              result.reopened++;
             } else result.refused++;
           } else if (job && ["rejected", "expired", "failed"].includes(job.status)) {
             /*
@@ -412,24 +414,24 @@ export async function GET(req: Request) {
    * rows in a state nobody can read. The cron runs every five minutes, so a
    * backlog drains on its own.
    */
-  try {
-    const { data: pending } = await db
-      .from("video_requests")
-      .select("*")
-      .eq("status", "received")
-      .order("received_at", { ascending: true })
-      .limit(1);
-
-    if (pending?.length) {
-      const verdict = await proposeForRow(db, pending[0]);
-      if (verdict.ok) result.proposed++;
-      else result.refused++;
-      result.errors.push(...(verdict.ok ? [] : [`propose: ${verdict.note}`]));
-    }
-  } catch (err) {
-    // A propose failure must not lose the intake work already committed above.
-    result.errors.push(`propose: ${(err as Error).message}`);
-  }
+  /*
+   * PROPOSING MOVED OFF THIS FUNCTION, ON PURPOSE.
+   *
+   * Writing the script means READING the source — transcribing a supplied clip,
+   * fetching a linked article. None of that exists here: no Whisper, no ffmpeg,
+   * and a serverless function is the wrong place for either. When propose ran
+   * here it had a filename and a URL string, and three separate times it filled
+   * that gap with prose that fit any source, priced, with a live approval code.
+   *
+   * scripts/video_agent_worker.js does it now, on the machine that can actually
+   * read things. This route is intake and consent only: it moves mail into the
+   * table and matches approval codes, both of which need nothing but the API.
+   *
+   * The cost is latency. Rows sit at 'received' until the worker's next run
+   * rather than being proposed within five minutes, and nothing happens at all
+   * while that machine is asleep. That was chosen knowingly: a proposal that
+   * arrives late is recoverable, and one built on a source nobody read is not.
+   */
 
   return NextResponse.json({ ok: true, ...result });
 }

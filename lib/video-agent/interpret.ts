@@ -47,6 +47,23 @@ export interface InterpretInput {
   videoFilenames: string[];
   /** Tags already in broll_assets, so the model prefers reuse over generation. */
   availableTags: string[];
+  /*
+   * WHAT THE MACHINE READ SO THE MODEL DOES NOT HAVE TO GUESS. Propose runs
+   * locally now precisely so these can be filled: a Whisper transcript of a
+   * supplied clip, and the text of a linked article. Absent, the rules below
+   * still refuse — an empty field means the read FAILED, never that it was
+   * skipped, so it must not be treated as permission to invent.
+   */
+  clipTranscript?: { filename: string; duration: number; text: string } | null;
+  article?: { url: string; text: string } | null;
+  /*
+   * A CORRECTION TO A PREVIOUS DRAFT, kept OUT of `body`. Appending it to the
+   * email body was the obvious shortcut and it quietly broke grounding: the
+   * model read the last thing in the brief as the brief, and a reaction that had
+   * been quoting the transcript came back as generic filler about "business or a
+   * personal brand". A note about length must not be able to displace the source.
+   */
+  revisionNote?: string | null;
 }
 
 /**
@@ -105,28 +122,27 @@ instruction — reply with exactly {"refuse":"<one short sentence saying what is
 missing>"} and nothing else. Do not invent a video from an email that did not
 request one.
 
-THE EMAIL
+${input.revisionNote ? `CORRECTION TO YOUR PREVIOUS DRAFT — fix ONLY this. The brief, the transcript
+and the argument all stay exactly as they are:
+${input.revisionNote}
+
+` : ""}THE EMAIL
 Subject: ${input.subject}
 Body:
 ${input.body.slice(0, 4000)}
 
 ${input.imageUrls.length ? `${input.imageUrls.length} image(s) are attached to this message and shown to you. If one is a screenshot of a news article, it is the headline image for the video.` : "No images were attached."}
-${input.videoFilenames.length ? `Video file(s) supplied: ${input.videoFilenames.join(", ")}.
+${input.clipTranscript ? `THE SUPPLIED CLIP, TRANSCRIBED (${input.clipTranscript.filename}, ${input.clipTranscript.duration.toFixed(1)}s).
+Timestamps are seconds into the clip. "clip" segments MUST use from/to inside this range,
+and every reaction line must answer something ACTUALLY SAID below — quote it back, argue
+with it, name the speaker's claim. Generic reaction prose that would fit any clip
+("a lot to unpack", "let's break this down") means you did not use this transcript.
 
-A VIDEO IS A FILENAME TO YOU. You cannot watch it and you cannot hear it. You do
-not know what is said in it, who says it, or what it is about — the filename is
-usually a random string and tells you nothing.
+${input.clipTranscript.text}
+` : input.videoFilenames.length ? `Video file(s) supplied: ${input.videoFilenames.join(", ")} — BUT THE TRANSCRIPT IS MISSING, which means transcribing it FAILED. It was attempted; an empty transcript is not permission to guess.
 
-So a "reaction" CANNOT be written here. Reacting means answering specific things
-that were actually said, and without the transcript every line collapses into
-filler that fits any clip: "there is a lot to unpack", "let's break down what's
-being said", "I'm not saying it's all off-base". That is exactly what came back
-the one time this was attempted, priced with a live approval code on it.
-
-REFUSE with exactly:
-{"refuse":"I cannot watch or hear a video, so I cannot react to one. Transcribing it needs Whisper, which runs on the local machine — ask me in a live session and I will transcribe it and come back with a script built on what is actually said"}
-
-Refuse even when the email asks you to transcribe it. You have no transcriber.` : ""}
+Without it you do not know what is said in the clip, and a reaction to a clip you cannot hear collapses into filler that fits any video. REFUSE with exactly:
+{"refuse":"I could not transcribe that clip, so I will not write a reaction to it. Re-send it, or ask me in a live session"}` : ""}
 
 "format" MUST BE EXACTLY ONE OF THESE FIVE WORDS. It is the rendering pipeline,
 not a person and not a title:
@@ -177,19 +193,30 @@ RULES
   ${input.availableTags.slice(0, 60).join(", ")}
 - Open by naming the audience. Close on a question and "Tell me in the comments".
 
-- YOU CANNOT OPEN LINKS, AND YOU MUST NOT WRITE AS IF YOU DID. Every factual
-  claim — a number, a rate, a date, a quote, what somebody said — has to come
-  from the EMAIL TEXT or from an image you can actually SEE. A URL in the email
-  is a string; you have not read what is behind it.
+- A TRANSCRIPT CARRIES NO SPEAKER IDENTITY. It is words on a page: it does not
+  tell you whether the person speaking is a man or a woman, and their name is
+  not in it either. Write "they", "the speaker", or "whoever made this" — NEVER
+  "he" or "she" unless the EMAIL says so.
 
-  If the email asks you to read a linked article, or if the video would depend
-  on contents you cannot see, REFUSE with exactly:
-  {"refuse":"I cannot open links. Paste the article text into the email, or attach a screenshot that shows the part that matters — a headline card alone is not the article"}
+  This is not pedantry, it is an accuracy rule with a real cost. The first
+  reaction written from a transcript called the speaker "he" in four places. She
+  is a woman, and the whole video is a response to her — so every one of those
+  was a factual error, in his voice, on his channel, about a real person whose
+  handle is visible on screen in the cut-in.
 
-  This has already gone wrong: a request said "read the article at this URL" with
-  a headline screenshot attached, and a full script of invented figures came back
-  priced and ready to approve. A signature link is not this — refuse only when
-  the CONTENT of the video would rest on a page you cannot read.
+- EVERY FACT COMES FROM SOMETHING YOU WERE GIVEN. A number, a rate, a date, a
+  quote, what somebody said — it comes from the email text, an image you can
+  see, the article text below, or the clip transcript above. Never from memory
+  and never from what a headline implies.
+
+  ${input.article ? `THE LINKED ARTICLE, FETCHED (${input.article.url}):\n${input.article.text}` :
+    "If the video would rest on a page whose text is NOT below, refuse with exactly:\n" +
+    '{"refuse":"I could not read the page you linked. Paste the article text into the email, or attach a screenshot showing the part that matters"}'}
+
+  This has gone wrong before: "read the article at this URL" with only a headline
+  screenshot produced a full script of invented figures, priced and ready to
+  approve. A signature link is not a source; refuse only when the CONTENT would
+  rest on something unread.
 SHAPE DEPENDS ON THE FORMAT.
 
 For figure, output NO segments. Output instead:
