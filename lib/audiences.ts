@@ -157,7 +157,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     ctaLabel: "Create my free account",
     agentBrief:
       "You are talking to a CUSTOMER looking to book a barber or salon service — they are not in the trade. They are not a student, not a licensee and not a shop owner. Never pitch listing claims, verified badges, Google Business Profile, exam prep, kit lists or pass rates; all of those are for people in the industry and are noise to this person. Help them find somewhere good near them, understand what a service involves, and know where their booking request stands.",
-    // No sequence exists for this audience. A track name here would enrol them
+    // No sequence exists for this audience. A track name here would enroll them
     // in student or owner emails, which is worse than sending nothing.
     lifecycleTrack: null,
     // There is no licence journey to collect — they are not getting licensed.

@@ -171,7 +171,7 @@ export default function CaliforniaNailTechnicianLicensePage() {
               <strong className="font-bold">There is no crossover into cosmetology.</strong> The
               crossover course runs between barbering and cosmetology only. Deciding later that you
               want hair means the full 1,000-hour cosmetology programme, not a top-up on your{" "}
-              {HOURS} &mdash; which is worth knowing before you enrol rather than after.
+              {HOURS} &mdash; which is worth knowing before you enroll rather than after.
             </p>
           </div>
         </section>

@@ -33,6 +33,18 @@ export interface PlatformSeries {
   platform: Platform;
   label: string;
   metricKind: MetricKind;
+  /**
+   * Whether this series counts CONTENT or an ACCOUNT.
+   *
+   * "per_post" series (youtube, tiktok, instagram) are lifetime views of
+   * individual posts, filed at the publish date. They are comparable to one
+   * another and they are what the combined line adds up.
+   *
+   * "account" series (gbp, google) are whole-profile or whole-site impressions
+   * per day. They are a different quantity entirely and are NEVER summed with
+   * content reach — doing so was the bug that hid YouTube.
+   */
+  scope: "per_post" | "account";
   /** Null where the platform reported nothing that period — drawn as a gap. */
   points: (number | null)[];
   total: number;
@@ -160,6 +172,14 @@ export async function fetchContentInsights(
   const cumulativePlatforms = new Set<Platform>();
   for (const r of rows) if (r.is_cumulative) cumulativePlatforms.add(r.platform);
 
+  /*
+   * A platform is per-post if any of its rows carries a post id. gbp and
+   * google report for the whole location or the whole site, so their rows have
+   * an empty external_post_id and they can never join the content total.
+   */
+  const perPostPlatforms = new Set<Platform>();
+  for (const r of rows) if (r.external_post_id) perPostPlatforms.add(r.platform);
+
   const platforms = [...new Set([
     ...usable.map((r) => r.platform),
     ...reasons.keys(),
@@ -187,6 +207,7 @@ export async function fetchContentInsights(
       metricKind: kind,
       points,
       total,
+      scope: perPostPlatforms.has(p) ? "per_post" : "account",
       unavailableReason: total === 0 ? reasons.get(p) : undefined,
     });
   }
@@ -194,13 +215,19 @@ export async function fetchContentInsights(
   series.sort((a, b) => b.total - a.total);
 
   /*
-   * THE AGGREGATE DELIBERATELY EXCLUDES GOOGLE SEARCH. It counts the whole
-   * site, not the content this publisher posted, and at ~9,000 impressions a
-   * day against a few hundred views it would BE the total line — every social
-   * platform would flatten onto the axis and the chart would answer a question
-   * nobody asked. It stays available as its own toggle.
+   * THE COMBINED LINE IS CONTENT REACH ONLY — the per-post platforms.
+   *
+   * It used to be "everything except google", which quietly added Google
+   * Business Profile impressions to video views and, worse, compared a YouTube
+   * column holding a few days of activity against TikTok and Instagram columns
+   * holding lifetime totals. That is how a channel doing 395,192 views appeared
+   * to be losing to one doing 10,990.
+   *
+   * gbp and google are still charted, still toggleable, and still excluded
+   * here. A profile impression and a video view are not the same event and
+   * adding them produces a number nobody measured.
    */
-  const contributing = series.filter((s) => s.platform !== "google");
+  const contributing = series.filter((s) => s.scope === "per_post");
   const aggregate = buckets.map((_, i) => {
     const vals = contributing.map((s) => s.points[i]).filter((v): v is number => v !== null);
     return vals.length ? vals.reduce((a, b) => a + b, 0) : null;

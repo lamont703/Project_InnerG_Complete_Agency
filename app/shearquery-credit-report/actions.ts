@@ -106,13 +106,13 @@ export async function enrollShopAction(input: {
 /**
  * Join the waitlist for reporting beyond ShearQuery.
  *
- * DELIBERATELY DOES NOT REQUIRE AN ACCOUNT, unlike enrolment. Enrolling means
+ * DELIBERATELY DOES NOT REQUIRE AN ACCOUNT, unlike enrollment. Enrolling means
  * making written statements about named people, so it must be attributable.
  * Asking to be told when bureau reporting exists is a question, not a claim
  * about anybody — putting a signup wall in front of a question would cost
  * answers and protect nothing.
  *
- * It also does not touch the enrolment tables. A waitlist row must never be
+ * It also does not touch the enrollment tables. A waitlist row must never be
  * mistaken for a shop that is reporting: one is reporting today, the other
  * asked about something that does not exist yet.
  */

@@ -174,7 +174,7 @@ export default function CaliforniaHairstylistLicensePage() {
             There is no crossover course from hairstyling into cosmetology &mdash; that route runs
             between barbering and cosmetology only. Deciding two years in that you want to colour
             means starting the {COS_HOURS.toLocaleString()}-hour programme, not adding to the{" "}
-            {HOURS}. That makes this a decision to get right at enrolment, which is exactly when
+            {HOURS}. That makes this a decision to get right at enrollment, which is exactly when
             nobody explains the licence exists.
           </p>
         </section>

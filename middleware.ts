@@ -44,6 +44,10 @@ const INTERNAL_TOOL_ROUTES = [
     // without a login. The page re-checks isAdmin() itself; this is defence in
     // depth, because this middleware fails OPEN on an auth exception.
     "/admin/credit-report",
+    // Takes an uploaded file and shells out to ffmpeg. The page re-checks
+    // isAdmin() and so does the route — this entry is defence in depth, because
+    // this middleware fails OPEN on an auth exception.
+    "/admin/video-editor",
     "/admin/listing-report",
     // The queue renders customers' names, phones and emails. The page and the
     // route handler both re-check isAdmin() — this entry is defence in depth,
@@ -65,6 +69,23 @@ const INTERNAL_TOOL_ROUTES = [
     // lifetime spend, so the page re-checks isAdmin() itself — this entry is
     // defence in depth, because this middleware fails OPEN on an auth exception.
     "/admin/rebooking",
+    // The school console. THE KIOSK IS DELIBERATELY NOT LISTED: /school/clock
+    // and /api/school/clock are used by students at a door, unauthenticated, by
+    // design — a blanket "/school" prefix here would lock the school out of its
+    // own attendance. Those two are safe open because a clock code can only
+    // clock somebody in or out; it reads no transcript and exposes no other
+    // student.
+    //
+    // These two are a different risk. The roster lists every student and
+    // CREATES people; the ledger can VOID an hour record, which is the most
+    // consequential write in the system. Both pages re-check isAdmin()
+    // themselves, because this middleware fails OPEN on an auth exception and a
+    // write surface cannot rely on it alone.
+    "/school/roster",
+    "/school/students",
+    "/school/validation",
+    "/school/lessons",
+    "/school/instructors",
     // Both research agents render traffic patterns, CRM segment sizes and
     // revenue. Each page re-checks isAdmin() itself — these entries are defence
     // in depth, because this middleware fails OPEN on an auth exception.
@@ -192,6 +213,20 @@ export default async function proxy(request: NextRequest) {
 
     // Bypass auth checks for public API tools to prevent unnecessary Supabase calls and 403 logs
     if (pathname.startsWith('/api/tools/')) {
+        return NextResponse.next()
+    }
+
+    // Video uploads. This route receives a multipart body of arbitrary size and
+    // parses it with request.formData(), and running that through middleware
+    // breaks it: the upload arrives at the handler unparseable and fails with
+    // "Failed to parse body as FormData" — a message that points at the parser
+    // rather than at the thing standing in front of it. Reported from a real
+    // upload against the dev server.
+    //
+    // Nothing is given up. The entry in INTERNAL_TOOL_ROUTES was defence in
+    // depth; the route calls isAdmin() itself before it reads a single byte,
+    // and so does the page.
+    if (pathname === '/api/admin/video-editor') {
         return NextResponse.next()
     }
 

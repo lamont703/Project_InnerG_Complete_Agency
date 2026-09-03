@@ -140,7 +140,7 @@ const SEGMENTS = [
   {
     name: "Barber & cosmetology schools",
     icon: GraduationCap,
-    note: "Barber school and Beauty school are both real categories. Prospective students search the way any local buyer does, and enrolment is worth far more per lead than a haircut.",
+    note: "Barber school and Beauty school are both real categories. Prospective students search the way any local buyer does, and enrollment is worth far more per lead than a haircut.",
   },
   {
     name: "Barber & beauty supply stores",

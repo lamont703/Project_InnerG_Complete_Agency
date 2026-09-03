@@ -67,6 +67,17 @@ const nextConfig = {
 
   experimental: {
     serverActions: {
+      /*
+       * Left at 10mb. Raising it to 1024mb was tried and changed nothing: the
+       * request body is still cut at exactly 10,485,760 bytes, with middleware
+       * bypassed and with formData replaced by a raw stream. The ceiling is in
+       * the Next runtime, not here.
+       *
+       * Recorded because it looks like the obvious dial and it is not. See
+       * app/api/admin/video-editor/route.ts, which now detects the truncation
+       * rather than shipping half a video, and scripts/cut_video.js, which has
+       * no ceiling at all.
+       */
       bodySizeLimit: '10mb',
     },
     // Inline the stylesheet into the HTML instead of linking it.
@@ -99,6 +110,22 @@ const nextConfig = {
     "googleapis",
     "@sparticuz/chromium",
     "puppeteer-core",
+    // Same class of problem, found by breaking the build. @ffmpeg-installer
+    // resolves its per-platform binary with a computed require, so Turbopack
+    // cannot see the target statically and falls back to walking the directory
+    // as a DirAssetReference. That walk reached venv/bin/python — a symlink
+    // pointing outside the project root — and the build died with
+    // "Symlink venv/bin/python is invalid", naming the video-editor route and
+    // saying nothing about ffmpeg.
+    "@ffmpeg-installer/ffmpeg",
+    "fluent-ffmpeg",
+    // ffmpeg-static is an 81MB binary added for the LOCAL editing tools, which
+    // need a modern build: the @ffmpeg-installer binary is a 2018 vintage and
+    // does not have xfade, so it cannot do transitions at all. Listed here for
+    // the same reason as the two above and because the base function already
+    // sits near 230MB against a 250MB limit — an untraced 81MB is exactly the
+    // shape of the 307.94MB rejection. No app route imports it; the scripts do.
+    "ffmpeg-static",
   ],
 
   // Externalizing alone is not enough. Both routes reach the package through a
@@ -109,6 +136,16 @@ const nextConfig = {
   outputFileTracingIncludes: {
     "/api/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
     "/api/events/extract": ["./node_modules/@sparticuz/chromium/bin/**"],
+    // NO ffmpeg ENTRY HERE, deliberately. Including the binary made the
+    // video-editor function 307.94MB against a 250MB limit and the deploy was
+    // rejected — the base function is already around 230MB and ffmpeg is ~78MB
+    // on Linux. Shipping only linux-x64 would not have helped: that is all it
+    // was shipping.
+    //
+    // So the Video Cutter is a LOCAL tool. That is not much of a loss: on the
+    // hosted function the upload caps near 100MB and the run at 300s, which
+    // makes it marginal for anything longer than a clip. The route detects the
+    // missing binary and says so plainly instead of failing with ENOENT.
   },
 
   // The full `puppeteer` package bundles its own ~170MB Chromium download and

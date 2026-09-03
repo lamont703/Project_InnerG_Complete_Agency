@@ -33,6 +33,8 @@ const ffmpeg = require("@ffmpeg-installer/ffmpeg").path;
 const SOURCES = {
   entity: "./entity-cards",
   licence: "./licence-cards",
+  curated: "./curated-source",
+  derived: "./derived-source",
 };
 const which = (() => {
   const i = process.argv.indexOf("--source");

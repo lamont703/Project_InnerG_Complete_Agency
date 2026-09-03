@@ -29,7 +29,7 @@ export const WRITTEN_EXAM_EPISODE: EpisodeVideo = {
   videoId: "jIbLNE7vJ8o",
   title: "How to Pass the Barber & Cosmetology Written Exam (What Schools Don't Teach You)",
   description:
-    "Barbers and cosmetologists pass the hands-on practical exam at roughly 92%, but first-attempt written pass rates in Texas sit near 57%. This episode covers why that gap exists — the language gap between the Milady textbook and the PSI exam, why \"overall pass rate\" hides more than it shows, and the three questions to ask a school before you enrol.",
+    "Barbers and cosmetologists pass the hands-on practical exam at roughly 92%, but first-attempt written pass rates in Texas sit near 57%. This episode covers why that gap exists — the language gap between the Milady textbook and the PSI exam, why \"overall pass rate\" hides more than it shows, and the three questions to ask a school before you enroll.",
   duration: "PT23M30S",
   uploadDate: "2026-08-15",
 };

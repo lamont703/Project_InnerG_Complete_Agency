@@ -8,7 +8,7 @@ import { schoolCompanionHref, type SchoolCompanionInput } from "@/lib/school-com
  * WHY IT REPLACES THE CLAIM CTA. 877 unique visitors reached school pages and 8
  * clicked "Is this your school? Claim your school." That CTA is addressed to a
  * school administrator on a page read almost entirely by students choosing
- * where to enrol — the same audience mismatch that /membership had. Leading
+ * where to enroll — the same audience mismatch that /membership had. Leading
  * with it means the loudest thing on the page speaks to roughly 1% of the
  * people reading it.
  *

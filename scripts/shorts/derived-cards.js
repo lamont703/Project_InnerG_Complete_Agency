@@ -10,7 +10,7 @@
  * times a year — not twice a day. A pipeline that publishes on a schedule
  * cannot be fed by an event that happens quarterly.
  *
- * What CAN feed it is data that moves on its own: licences expiring this month,
+ * What CAN feed it is data that moves on its own: licenses expiring this month,
  * the shape of the licensee base, the directory growing. Those are computable
  * every day from ~433,000 rows nobody else holds.
  *
@@ -51,7 +51,7 @@ const db = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
  *
  * THIS IS THE MOST DANGEROUS LINE IN THE FILE and it was wrong first time. A
  * failed or timed-out count returns null, `|| 0` turns that into zero, and the
- * pipeline then publishes "0 Texas licences expire this month" — a false claim,
+ * pipeline then publishes "0 Texas licenses expire this month" — a false claim,
  * stated confidently, with a source line under it. The metric ran twice here
  * and returned 15,174 then 0 for the same query, which is exactly what that
  * failure looks like from the outside: not an error, just a different fact.
@@ -85,7 +85,7 @@ function mmddccyyPrefixForMonth(date) {
 
 const METRICS = {
   /**
-   * How many Texas licences expire this calendar month. A renewal wave is the
+   * How many Texas licenses expire this calendar month. A renewal wave is the
    * single most actionable thing we can tell a licensee, and it changes every
    * month by construction — which is why the threshold is "the month changed"
    * rather than a percentage.
@@ -107,12 +107,12 @@ const METRICS = {
     card: (m) => ({
       chip: "Texas · Renewals",
       stat: Number(m.value).toLocaleString(),
-      label: `Texas barber and cosmetology licences expire in ${m.month}.`,
+      label: `Texas barber and cosmetology licenses expire in ${m.month}.`,
       punch: "Late renewal costs 1.5x the fee. After 90 days it doubles.",
       source: `Source: TDLR licensee file · read ${todayLabel()}`,
       question: "Do you know your own expiry date?",
       tone: "bad",
-      seoTitle: `${Number(m.value).toLocaleString()} Texas Beauty Licences Expire This Month #Shorts`,
+      seoTitle: `${Number(m.value).toLocaleString()} Texas Beauty Licenses Expire This Month #Shorts`,
     }),
   },
 
@@ -133,12 +133,12 @@ const METRICS = {
     card: (m) => ({
       chip: "Texas · Licensing",
       stat: `${(m.value / 1000).toFixed(0)}k`,
-      label: "licence records are on file with TDLR for the beauty trades.",
+      label: "license records are on file with TDLR for the beauty trades.",
       punch: "Every one of them renews on a clock most people forget.",
       source: `Source: TDLR licensee file · read ${todayLabel()}`,
       question: "Is the trade bigger than you thought?",
       tone: "good",
-      seoTitle: `${(m.value / 1000).toFixed(0)},000 Texas Beauty Licence Records — The Real Number #Shorts`,
+      seoTitle: `${(m.value / 1000).toFixed(0)},000 Texas Beauty License Records — The Real Number #Shorts`,
     }),
   },
 
@@ -211,7 +211,7 @@ async function main() {
     /**
      * Zero is refused outright. Every metric here counts something that
      * demonstrably exists, so a zero means the query broke in a way that did
-     * not raise — and "0 licences expire this month" is worse than no card.
+     * not raise — and "0 licenses expire this month" is worse than no card.
      */
     if (!current.value) {
       console.log(`  ${key.padEnd(22)} ${"0".padStart(9)}  SKIP   value is zero — treating as a failed query, not a fact`);
@@ -233,8 +233,30 @@ async function main() {
     for (const r of ready) state[r.key] = { value: r.current.value, period: r.current.period || null, at: new Date().toISOString() };
     fs.mkdirSync(path.dirname(STATE), { recursive: true });
     fs.writeFileSync(STATE, JSON.stringify(state, null, 2) + "\n");
-    fs.writeFileSync(OUT, JSON.stringify(ready.map((r) => ({ key: `derived:${r.key}`, ...r.card })), null, 2) + "\n");
-    console.log(`\n  ${ready.length} card(s) written to ${path.relative(ROOT, OUT)}`);
+    /**
+     * A PERIOD-SCOPED CARD CARRIES ITS PERIOD IN THE KEY. item_key is the
+     * queue's dedupe key, and queue_entity_cards.js skips anything already
+     * there. A monthly card emitted under a bare `derived:renewal-wave` would
+     * therefore collide with the row it published LAST month and be skipped in
+     * silence — the gate says READY, the queue says nothing to add, and no one
+     * is told the two disagree. September 2026 hit exactly that.
+     */
+    const emitKey = (r) => (r.current.period ? `derived:${r.key}:${r.current.period}` : `derived:${r.key}`);
+    /**
+     * REFRESH IS NOT IDEMPOTENT, and this guard is why running it twice is now
+     * survivable. State is stamped above, so the SECOND run in the same period
+     * gates the same metric to "hold" and `ready` comes back empty — which
+     * used to overwrite this file with `[]`, destroying the card the first run
+     * had just emitted and leaving nothing to queue. An empty result now means
+     * "nothing new to say", so the previous emission stands; the queue dedupes
+     * on item_key anyway, so a card left here after being queued is inert.
+     */
+    if (ready.length) {
+      fs.writeFileSync(OUT, JSON.stringify(ready.map((r) => ({ key: emitKey(r), ...r.card })), null, 2) + "\n");
+      console.log(`\n  ${ready.length} card(s) written to ${path.relative(ROOT, OUT)}`);
+    } else {
+      console.log(`\n  0 ready — leaving ${path.relative(ROOT, OUT)} as it is.`);
+    }
   } else {
     console.log(`\n  ${ready.length} ready. Nothing written — pass --refresh to emit and stamp state.`);
   }

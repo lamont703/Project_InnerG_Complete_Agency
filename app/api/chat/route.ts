@@ -10,6 +10,9 @@ import { getViewAsContext } from '@/lib/account/view-as';
 import { memberPerformanceContext } from '@/lib/member-performance-context';
 import { ownerConnectContext } from '@/lib/owner-connect-context';
 import { policyForChannel } from '@/lib/agent-policy';
+import { identityForChannel } from '@/lib/agent-identity';
+import { SITE_URL } from '@/lib/site';
+import { OFF_WEB_TEXT_CHANNELS, absolutizeLinksForMessaging } from '@/lib/chat-links';
 import { agentJourneyContext, stateCoverageForChat } from '@/lib/member-journey';
 import { AUDIENCES } from '@/lib/audiences';
 import { slimContext, contextChars } from '@/lib/chat-context-slim';
@@ -508,7 +511,7 @@ export async function POST(req: Request) {
       credit_reporting: {
         what: "ShearQuery Credit Report — a booth and suite rent payment record kept BY ShearQuery. The shop or salon confirms who paid with one tap every two weeks; the barber, stylist or cosmetologist owns the record and chooses who sees it.",
         cost: "Free.",
-        who_enrolls: "The shop or salon owner enrols. Workers are added by name — no licence number needed, we resolve it.",
+        who_enrolls: "The shop or salon owner enrolls. Workers are added by name — no licence number needed, we resolve it.",
         who_owns_it: "The worker. Nobody can look anybody up; a record is shared, never queried.",
         score: "0 to 100, not 300 to 850. A MINIMUM of eight weeks of confirmed payments before any score is shown — below that the history is there with no number, because eight weeks of nothing is no evidence rather than a low score. The record itself has no end: it runs for as many weeks and as many shops as somebody works.",
         bureaus: "NOT LIVE. Reporting to Dun & Bradstreet, Experian, Equifax and TransUnion is waitlisted, pending licensing. Nothing recorded today reaches any bureau and no date is promised.",
@@ -650,7 +653,7 @@ CREDIT_REPORTING RULE: credit_reporting is in the context below. Our Instagram b
 - IF YOU CANNOT TELL, ASK IN ONE LINE. "Do you mean what rent costs around here, or the payment record?" is better than confidently answering the wrong one.
 - SAY IT THE RIGHT WAY ROUND: it is a ShearQuery record, not a bureau report. Asked and left to improvise, the agent has answered "it is not used for credit reporting", which contradicts the product's own name and makes it sound like nothing. The true sentence is "it is ShearQuery's own record — it does not go to Experian, Equifax, TransUnion or Dun & Bradstreet."
 - NEVER SAY IT REPORTS TO A CREDIT BUREAU. It does not. Dun & Bradstreet, Experian, Equifax and TransUnion are a WAITLIST, pending licensing, with no date. Telling a shop their barbers are being reported to Experian, or a barber that their rent is on their credit file, is false and is the single worst thing you could say about this product. The score is out of 100 and touches nobody's credit.
-- THE OWNER ENROLS, THE WORKER OWNS IT. If a barber or stylist asks how to get one, the honest answer is that their shop has to enrol — they cannot start it alone — and they are welcome to send their shop the link.
+- THE OWNER EnrollS, THE WORKER OWNS IT. If a barber or stylist asks how to get one, the honest answer is that their shop has to enroll — they cannot start it alone — and they are welcome to send their shop the link.
 
 GET_RENT_STATS_BY_ZIP TOOL RULE: Booth rent is NOT in the context above for any zip code — it only exists as free text on individual shop records, never pre-aggregated. If asked about rent, pricing, or affordability for a specific zip code (e.g. "what's rent like in 77099," "which zip has the highest rent"), call get_rent_stats_by_zip with that zip rather than guessing or saying you don't have the data. If the tool returns null, say plainly that there's no rent data on file for that zip — don't invent a number. sampleSize in the result is often small (rent is rarely reported) — if it's 1 or 2, say so explicitly (e.g. "based on the one shop with rent data on file") rather than presenting it as a reliable market rate. This tool only accepts one zip at a time — for a "which zip is highest" question, you may need to call it for a few specific zips mentioned in conversation, but don't call it more than 3-4 times in one turn.
 
@@ -691,6 +694,8 @@ GET_UPCOMING_EVENTS TOOL RULE: For any question about barber/beauty/wellness ind
 ENTITY LINKING IS NOT OPTIONAL: AI Mode doubles as navigation into the rest of the site, not just an answer — so the LINKING RULE above applies every single time you mention a specific barbershop/barber/school/salon/cosmetologist/store/tool that has a profile_url (or an equivalent href from a tool result like find_professional_employment), with no exceptions. Don't drop a link just because you've already mentioned that entity earlier in the conversation — link it again each time.
 
 ${policyForChannel(channel)}
+
+${identityForChannel(channel)}
 
 Context Data (JSON):
 ${JSON.stringify(slimmedContext).substring(0, 120000)}
@@ -1036,7 +1041,13 @@ ${JSON.stringify(slimmedContext).substring(0, 120000)}
     const newCount = usageCount + 1;
     const nextReset = resetTime && new Date() > new Date(resetTime) ? resetTime : new Date(Date.now() + RATE_LIMIT_RESET_HOURS * 60 * 60 * 1000).toISOString();
 
-    const finalText = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+    const sanitized = response.text ? sanitizeMarkdownLinks(response.text, validLinks) : response.text;
+    // Absolutise AFTER sanitising, so only links that survived validation get a
+    // domain put in front of them.
+    const finalText =
+      sanitized && OFF_WEB_TEXT_CHANNELS.has(channel)
+        ? absolutizeLinksForMessaging(sanitized, validLinks)
+        : sanitized;
 
     // Persist the exchange for signed-in members only. Anonymous chats stay in
     // sessionStorage exactly as before and are never written to the database —

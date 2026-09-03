@@ -157,6 +157,33 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# The three interpreter symlinks inside the venv.
+#
+# venv/ stays tracked, deliberately, as the comment above says. These three do
+# not, because they are absolute paths into a macOS Python framework and mean
+# nothing on the Linux box that builds this site:
+#
+#   venv/bin/python  ->  python3.11  ->  /Library/Frameworks/Python.framework/...
+#
+# Turbopack walks the project directory whenever a route touches the filesystem,
+# and a symlink pointing outside the project root kills the build with "Symlink
+# venv/bin/python is invalid, it points out of the filesystem root" — naming the
+# route that triggered the walk and never mentioning venv. That cost a whole
+# debugging pass down the wrong trail.
+#
+# They are machine-specific by nature and `python -m venv` regenerates them, so
+# there was never a reason to commit them.
+# The whole virtualenv, not just its symlinks.
+#
+# Ignoring only venv/bin/python* was never going to fix the build. Turbopack
+# walks the FILESYSTEM, not the git index, so an ignored-but-present symlink
+# pointing outside the project root still killed `next build` with
+# "Symlink venv/bin/python is invalid, it points out of the filesystem root".
+# The 1.1GB directory has been moved to a sibling folder outside the repo and
+# 19,631 tracked files removed from the index. requirements.txt is the manifest
+# to rebuild it: python3 -m venv venv && venv/bin/pip install -r requirements.txt
+venv/
+
 # Regulator reference libraries — mirrored PDFs from state licensing boards.
 # Deliberately NOT committed: the California set alone is several hundred MB of
 # third-party government documents that a script reproduces in minutes, and
@@ -217,3 +244,7 @@ experiments/**/*.mp4
 experiments/**/*.jpg
 experiments/**/*.jpeg
 experiments/**/*.png
+
+# Downloaded b-roll and cached Pixabay search responses (their terms require
+# a 24h cache; none of it belongs in the repo).
+.cache/

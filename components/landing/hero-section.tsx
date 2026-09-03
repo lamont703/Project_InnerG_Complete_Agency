@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Shield, Search } from "lucide-react"
+import { GraduationCap, Search, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 

@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Which exams do you have to pass?",
-    a: "Both the written and the practical, administered by PSI on TDLR's behalf. For specialty courses the whole course must be finished and your enrolment dropped before written eligibility generates \u2014 there is no early sitting."
+    a: "Both the written and the practical, administered by PSI on TDLR's behalf. For specialty courses the whole course must be finished and your enrollment dropped before written eligibility generates \u2014 there is no early sitting."
   }
 ];
 

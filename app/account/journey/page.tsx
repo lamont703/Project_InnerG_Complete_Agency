@@ -230,7 +230,7 @@ export default async function JourneyPage() {
               ) : (
                 <p className="text-xs text-slate-500 leading-relaxed">
                   {facts.state === "TX"
-                    ? "No 2026 exam results on file under that name — try the exact name on your enrolment paperwork, or search the leaderboard."
+                    ? "No 2026 exam results on file under that name — try the exact name on your enrollment paperwork, or search the leaderboard."
                     : "Exam results by school are only published for Texas right now, so there's nothing to compare this against yet."}{" "}
                   <Link
                     href={facts.state === "CA" ? SHARED_ROUTES.leaderboardCA : SHARED_ROUTES.leaderboardTX}

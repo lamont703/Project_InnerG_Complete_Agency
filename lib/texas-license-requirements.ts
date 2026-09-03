@@ -100,7 +100,7 @@ export const LICENSE_REQUIREMENTS: LicenseRequirement[] = [
     source: "apply-esthetician",
     conditions: [
       "Complete a 750-hour Esthetician course at a barbering or cosmetology school licensed in Texas.",
-      "Specialty courses must be COMPLETED and your enrolment dropped before written eligibility generates — there is no sitting the written early the way a 1,000-hour barber or cosmetology student can at 900 hours.",
+      "Specialty courses must be COMPLETED and your enrollment dropped before written eligibility generates — there is no sitting the written early the way a 1,000-hour barber or cosmetology student can at 900 hours.",
       "Pass both the written and practical exams. The esthetician practical is the longest of any specialty at 1 hour 41 minutes across 8 sections.",
       "Trained outside Texas? You go through the out-of-state equivalence route instead of this one.",
     ],
@@ -123,7 +123,7 @@ export const LICENSE_REQUIREMENTS: LicenseRequirement[] = [
     source: "apply-manicurist",
     conditions: [
       "Complete a 600-hour Manicurist course at a school licensed in Texas.",
-      "Specialty courses must be COMPLETED and your enrolment dropped before written eligibility generates — unlike the 1,000-hour courses, there is no early sitting at 900 hours.",
+      "Specialty courses must be COMPLETED and your enrollment dropped before written eligibility generates — unlike the 1,000-hour courses, there is no early sitting at 900 hours.",
       "Pass both the written and practical exams.",
     ],
     related: [
@@ -145,7 +145,7 @@ export const LICENSE_REQUIREMENTS: LicenseRequirement[] = [
     source: "apply-eyelash",
     conditions: [
       "Complete a 320-hour Eyelash Extension Specialist course at a school licensed in Texas.",
-      "The course must be completed and your enrolment dropped before written eligibility generates.",
+      "The course must be completed and your enrollment dropped before written eligibility generates.",
       "Pass both the written and practical exams.",
     ],
     related: [
@@ -167,7 +167,7 @@ export const LICENSE_REQUIREMENTS: LicenseRequirement[] = [
     source: "apply-weaving",
     conditions: [
       "Complete a 300-hour Hair Weaving Specialist course — the shortest course TDLR licenses.",
-      "The course must be completed and your enrolment dropped before written eligibility generates.",
+      "The course must be completed and your enrollment dropped before written eligibility generates.",
       "Pass both the written and practical exams.",
       "At 300 hours against the barber licence's 1,000, this is the fastest route into a licensed Texas trade.",
     ],

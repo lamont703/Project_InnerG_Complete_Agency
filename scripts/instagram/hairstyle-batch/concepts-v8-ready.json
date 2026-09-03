@@ -1,0 +1,50 @@
+[
+ {
+  "k": "m-tieup",
+  "h": "Six ways to tie it up.",
+  "n": [
+   "Top knot",
+   "Man bun",
+   "Low bun",
+   "Half up",
+   "Long ponytail",
+   "Twisted bun"
+  ]
+ },
+ {
+  "k": "m-curly",
+  "h": "Six curly cuts for men.",
+  "n": [
+   "Curly taper",
+   "Curly fringe",
+   "Curly top fade",
+   "Long curls",
+   "Curly quiff",
+   "Sponge curls"
+  ]
+ },
+ {
+  "k": "w-fauxlocs",
+  "h": "Six crochet and faux loc styles.",
+  "n": [
+   "Thin faux locs",
+   "Chunky faux locs",
+   "Bob faux locs",
+   "Crochet curls",
+   "Passion twists",
+   "Butterfly locs"
+  ]
+ },
+ {
+  "k": "w-twists",
+  "h": "Six twist styles.",
+  "n": [
+   "Flat twists",
+   "Two strand twists",
+   "Twist out",
+   "Mini twists",
+   "Twisted halo",
+   "Twisted bun"
+  ]
+ }
+]

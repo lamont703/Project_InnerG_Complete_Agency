@@ -31,6 +31,13 @@ export interface PublisherItem {
   id: string;
   itemKey: string;
   title: string;
+  /**
+   * The pipeline this card is for, as STATED by whoever queued it. Null means
+   * derive it — lib/video-type.js falls back to `stat` then the title shape.
+   * The Render button reads the same resolver, so its label and price cannot
+   * disagree with what actually runs.
+   */
+  videoType: string | null;
   stat: string | null;
   label: string | null;
   question: string | null;
@@ -128,7 +135,7 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
       // null and the board fell back to loading video metadata to show a first
       // frame. A field that is mapped but not selected fails silently — the
       // page renders, it is just quietly worse.
-      "id, item_key, title, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, results, published_at"
+      "id, item_key, title, video_type, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, results, published_at"
     )
     .order("position", { ascending: true })
     .limit(300);
@@ -139,6 +146,7 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
     id: r.id,
     itemKey: r.item_key,
     title: r.title,
+    videoType: r.video_type ?? null,
     stat: r.stat,
     label: r.label,
     question: r.question,

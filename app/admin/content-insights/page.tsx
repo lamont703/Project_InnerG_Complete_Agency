@@ -75,17 +75,26 @@ export default async function ContentInsightsPage({
           reach across platforms rather than claiming one shared metric.
         </p>
         {/*
-          The attribution rule is stated because it changes how a point is read,
-          and no axis label can carry it. YouTube, GBP and Search have genuine
-          daily series; Instagram and TikTok only ever report a lifetime total
-          per post, so their number sits on the day the post went out.
+          The scope rule is stated because it changes what a point MEANS, and
+          getting it wrong here was a real bug: YouTube used to be stored as
+          daily activity while TikTok and Instagram were per-post lifetime, and
+          the page summed and compared them. It showed YouTube losing to TikTok
+          when YouTube is ahead roughly 25 to 1.
         */}
         <p className="mt-2 max-w-3xl rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
-          <strong className="text-slate-900">Two kinds of point.</strong> YouTube, Google Business Profile and
-          Google Search report a real daily figure, so those points are activity on that day. Instagram and
-          TikTok report only a lifetime total per post, so their points sit on the day the post was published
-          and read as <em>&ldquo;reach earned by what we published then&rdquo;</em>. That is what lets TikTok show
-          history back to its first video rather than starting from the day collection began.
+          <strong className="text-slate-900">Two kinds of series, never added together.</strong>{" "}
+          <em>Content reach</em> — YouTube, TikTok and Instagram — is lifetime views of each post,
+          plotted on the day that post was published. Those three are comparable, and they are what the
+          combined line adds up. <em>Account-wide</em> — Google Business Profile and Google Search — is
+          impressions for the whole profile or the whole site per day. A profile impression and a video
+          view are not the same event, so they are charted but never summed with content.
+        </p>
+        <p className="mt-2 max-w-3xl rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+          <strong className="text-slate-900">Why a shorter range can change the ranking.</strong>{" "}
+          Content reach sits on the publish date, so a 90-day view counts only what was
+          <em> published</em> in those 90 days — not views that arrived then. A channel with years of
+          back catalogue looks smaller in a short window and much larger over all time. Both readings
+          are honest; they answer different questions.
         </p>
 
         <div className="mt-6">

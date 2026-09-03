@@ -1,0 +1,50 @@
+[
+ {
+  "k": "m-buzz",
+  "h": "Six clipper lengths.",
+  "n": [
+   "Bald fade",
+   "Induction",
+   "Burr",
+   "High and tight",
+   "Crew cut",
+   "Brush cut"
+  ]
+ },
+ {
+  "k": "m-hawk",
+  "h": "Six hawks.",
+  "n": [
+   "Mohawk",
+   "Faux hawk",
+   "Burst fade mohawk",
+   "Frohawk",
+   "Curly mohawk",
+   "Disconnected"
+  ]
+ },
+ {
+  "k": "w-shag",
+  "h": "Six shags and wolf cuts.",
+  "n": [
+   "Seventies shag",
+   "Wolf cut",
+   "Shag bob",
+   "Curly shag",
+   "Long wolf cut",
+   "Shag with fringe"
+  ]
+ },
+ {
+  "k": "w-ponytail",
+  "h": "Six ponytails.",
+  "n": [
+   "High ponytail",
+   "Low ponytail",
+   "Side ponytail",
+   "Bubble ponytail",
+   "Braided ponytail",
+   "Half-up ponytail"
+  ]
+ }
+]

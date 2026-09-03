@@ -103,7 +103,7 @@ export default function AuditBinderPage() {
           </h2>
           <ul className="space-y-2.5 text-sm leading-relaxed text-slate-600">
             {[
-              "The business-day calendar comes from the enrolment contract, not from federal holidays. NACCAS measures presence against \"a scheduled class day as outlined in the enrollment contract\", so term dates and closures are the school's own.",
+              "The business-day calendar comes from the enrollment contract, not from federal holidays. NACCAS measures presence against \"a scheduled class day as outlined in the enrollment contract\", so term dates and closures are the school's own.",
               "The distance ceiling comes from the certificate of approval, which can be lower than the statutory 350/150. TDLR's manual: \"Approved distance education hours can be found on your certificate of approval.\"",
               "Hours reconcile against what was filed in SHEARS each month, so the school's records and the state's agree before anyone asks.",
               "Transcripts carry the distance component separately, which only works if the split was recorded from the first hour rather than reconstructed later.",

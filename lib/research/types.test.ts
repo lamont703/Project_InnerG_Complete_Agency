@@ -72,3 +72,62 @@ describe("validateFindings", () => {
     expect(out).toHaveLength(2);
   });
 });
+
+describe("the format is chosen, not inferred from the headline", () => {
+  const ok = { title: "6 Fades to Ask For", suggestion: "s", rationale: "r", evidence: { a: 1 } };
+  const keys = new Set(["a"]);
+
+  it("honours the format the agent asked for", () => {
+    const [f] = validateFindings([{ ...ok, videoType: "hottake" }], keys);
+    expect(f.videoType).toBe("hottake");
+  });
+
+  /*
+   * The bug the format field exists for: a data reel's headline carries a big
+   * figure, which the listicle rule reads as prose, so every one of them
+   * derived to the $1.16 avatar.
+   */
+  it("keeps a data reel free instead of deriving it to an avatar", () => {
+    const [f] = validateFindings([{
+      title: "47,674 Licensed Estheticians in Texas",
+      suggestion: "s", rationale: "r", evidence: { a: 1 },
+      videoType: "figure", stat: "47,674", label: "licensed estheticians in Texas",
+    }], keys);
+    expect(f.videoType).toBe("figure");
+    expect(f.stat).toBe("47,674");
+  });
+
+  /*
+   * render_short_video.js animates the number; there is nothing to animate
+   * without one, so the card would be unrenderable.
+   */
+  it("demotes a data reel that supplied no figure, and says why", () => {
+    const [f] = validateFindings([{
+      title: "Something About Licences", suggestion: "s", rationale: "r",
+      evidence: { a: 1 }, videoType: "figure",
+    }], keys);
+    expect(f.videoType).toBe("hottake");
+    expect(f.rationale).toMatch(/NO FIGURE/);
+    expect(f.confidence).toBe("low");
+  });
+
+  /* The grid puts the count on screen; a title that omits it is another video. */
+  it("flags a grid whose title does not say how many", () => {
+    const [f] = validateFindings([{
+      title: "The Best Fades Around", suggestion: "s", rationale: "r",
+      evidence: { a: 1 }, videoType: "lookbook",
+    }], keys);
+    expect(f.rationale).toMatch(/GRID WITH NO COUNT/);
+    expect(f.confidence).toBe("low");
+  });
+
+  it("ignores a format it does not have a pipeline for", () => {
+    const [f] = validateFindings([{ ...ok, videoType: "hologram" }], keys);
+    expect(f.videoType).toBe("lookbook");
+  });
+
+  it("derives when the agent says nothing", () => {
+    expect(validateFindings([ok], keys)[0].videoType).toBe("lookbook");
+    expect(validateFindings([{ ...ok, title: "The Truth About X" }], keys)[0].videoType).toBe("hottake");
+  });
+});

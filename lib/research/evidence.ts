@@ -58,10 +58,45 @@ function meta(m: unknown): Record<string, unknown> {
   return typeof m === "object" ? (m as Record<string, unknown>) : {};
 }
 
+/**
+ * Old paths folded into the URL that is live today.
+ *
+ * WHY THIS EXISTS. pixel_events is a historical record and keeps the path a
+ * visitor actually hit, so a route renamed in August still dominates the table
+ * months later. /tools/barbershop-search has 9,733 views since July against 690
+ * for /search — a 14:1 lead — so the Content Research agent read it as the
+ * biggest page on the site and recommended making content for a URL that
+ * 308s. The demand was real; the address was dead.
+ *
+ * FOLDED, NOT RELABELLED. The two are summed, because 10,423 views is the true
+ * size of that page's demand and reporting them separately understates the live
+ * URL while advertising a dead one.
+ *
+ * WHY NOT IMPORT next.config.mjs, which is the real source of 99 redirects and
+ * imports cleanly in Node. Pulling the Next config into application code that
+ * Turbopack bundles is the same class of move that cost this project two builds
+ * today — a directory reference through @ffmpeg-installer, and a symlink under
+ * venv/. The config's own comment blesses duplicating small logic across layers
+ * for exactly this reason: it loads before the TypeScript pipeline, which is
+ * why it carries its own copy of TX_CITIES.
+ *
+ * So this is a deliberate small copy, and evidence.test.ts asserts every entry
+ * still matches next.config.mjs. Drift fails a test rather than a
+ * recommendation. Add an entry when a renamed route starts showing up here.
+ */
+const REDIRECTED_PATHS: Record<string, string> = {
+  "/tools/barbershop-search": "/search",
+  "/tools/barber-schools": "/search",
+};
+
 function pathOf(url: string | null): string {
   if (!url) return "";
-  return url.replace(/^https?:\/\/[^/]+/, "").split("?")[0];
+  const path = url.replace(/^https?:\/\/[^/]+/, "").split("?")[0];
+  const trimmed = path.length > 1 ? path.replace(/\/$/, "") : path;
+  return REDIRECTED_PATHS[trimmed] ?? path;
 }
+
+export const __REDIRECTED_PATHS_FOR_TEST = REDIRECTED_PATHS;
 
 function tally<T extends string>(items: T[]): [T, number][] {
   const m = new Map<T, number>();

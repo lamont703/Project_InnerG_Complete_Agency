@@ -74,7 +74,7 @@ const FAQS = [
   },
   {
     q: "Will my online cosmetology hours transfer to another state?",
-    a: "Possibly not, and the accreditor requires schools to warn you about this before you enrol. NACCAS Policy VI.02 obliges an institution to give every student a signed, dated disclaimer that academic achievement earned via distance education may not be accepted for reciprocity or eligible for licensure in other states. Alabama's 2026 rule restates that requirement almost word for word. If you expect to move states, treat your distance hours as the part of your training most at risk.",
+    a: "Possibly not, and the accreditor requires schools to warn you about this before you enroll. NACCAS Policy VI.02 obliges an institution to give every student a signed, dated disclaimer that academic achievement earned via distance education may not be accepted for reciprocity or eligible for licensure in other states. Alabama's 2026 rule restates that requirement almost word for word. If you expect to move states, treat your distance hours as the part of your training most at risk.",
   },
   {
     q: "How many hours of cosmetology school can be done online in Texas?",
@@ -228,7 +228,7 @@ export default function StatesOnlineCosmetologySchoolPage() {
             Your online hours are the part most likely not to transfer
           </h2>
           <p className="mb-4 text-sm leading-relaxed text-amber-900/90">
-            NACCAS requires a school to hand every student, before enrolment, a signed and dated
+            NACCAS requires a school to hand every student, before enrollment, a signed and dated
             disclaimer that &ldquo;academic achievement earned via distance education may not be
             accepted for reciprocity or eligible for licensure in other states.&rdquo; Alabama&apos;s
             2026 rule restates it almost word for word.

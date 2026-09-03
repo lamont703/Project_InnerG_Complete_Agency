@@ -66,7 +66,7 @@ const FAQS = [
   },
   {
     q: "How long must a Texas school keep student records?",
-    a: "48 months after the student completes the curriculum, withdraws, or has enrolment terminated — 16 TAC §83.72(k). Failing to do so is a Class C violation at $2,000 to $5,000 and/or up to revocation. Separately, §1603.2309(b) requires the school to allow inspection of attendance records \"at any time\", which makes production on demand the test rather than mere existence.",
+    a: "48 months after the student completes the curriculum, withdraws, or has enrollment terminated — 16 TAC §83.72(k). Failing to do so is a Class C violation at $2,000 to $5,000 and/or up to revocation. Separately, §1603.2309(b) requires the school to allow inspection of attendance records \"at any time\", which makes production on demand the test rather than mere existence.",
   },
   {
     q: "What happens if hours are reported late or in a batch?",

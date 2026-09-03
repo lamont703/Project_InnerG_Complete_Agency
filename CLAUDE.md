@@ -41,6 +41,232 @@ If a clone doesn't have the hooks active, run:
 
     git config core.hooksPath .githooks
 
+## Video formats — say the name, not the machinery
+
+**Five formats. Call them by name. `lib/video-type.js` is the registry and the
+one place that prices them.**
+
+| id | say | what it is | length | cost |
+|---|---|---|---|---|
+| `lookbook` | **Lookbook** | six looks panned across a grid, comment-the-number CTA | 9s | free |
+| `figure` | **Data Reel** | one number from our own data, animated | 9s | free |
+| `hottake` | **Hot Take** | opinion on an evergreen topic, one continuous avatar take | 30s | ~$1.16 |
+| `newsdesk` | **News Desk** | reaction to a headline that actually broke | 90s | ~$1.31 |
+| `reaction` | **Reaction** | cutting between somebody else's clip and our commentary | 60s | ~$1.12 |
+
+### Why the names changed
+
+They used to be `grid` / `data` / `avatar` / `news`, named after their
+machinery, and two of them could not be told apart in conversation: **a Hot
+Take and a News Desk are BOTH avatar videos, and both are about something
+topical.** "How did the avatar video do?" did not identify a video. These names
+say what the viewer gets, so no two overlap.
+
+Old ids still resolve — `LEGACY_VIDEO_TYPE_IDS` in `lib/video-type.js` maps
+them forward. That map is deletable once nothing writes the old spellings; it
+is not a second vocabulary to keep alive.
+
+### The distinction that actually matters
+
+- A **Hot Take** is ONE continuous 30s HeyGen take on an evergreen topic,
+  written from a queue card by `scripts/render_queued.js`, then edited (silence
+  cut, b-roll, captions, music). It renders from the board's Render button.
+- A **News Desk** is a reaction to a story that broke, ~90s, from a
+  hand-written script JSON, run by `scripts/render_news_short.js`. The avatar is
+  bought only for the beats that need a face — the open, the pivot, the thesis,
+  the close — and the middle is that same narration over the article screenshot
+  and b-roll. **It does not render from a queue card**, and `render_queued.js`
+  refuses it explicitly rather than falling through and buying a Hot Take.
+
+`newsdesk` AND `reaction` are therefore excluded from `AGENT_VIDEO_TYPE_IDS`:
+both render from a hand-written spec carrying source files and in/out points,
+none of which exists on a queue card, so the research agent must not be able to
+queue an idea no button can render.
+
+THE EMAIL AGENT'S SET IS THE INVERSE, and the two are easy to confuse.
+`AGENT_VIDEO_TYPE_IDS` is what can be queued as a CARD. The email agent writes
+SPECS, so its spec formats are exactly the ones excluded there — see
+`SPEC_PROFILES` in lib/video-agent/interpret.ts, which reads them off `PROFILES`
+rather than restating the list. Adding a format means
+adding it to `VIDEO_TYPES`, and only moving it into the agent's list once it can
+render from a card.
+
+### Two avatars, one voice
+
+`HEYGEN_AVATAR_ID` (grey hoodie) is the Hot Take. `HEYGEN_NEWS_AVATAR_ID`
+(black hoodie) is the News Desk. Different talking photos on purpose, so the
+formats differ on sight as well as by name. Both use the same
+`HEYGEN_VOICE_ID`. **Never point one format at the other's avatar id.**
+
+## Making a News Desk — two commands, and the config decides everything else
+
+**`lib/newsdesk-config.js` is the format. Do not pass settings at the prompt.**
+
+    node scripts/render_news_short.js  "reference/AI News Video Shorts/<spec>.json"
+    node scripts/publish_news_short.js "reference/AI News Video Shorts/<spec>.json"
+
+Add `--dry` to either. The first buys the HeyGen avatar and assembles the cut;
+the second burns captions, lays the music bed, uploads and queues the row.
+
+### The spec IS the episode
+
+One file carries `slug`, `title`, `caption`, `cta_word`, the article screenshot
+path, and the segments. Each segment is `mode: "avatar" | "voice"`, and a voice
+segment takes `visual: "headline" | "chart" | "broll"` — b-roll segments carry
+`tags` that are looked up in the library, never a free-text query.
+
+`publish_news_short.js` refuses a spec with no title or caption, because those
+are part of the episode rather than of the run.
+
+### What is pinned, and why touching it is deliberate
+
+`lib/newsdesk-config.test.ts` asserts the agreed values, so changing the format
+means editing a test — visible in review — rather than typing a different flag.
+Pinned: the $1.50 cap, the 6s visual-hold cap, both chart crops, the avatar
+composite, the encode ladder, the caption style, the music bed, and the bucket.
+
+- **The budget gate runs BEFORE anything is bought.** Over the cap, the render
+  exits 1. `--over-budget` is the override and has to be typed.
+- **The estimate uses a MEASURED 175 wpm**, the slow end of 174-197 observed
+  across the two shipped episodes. The old assumed 165 wpm over-predicted by
+  13% and would have refused episode one, which really cost $1.32 — and a gate
+  that blocks work it should allow gets switched off. Re-measure as episodes
+  accumulate.
+- **One music bed for the series**, so it sounds like one show. Choosing a track
+  at the prompt is how episode three sounds like a different channel.
+
+### The failure that is silent, and stays fixed
+
+The renderer writes `<slug>.words.json` rebased onto the ASSEMBLED timeline.
+Captions driven off `narration.words.json` produce **an uncaptioned video and
+exit 0** — three separate reasons: it is a bare array where add_captions.js
+reads `.words`, it carries `<start>`/`<end>` marker tokens, and its timings are
+on the narration clock, which still contains the pauses between segments that
+the cut removed. `publish_news_short.js` refuses to run without the rebased
+file for exactly this reason.
+
+## Requesting a video by email — what it will and will not do
+
+**Mail claudedawg113@gmail.com. It replies with a spec, a cost and a six-digit
+code, and renders nothing until that code comes back.** The allowlist is a spam
+filter; the code is the consent. A From: header is spoofable and every approval
+spends real money.
+
+`app/api/cron/video-agent/route.ts` polls and proposes. `scripts/video_agent_worker.js`
+runs locally and is the only thing that spends — it never passes `--over-budget`.
+
+### What each format needs from the email
+
+| format | needs |
+|---|---|
+| `hottake` | nothing but the argument |
+| `newsdesk` | the article screenshot attached |
+| `reaction` | the clip attached, or a Drive link |
+| `lookbook` | a 2x3 grid image attached, plus six style names |
+| `figure` | **the figure itself, stated in the email** |
+
+### Data reels are deliberately assisted, not autonomous
+
+**The agent will not go and find a figure.** Asking for "data reels on data we
+have not shared yet" gets a refusal that explains why, and that is the intended
+behaviour rather than a gap to close.
+
+Choosing a figure means checking what has already run, and checking that a
+column means what its name suggests. Both matter: `continuing_education_flag`
+splits 107,677 / 324,151 and nothing states whether it means required,
+completed or outstanding — see `scripts/shorts/licence-cards.js` — and school
+licences are stored twice in the raw lake, so a row count says 514 schools where
+there are 257. Either of those would have gone on screen under a source line.
+
+So: state the figure in the email, or ask in a live session and do the analysis
+properly. The rule the prompt enforces is that **numbers come from verified
+queries, words come from the model** — never the other way round.
+
+### Two more things a live session is needed for
+
+Generating a Lookbook grid from a concept, and generating b-roll a spec needs
+that `broll_assets` does not already hold. Higgsfield is an assistant tool, not
+a library — no API key exists in this repo. The worker pre-flights both before
+claiming a job, because `render_news_short.js` buys the avatar in segment order
+and would otherwise pay for a render that dies at a b-roll segment.
+
+## B-roll — search the library before you generate anything
+
+**`broll_assets` is the library and `lib/broll-library.js` is the way in. Call
+`findClips()` BEFORE generating.** Higgsfield generations cost credits; a
+library that is only ever written to is an expense report, and the saving is
+entirely in the read path.
+
+- **Search by TAGS, never by prompt.** A generation prompt is a paragraph
+  written for a video model and no two are alike, so matching on it finds
+  nothing while the library sits full. Tags are what is visibly IN the clip —
+  `barbershop`, `phone`, `hands`, `night` — chosen so a later search can
+  describe the shot it needs.
+- **Files go to `entity-photos`, not `social-assets`.** That bucket caps at 5MB
+  and b-roll is routinely larger.
+- **`credits` and `use_count` are the point.** Cost makes reuse an argument
+  rather than a preference; use_count is the only evidence the library is being
+  pulled from rather than just filled.
+
+### Generating new clips
+
+`kling3_0_turbo` at 1080p, 9:16, 5s = **10 credits** — native 1080×1920, which
+is what the renders output, so no upscale. Veo 3.1 Lite is cheaper (6 credits
+for 6s) but its resolution is fixed and undocumented. Do NOT price these from
+memory or from blog posts: preflight with `get_cost: true`, which submits
+nothing. Published third-party numbers for Veo 3.1 were off by roughly 7×
+against the Lite variant we actually use.
+
+Prompt for **no legible text in frame** — generated on-screen text is where
+these models fall apart. Kling Turbo emits an audio track regardless; the
+renderer maps only our narration, so it is discarded.
+
+## pixel_events claims — two things inflate it, and both look like demand
+
+**Before publishing any figure from `pixel_events`, subtract our own traffic and
+establish whether a search was TYPED or TAPPED.** Both traps produce numbers
+that are real, reproducible, and describe us rather than the audience.
+
+### 1. Roughly 37% of events are internal
+
+49 visitor_ids have hit `/admin`, `/pixel-analytics` or `/account`. They account
+for 20,797 of 55,659 events — **37.4%**, measured 2026-09-03. Filter by
+`visitor_id`, not by path: excluding admin *pages* still leaves that person's
+browsing of the public site in the numbers.
+
+### 2. The top search terms are our own suggestion chips
+
+`app/search/page.tsx` renders canned queries as tappable chips, and a tap fires
+`search_executed` with the chip text in `metadata.query` — indistinguishable
+from typing it. The five most common "searches" on this site are all chips.
+
+**The chip set has been edited over time, so historic chip text is NOT in the
+current source and cannot be subtracted by grepping.** That is what makes this
+unfixable rather than merely fiddly: there is no way to reconstruct which chips
+were live on a given date. A "top search term" claim from this table is
+therefore not publishable, and no amount of care makes it so.
+
+What IS safe is the shape a chip cannot have — a query of three words or fewer
+with no question mark. Chips are long natural-language questions; "cypress" and
+"buzzards barbershop" are people.
+
+**The gap is not small, which is the point.** Chip-inflated data says 18.9% of
+searches are about booth rent or hiring. Restricted to queries that cannot be a
+chip, it is **0.8%** — a 24x overstatement of an entire audience segment, and it
+would have been published as a finding about what barbers want.
+
+## TDLR raw counts — schools are in TWO source datasets
+
+`tdlr_licensees_raw` holds one row per licence for every type EXCEPT schools,
+which appear under both `7358-krk7` and `9d9z-ebct`. So a plain count of
+`Cosmetology Private School` returns **1,280 when the real number is 640** —
+exactly double, which is what makes it convincing rather than obviously wrong.
+
+`tdlr_license_type_summary` already dedupes and is the number to trust. When
+counting off the raw table, count `distinct license_number`, never rows. Every
+other licence type checked has row count equal to distinct licences, so a
+spot-check on one type will not reveal this.
+
 ## TDLR claims — cite the page, don't carry the number across
 
 **`lib/tdlr-sources.ts` lists every TDLR page this site treats as authoritative

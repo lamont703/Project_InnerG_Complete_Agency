@@ -82,7 +82,7 @@ export const STATE_RULES: StateDistanceRule[] = [
     sourceLabel: "Alabama Board of Cosmetology — rule changes",
     citation: "Chapter 250-X-5-.03 (School Curriculum)",
     effective: "2026-05-15",
-    note: "Amends the school curriculum rule and requires the school's distance education policy to comply with NACCAS Policy VI.02 by name. Students must be told at enrolment that distance hours may not be accepted for reciprocity in other states.",
+    note: "Amends the school curriculum rule and requires the school's distance education policy to comply with NACCAS Policy VI.02 by name. Students must be told at enrollment that distance hours may not be accepted for reciprocity in other states.",
   },
   {
     code: "PA",
@@ -147,7 +147,7 @@ export const NACCAS_POLICY = {
       n: 3,
       text: "The student participates in learning activities while physically present at the contracted campus at least once every 10 business days for the length of a scheduled class day as outlined in the enrollment contract",
       operationally:
-        "A hard attendance floor. A student cannot go a fortnight without a full day on campus, and the interval has to be written into the enrolment contract.",
+        "A hard attendance floor. A student cannot go a fortnight without a full day on campus, and the interval has to be written into the enrollment contract.",
     },
     {
       n: 4,
@@ -185,7 +185,7 @@ export const RULE_CHANGES: RuleChange[] = [
     summary: "Alabama permits distance learning for up to 50% of total course work",
     sourceUrl: "https://www.aboc.alabama.gov/news/rule-changes-effective-may-15-2026",
     detail:
-      "Amendment to Chapter 250-X-5-.03 (School Curriculum). Institutions must align their distance education policy with NACCAS Policy VI.02, and must notify students at enrolment that distance hours may not be accepted for reciprocity or licensure elsewhere. Alabama lands on the same 50% figure as Texas without either citing the other.",
+      "Amendment to Chapter 250-X-5-.03 (School Curriculum). Institutions must align their distance education policy with NACCAS Policy VI.02, and must notify students at enrollment that distance hours may not be accepted for reciprocity or licensure elsewhere. Alabama lands on the same 50% figure as Texas without either citing the other.",
   },
 ];
 

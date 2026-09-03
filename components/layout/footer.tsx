@@ -15,6 +15,7 @@ const footerLinks = {
     { label: "Compare Barber & Cosmetology Schools (Pass Rates)", href: "/compare-schools" },
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
     { label: "ShearQuery Credit Report (Booth Rent Reporting)", href: "/shearquery-credit-report" },
+    { label: "Booth Rental Agreement: What It Must Cover", href: "/booth-rental-agreement" },
     { label: "Barber Booth Rent & Chairs for Rent Houston", href: "/barber-booth-rent-houston" },
     { label: "Salon Suites for Rent Houston", href: "/salon-suites-for-rent-houston" },
     { label: "Texas Barber & Cosmetology Industry Events", href: "/events" },
@@ -39,6 +40,9 @@ const footerLinks = {
     { label: "Content Publisher", href: "/admin/content-publisher" },
     { label: "Instagram Carousels", href: "/admin/instagram-carousels" },
     { label: "Content Insights Data", href: "/admin/content-insights" },
+    { label: "School Roster", href: "/school/roster" },
+    { label: "School Lessons", href: "/school/lessons" },
+    { label: "School Instructors", href: "/school/instructors" },
     /**
      * Sits next to the Content Publisher because it answers that page's first
      * question: is the account it publishes to still connected? The panel

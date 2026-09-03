@@ -3,7 +3,7 @@ import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { fetchFindings, findingStats } from "@/lib/research/store";
 import { ResearchFindingsPanel } from "@/components/admin/research-findings";
-import { runContentAgent, setContentFindingStatus } from "./actions";
+import { runContentAgent, setContentFindingStatus, queueFinding } from "./actions";
 import { Lightbulb } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +52,7 @@ export default async function ContentResearchPage() {
           stats={stats}
           runAction={runContentAgent}
           statusAction={setContentFindingStatus}
+        queueAction={queueFinding}
           emptyHint="No research yet. Press Run research and it'll read the site's traffic, searches and directory against what's already been published."
         />
       </div>

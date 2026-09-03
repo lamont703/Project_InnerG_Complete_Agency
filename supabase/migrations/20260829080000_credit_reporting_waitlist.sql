@@ -1,6 +1,6 @@
 -- Owners asking to report BEYOND ShearQuery.
 --
--- A SEPARATE TABLE FROM THE ENROLMENT ON PURPOSE. Reporting inside ShearQuery
+-- A SEPARATE TABLE FROM THE EnrollMENT ON PURPOSE. Reporting inside ShearQuery
 -- is live and free; furnishing to Experian, Equifax, TransUnion or Dun &
 -- Bradstreet is neither, and cannot be until the furnisher licensing and
 -- dispute obligations are met. Two tables keep the promise honest: an enrolled
