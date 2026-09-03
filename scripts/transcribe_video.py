@@ -29,6 +29,63 @@ import tempfile
 
 MODEL = "small.en"
 
+# Fed to the model as prior context so it expects these words. Whisper has never
+# heard "ShearQuery" and lands on the two ordinary words it sounds like, which
+# then get BURNED INTO THE CAPTIONS — the brand name, misspelled, on a branded
+# video. The trade names and the regulator acronyms are here for the same
+# reason: they are the words this channel says constantly and a general model
+# has the least reason to expect.
+VOCAB = (
+    "ShearQuery. Inner G Complete. Transcript of a barber and cosmetology "
+    "video covering TDLR, NACCAS, PSI, booth rent, balayage, ombre, taper, "
+    "fade, line-up, locs, silk press, esthetician, manicurist, cosmetology "
+    "operator, barbershop, salon, clippers, shears."
+)
+
+# initial_prompt is a BIAS, not a guarantee, so what it still gets wrong is
+# corrected here. Longest first, or a shorter key rewrites part of a longer one.
+CORRECTIONS = [
+    ("sheer query", "ShearQuery"),
+    ("shear query", "ShearQuery"),
+    ("sheerquery", "ShearQuery"),
+    ("inner g complete", "Inner G Complete"),
+]
+
+
+def correct(text: str) -> str:
+    """Apply CORRECTIONS case-insensitively, preserving surrounding text."""
+    import re
+    for wrong, right in CORRECTIONS:
+        text = re.sub(re.escape(wrong), right, text, flags=re.IGNORECASE)
+    return text
+
+
+def correct_words(words):
+    """
+    Rewrite a multi-word mishearing across the WORD list, which is what the
+    captions are actually built from. "Sheer" + "Query" are two word entries, so
+    fixing only the segment text leaves the captions wrong. The replacement
+    collapses onto the first word and spans the original timing, so the caption
+    reads "ShearQuery" for exactly as long as it was said.
+    """
+    lowered = [w["word"].lower().strip(".,!?") for w in words]
+    for wrong, right in CORRECTIONS:
+        parts = wrong.split()
+        if len(parts) < 2:
+            continue
+        i = 0
+        while i <= len(lowered) - len(parts):
+            if lowered[i:i + len(parts)] == parts:
+                words[i] = {"word": right, "start": words[i]["start"],
+                            "end": words[i + len(parts) - 1]["end"]}
+                del words[i + 1:i + len(parts)]
+                del lowered[i + 1:i + len(parts)]
+                lowered[i] = right.lower()
+            i += 1
+    for w in words:
+        w["word"] = correct(w["word"])
+    return words
+
 
 def ffmpeg() -> str:
     """The modern binary if it is installed; the 2018 one otherwise."""
@@ -66,17 +123,20 @@ def main() -> int:
         print(f"model   {model_name} (first run downloads it)")
         model = WhisperModel(model_name, device="cpu", compute_type="int8")
 
-        segments, info = model.transcribe(wav, word_timestamps=True, vad_filter=False)
+        segments, info = model.transcribe(wav, word_timestamps=True, vad_filter=False,
+                                          initial_prompt=VOCAB)
 
         out_segments = []
         words = []
         for s in segments:
             out_segments.append({"start": round(s.start, 3), "end": round(s.end, 3),
-                                 "text": s.text.strip()})
+                                 "text": correct(s.text.strip())})
             for w in (s.words or []):
                 words.append({"word": w.word.strip(), "start": round(w.start, 3),
                               "end": round(w.end, 3)})
-            print(f"  [{s.start:6.2f}] {s.text.strip()}")
+            print(f"  [{s.start:6.2f}] {correct(s.text.strip())}")
+
+    words = correct_words(words)
 
     out = os.path.splitext(src)[0] + ".words.json"
     with open(out, "w") as f:

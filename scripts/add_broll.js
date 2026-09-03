@@ -144,7 +144,12 @@ for (const d of dropped) console.log(`  DROPPED  "${d.cutaway?.query ?? "?"}" â€
      */
     const wordsOf = (q) => String(q).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2);
     const tags = [...new Set([c.query, ...(c.alternates ?? [])].flatMap(wordsOf))];
-    const hits = await findClips(db, { tags, limit: 8, exclude: usedIds });
+    /*
+     * minScore 2: at least TWO words of the moment have to be in the clip's
+     * tags. One word is a coincidence â€” "phone gps map" hit a ringing desk
+     * phone and it went out illustrating "that map pin".
+     */
+    const hits = await findClips(db, { tags, limit: 8, exclude: usedIds, minScore: 2 });
     const clip = hits[0] ?? null;
 
     if (!clip) {
