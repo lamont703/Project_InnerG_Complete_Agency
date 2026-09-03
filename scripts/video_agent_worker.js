@@ -74,6 +74,27 @@ function fitGrid(src, out) {
   const W = +m[1], H = +m[2];
   const tw = Math.round(TARGET * 2 * H / 3);
   if (tw > W) throw new Error(`grid is ${W}x${H}; it is too narrow for a 2x3 layout at the template's cell aspect`);
+  /*
+   * A BIG CROP IS NOT A FIT, IT IS A DIFFERENT PICTURE — and this failed
+   * silently, which is why there is a limit rather than a comment.
+   *
+   * The crop is centred, so it only preserves the grid when each head sits in
+   * the middle of its cell. On a SQUARE source they do not: the heads lean
+   * toward the outer edge of their column, and taking 33% off the width sliced
+   * every one of them in half. ffmpeg was happy, the file was valid, and the
+   * reel would have panned across six half-heads.
+   *
+   * 12% is comfortably above the rounding a correctly-shaped grid needs and far
+   * below anything that reframes the picture. Past it, the source is the wrong
+   * SHAPE and the fix is to generate it at 2:3 — 1696x2528 lands on the
+   * template's cell aspect exactly and needs no crop at all.
+   */
+  const lost = (W - tw) / W;
+  if (lost > 0.12) {
+    throw new Error(
+      `grid is ${W}x${H}; fitting it to the template's cell aspect would cut ${Math.round(lost * 100)}% ` +
+      `of the width, which moves the heads out of their cells. Generate the grid at 2:3 (e.g. 1696x2528) instead.`);
+  }
   execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", src,
     "-vf", `crop=${tw}:${H}:${Math.round((W - tw) / 2)}:0`, "-q:v", "2", out], { stdio: "ignore" });
   return { from: `${W}x${H}`, to: `${tw}x${H}` };

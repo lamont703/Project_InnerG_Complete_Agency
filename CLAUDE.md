@@ -221,6 +221,39 @@ Prompt for **no legible text in frame** — generated on-screen text is where
 these models fall apart. Kling Turbo emits an audio track regardless; the
 renderer maps only our narration, so it is discarded.
 
+## Lookbook grids — generate at 2:3, and never let a crop reframe them
+
+**Generate every grid at 2:3. 1696x2528 lands on the reel template's cell aspect
+exactly and needs no crop at all.** With Higgsfield's `nano_banana_pro`, pass
+`aspect_ratio: "2:3"` — omit it and you get a square 2048x2048, which is the
+failure below.
+
+`reel_hairstyles.html` pans to fixed normalised points, so what matters is the
+CELL aspect: (848/2)/(1264/3) = 1.0063. `fitGrid()` in
+scripts/video_agent_worker.js corrects a near-miss by cropping the width.
+
+### The failure, because it produced a valid file and no error
+
+A centred crop only preserves the grid when each head sits in the MIDDLE of its
+cell. On a square source they do not — the heads lean toward the outer edge of
+their column — so taking 33% off the width sliced every head in half. ffmpeg
+succeeded, the JPEG opened fine, and the reel would have panned across six
+half-heads. Nothing anywhere said the picture was wrong.
+
+`fitGrid()` now refuses any fit that would cut more than 12% of the width and
+says to regenerate at 2:3. A crop that large is not a fit, it is a reframe.
+
+### Two prompt rules that carried over, both still earning their place
+
+- **Say "exactly SIX heads in a 2x3 grid, two columns and three rows, no more"**,
+  and add that each head must be CENTERED in its cell with even margin.
+- **Every cell must differ on CUT as well as colour.** A men's highlights grid
+  came back as six near-identical brown-with-blonde side-parts and was thrown
+  away — the same low-contrast failure as the buzz-cut batch. Naming a different
+  haircut per cell alongside the colour fixed it in one retry.
+- **Label the cells from the RENDERED grid, never from the prompt.** The model
+  renders the category reliably and the specific named cut only sometimes.
+
 ## pixel_events claims — two things inflate it, and both look like demand
 
 **Before publishing any figure from `pixel_events`, subtract our own traffic and
