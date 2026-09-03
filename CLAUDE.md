@@ -221,6 +221,52 @@ Prompt for **no legible text in frame** — generated on-screen text is where
 these models fall apart. Kling Turbo emits an audio track regardless; the
 renderer maps only our narration, so it is discarded.
 
+## pixel_events claims — two things inflate it, and both look like demand
+
+**Before publishing any figure from `pixel_events`, subtract our own traffic and
+establish whether a search was TYPED or TAPPED.** Both traps produce numbers
+that are real, reproducible, and describe us rather than the audience.
+
+### 1. Roughly 37% of events are internal
+
+49 visitor_ids have hit `/admin`, `/pixel-analytics` or `/account`. They account
+for 20,797 of 55,659 events — **37.4%**, measured 2026-09-03. Filter by
+`visitor_id`, not by path: excluding admin *pages* still leaves that person's
+browsing of the public site in the numbers.
+
+### 2. The top search terms are our own suggestion chips
+
+`app/search/page.tsx` renders canned queries as tappable chips, and a tap fires
+`search_executed` with the chip text in `metadata.query` — indistinguishable
+from typing it. The five most common "searches" on this site are all chips.
+
+**The chip set has been edited over time, so historic chip text is NOT in the
+current source and cannot be subtracted by grepping.** That is what makes this
+unfixable rather than merely fiddly: there is no way to reconstruct which chips
+were live on a given date. A "top search term" claim from this table is
+therefore not publishable, and no amount of care makes it so.
+
+What IS safe is the shape a chip cannot have — a query of three words or fewer
+with no question mark. Chips are long natural-language questions; "cypress" and
+"buzzards barbershop" are people.
+
+**The gap is not small, which is the point.** Chip-inflated data says 18.9% of
+searches are about booth rent or hiring. Restricted to queries that cannot be a
+chip, it is **0.8%** — a 24x overstatement of an entire audience segment, and it
+would have been published as a finding about what barbers want.
+
+## TDLR raw counts — schools are in TWO source datasets
+
+`tdlr_licensees_raw` holds one row per licence for every type EXCEPT schools,
+which appear under both `7358-krk7` and `9d9z-ebct`. So a plain count of
+`Cosmetology Private School` returns **1,280 when the real number is 640** —
+exactly double, which is what makes it convincing rather than obviously wrong.
+
+`tdlr_license_type_summary` already dedupes and is the number to trust. When
+counting off the raw table, count `distinct license_number`, never rows. Every
+other licence type checked has row count equal to distinct licences, so a
+spot-check on one type will not reveal this.
+
 ## TDLR claims — cite the page, don't carry the number across
 
 **`lib/tdlr-sources.ts` lists every TDLR page this site treats as authoritative
