@@ -211,9 +211,28 @@ export async function GET(req: Request) {
             .single();
 
           if (job?.status === "proposed") {
-            const verdict = await consentForRow(db, job, msg.text || msg.html || "", msg.id);
+            const body = msg.text || msg.html || "";
+            const verdict = await consentForRow(db, job, body, msg.id);
             if (verdict.ok) result.approved++;
-            else result.refused++;
+            else if (verdict.revision) {
+              /*
+               * A reply that is not the code may still be a REVISION. Re-read it
+               * as a brief: if it is one, it supersedes the standing proposal
+               * and gets its own code, which also retires the old one. If it is
+               * not — "thanks", "ok" — proposeForRow stays quiet and this job is
+               * left exactly as it was, code still live.
+               */
+              const again = await proposeForRow(
+                db,
+                { ...job, body_text: body, gmail_message_id: msg.id,
+                  processed_message_ids: [...(job.processed_message_ids ?? []), msg.id] },
+                { quietOnNoBrief: true },
+              );
+              if (again.ok) result.proposed++;
+              await db.from("video_requests").update({
+                processed_message_ids: [...(job.processed_message_ids ?? []), msg.id],
+              }).eq("id", job.id);
+            } else result.refused++;
           } else if (job && ["rejected", "expired", "failed"].includes(job.status)) {
             /*
              * A REPLY ON A CLOSED JOB IS A NEW BRIEF, not noise.

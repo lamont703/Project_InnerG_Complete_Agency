@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import * as gmail from "@/lib/gmail";
 import { PROFILES } from "@/lib/newsdesk-config";
+import { missingMaterial } from "@/lib/video-agent/materials";
 import { interpret, NoBriefError, type InterpretInput } from "./interpret";
 import { geminiInterpreter } from "./gemini";
 import { planBroll, proposalEmail } from "./propose";
@@ -46,7 +47,7 @@ export async function todayUsage(db: any): Promise<DayUsage> {
   };
 }
 
-export interface StageResult { ok: boolean; note: string }
+export interface StageResult { ok: boolean; note: string; revision?: boolean }
 
 /**
  * A 'received' row becomes a 'proposed' one: read it, write a spec, price it,
@@ -57,7 +58,7 @@ export interface StageResult { ok: boolean; note: string }
  * attention and teaches them the codes do not mean anything.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function proposeForRow(db: any, row: any): Promise<StageResult> {
+export async function proposeForRow(db: any, row: any, opts: { quietOnNoBrief?: boolean } = {}): Promise<StageResult> {
   const attachments = (row.attachments ?? []) as Array<Record<string, unknown>>;
   const input: InterpretInput = {
     subject: row.subject ?? "",
@@ -77,6 +78,13 @@ export async function proposeForRow(db: any, row: any): Promise<StageResult> {
      * exactly like one that never arrived, so the next move is to send it again.
      */
     if (err instanceof NoBriefError) {
+      /*
+       * A REVISION THAT TURNS OUT NOT TO BE ONE STAYS SILENT. This path is also
+       * reached from an ordinary reply on a still-proposed job ("thanks", "ok"),
+       * and answering that with the requirements table would talk over someone
+       * who is not asking for anything.
+       */
+      if (opts.quietOnNoBrief) return { ok: false, note: "reply carried no new brief" };
       await gmail.replyInThread({
         threadId: row.gmail_thread_id, to: row.from_address,
         subject: `Re: ${row.subject}`, inReplyTo: row.gmail_message_id,
@@ -132,6 +140,29 @@ export async function proposeForRow(db: any, row: any): Promise<StageResult> {
    * card and a Lookbook is a pan across one supplied image; neither cuts away
    * to footage, so there is nothing to search the library for.
    */
+  /*
+   * NOTHING IS PROPOSED THAT CANNOT BE RENDERED. The worker checks this too,
+   * but only once a code comes back — far too late, because by then the sender
+   * has read a plan built on material that does not exist.
+   */
+  const missing = missingMaterial(request, row.attachments ?? []);
+  if (missing.length) {
+    await gmail.replyInThread({
+      threadId: row.gmail_thread_id, to: row.from_address,
+      subject: `Re: ${row.subject}`, inReplyTo: row.gmail_message_id,
+      body: [
+        `I did not propose this one, because ${missing.join("; and ")}.`,
+        "",
+        `I have not guessed at what was missing. Send it again with the file attached and I will come back`,
+        `with a spec and a code.`,
+      ].join("\n"),
+    });
+    await db.from("video_requests").update({
+      status: "rejected", error_text: `missing material: ${missing.join("; ")}`,
+    }).eq("id", row.id);
+    return { ok: false, note: `refused: ${missing.join("; ")}` };
+  }
+
   const broll = request.kind === "spec" ? await planBroll(db, request.spec) : [];
   const { code, expiresAt } = mintNonce();
   const body = proposalEmail({
@@ -175,13 +206,15 @@ export async function consentForRow(db: any, row: any, replyBody: string, replyM
   if (!verdict.ok) {
     if (verdict.reason === "no-code-in-reply") {
       /*
-       * Deliberately silent, and the only silence that is right. This fires on
-       * every ordinary reply in the thread — "change the hook", "make it
-       * shorter" — and answering each one with "you did not send a code" would
-       * talk over the person trying to revise the spec. The job stays proposed
-       * and the live code stays live.
+       * NOT silence — that was the bug. This fires on every reply that is not
+       * the code, and those split in two: "thanks" and "change the hook". The
+       * first deserves no answer; the second is a REVISION, and dropping it is
+       * how a real request to change the hairstyles vanished with no reply.
+       *
+       * So the caller re-interprets it. A new brief supersedes the proposal
+       * with a fresh code; anything else stays quiet and leaves this one live.
        */
-      return { ok: false, note: "reply carried no code — leaving the job proposed" };
+      return { ok: false, revision: true, note: "reply carried no code — treating it as a possible revision" };
     }
 
     const why = {

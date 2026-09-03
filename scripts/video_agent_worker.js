@@ -28,6 +28,7 @@ const { createClient } = require("@supabase/supabase-js");
 const gmail = require("../lib/gmail.js");
 const driveLinks = require("../lib/drive-links.js");
 const { PROFILES } = require("../lib/newsdesk-config.js");
+const { missingMaterial } = require("../lib/video-agent/materials.js");
 const { findClips } = require("../lib/broll-library.js");
 const FF = require("ffmpeg-static");
 
@@ -165,27 +166,15 @@ async function runGrid(client, row, grid) {
  * to complete. Failing loudly beats spending and then failing.
  */
 async function blockers(client, row, req) {
-  const atts = row.attachments || [];
-  const out = [];
-
-  if (req.kind === "grid") {
-    if (!atts.some((a) => /^image\//i.test(a.mimeType || ""))) {
-      out.push("a Lookbook needs a 2x3 grid image attached; none was");
-    }
-    return out;
-  }
-  if (req.kind === "card") return out;   // a figure needs nothing but its fields
+  /*
+   * Material comes from lib/video-agent/materials.js, which the propose stage
+   * reads too. Keeping a second copy here is how the two drift apart, and the
+   * one that matters is whichever runs FIRST — so they have to be the same one.
+   */
+  const out = missingMaterial(req, row.attachments || []);
+  if (req.kind !== "spec") return out;
 
   const spec = req.spec;
-  if (spec.segments.some((sg) => sg.mode !== "avatar" && ["headline", "chart"].includes(sg.visual))
-      && !atts.some((a) => /^image\//i.test(a.mimeType || ""))) {
-    out.push("the spec uses a headline shot but no image was attached");
-  }
-  if (spec.segments.some((sg) => sg.mode === "clip")
-      && !atts.some((a) => /^video\//i.test(a.mimeType || ""))) {
-    out.push("the spec uses clip segments but no video was attached");
-  }
-
   for (const [i, sg] of spec.segments.entries()) {
     if (sg.mode !== "voice" || sg.visual !== "broll") continue;
     const tags = sg.tags || [];
