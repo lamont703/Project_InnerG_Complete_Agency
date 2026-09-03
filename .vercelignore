@@ -32,3 +32,12 @@ experiments/
 # scripts/video_assemble.js is the pipeline that actually renders.
 app/admin/video-editor/
 app/api/admin/video-editor/
+
+# Working directories for the video pipeline. Both are in .gitignore, which is
+# NOT enough: once a .vercelignore exists the CLI uses it INSTEAD of .gitignore,
+# so a `vercel --prod` from a laptop tried to upload ~4.7GB of rendered video
+# and died on repeated "Upload aborted". A deploy triggered from git never hits
+# this, because git only ever sends what is committed — which is why it went
+# unnoticed until someone deployed from the CLI.
+.cache/
+reference/

@@ -59,6 +59,10 @@
     {
       "path": "/api/cron/school-sessions",
       "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/video-agent",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
