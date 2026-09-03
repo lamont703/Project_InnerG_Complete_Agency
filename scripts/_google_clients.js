@@ -68,6 +68,26 @@ const CHAIN = {
     secret: ["GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
     refresh: ["GOOGLE_ADS_REFRESH_TOKEN"],
   },
+  gmail: {
+    label: "Gmail (video request agent)",
+    /*
+     * NO FALLBACKS, AND THAT IS THE POINT — do not add GOOGLE_INTERNAL_* here.
+     *
+     * Gmail scopes are RESTRICTED, a stricter tier than the sensitive scopes
+     * every other purpose uses. Restricted scopes attach to the CLIENT, not to
+     * the token, so pointing this purpose at a shared client would drag every
+     * other service on that client into Gmail's verification review — the same
+     * scope-contamination that lib/google-clients.ts was written to stop, where
+     * the customer-facing client ended up holding YouTube scopes.
+     *
+     * A fallback here would also fail quietly rather than loudly: consent would
+     * succeed against the wrong client and the token would be dead on arrival.
+     * Missing variables are the better failure.
+     */
+    id: ["GOOGLE_GMAIL_CLIENT_ID"],
+    secret: ["GOOGLE_GMAIL_CLIENT_SECRET"],
+    refresh: ["GOOGLE_GMAIL_REFRESH_TOKEN"],
+  },
 };
 
 function pick(names) {

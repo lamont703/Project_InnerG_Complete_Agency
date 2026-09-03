@@ -34,7 +34,7 @@
  * demonstrated.
  */
 
-export type GooglePurpose = "gbp_owner" | "gbp_brand" | "youtube" | "gsc" | "ads";
+export type GooglePurpose = "gbp_owner" | "gbp_brand" | "youtube" | "gsc" | "ads" | "gmail";
 
 export interface GoogleCredentials {
   purpose: GooglePurpose;
@@ -95,6 +95,24 @@ const CHAIN: Record<GooglePurpose, { id: string[]; secret: string[]; refresh?: s
     secret: ["GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_INTERNAL_CLIENT_SECRET", "GOOGLE_CLIENT_SECRET"],
     refresh: ["GOOGLE_ADS_REFRESH_TOKEN"],
   },
+
+  // The mailbox the video-request agent reads and replies from
+  // (claudedawg113@gmail.com). Its own dedicated account, so a password change
+  // on a human's account cannot revoke this token — Google revokes Gmail-scoped
+  // refresh tokens when the account password changes.
+  //
+  // NO FALLBACKS, DELIBERATELY. Gmail scopes are RESTRICTED — a stricter tier
+  // than the sensitive scopes the other purposes use — and scopes attach to the
+  // CLIENT. Pointing this at GOOGLE_INTERNAL_* would pull Search Console,
+  // YouTube and Ads into Gmail's verification review, which is exactly the
+  // scope contamination described at the top of this file. An unset variable
+  // fails loudly; a fallback would mint a token against the wrong client and
+  // fail days later as "TOKEN DEAD".
+  gmail: {
+    id: ["GOOGLE_GMAIL_CLIENT_ID"],
+    secret: ["GOOGLE_GMAIL_CLIENT_SECRET"],
+    refresh: ["GOOGLE_GMAIL_REFRESH_TOKEN"],
+  },
 };
 
 /** First name in the list that holds a non-empty value. */
@@ -134,7 +152,7 @@ export function canonicalNames(purpose: GooglePurpose): {
   return { id: c.id[0], secret: c.secret[0], refresh: c.refresh?.[0] };
 }
 
-export const ALL_PURPOSES: GooglePurpose[] = ["gbp_owner", "gbp_brand", "youtube", "gsc", "ads"];
+export const ALL_PURPOSES: GooglePurpose[] = ["gbp_owner", "gbp_brand", "youtube", "gsc", "ads", "gmail"];
 
 export const PURPOSE_LABELS: Record<GooglePurpose, string> = {
   gbp_owner: "Business Profile — owner connect (customer-facing)",
@@ -142,4 +160,5 @@ export const PURPOSE_LABELS: Record<GooglePurpose, string> = {
   youtube: "YouTube publishing",
   gsc: "Search Console",
   ads: "Google Ads",
+  gmail: "Gmail (video request agent)",
 };
