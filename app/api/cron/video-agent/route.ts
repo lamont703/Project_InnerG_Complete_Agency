@@ -136,6 +136,7 @@ export async function GET(req: Request) {
     scanned: 0,
     created: 0,
     replies_seen: 0,
+    reopened: 0,
     proposed: 0,
     approved: 0,
     refused: 0,
@@ -213,6 +214,33 @@ export async function GET(req: Request) {
             const verdict = await consentForRow(db, job, msg.text || msg.html || "", msg.id);
             if (verdict.ok) result.approved++;
             else result.refused++;
+          } else if (job && ["rejected", "expired", "failed"].includes(job.status)) {
+            /*
+             * A REPLY ON A CLOSED JOB IS A NEW BRIEF, not noise.
+             *
+             * The natural way to answer "I could not read that as a request" is
+             * to reply in the same thread saying what you actually want — and
+             * because the thread is keyed one-to-one with the job, that reply
+             * used to land on a row nobody was reading and produce silence.
+             * The second refusal in a row is where a person stops trusting the
+             * mailbox.
+             *
+             * Reopening reuses the whole propose stage rather than duplicating
+             * it, and the message id is banked so the reopen cannot loop: the
+             * next poll sees this message as already accounted for.
+             */
+            await db.from("video_requests").update({
+              status: "received",
+              body_text: msg.text || msg.html || "",
+              gmail_message_id: msg.id,
+              error_text: null,
+              consent_nonce: null,
+              consent_nonce_expires_at: null,
+              proposed_spec: null,
+              estimated_cost_usd: null,
+              processed_message_ids: [...(job.processed_message_ids ?? []), msg.id],
+            }).eq("id", job.id);
+            result.reopened++;
           }
           continue;
         }
