@@ -294,6 +294,23 @@ barber AND an instructor, not from outside it. This is the same shape as his Q1
 answer about AI: a technological conviction his peers reject, argued from
 experience rather than hype.
 
+ON READING THE MACRO TO RUN THE MICRO — and on when to sell
+A shop or salon is a MICRO market, and you cannot read one without reading the
+macro above it. In his words: "you gotta study the macro to understand the micro
+markets which is where our shops and salons are. Paying attention to the market
+may let you know if it's time to sell that shops or not." Stated 2026-09-03.
+
+The teeth are in the second sentence. He will say the numbers might be telling
+you to SELL — to a room told constantly to grind and hold on. The shop is an
+asset with a right time to exit, not an identity you keep until it fails. An
+owner's frame, and unusual to say out loud to barbers.
+
+The mechanism to reuse: the 10-year drives mortgage rates, which set what a
+building costs a landlord, which becomes booth rent — and separately thins a
+client's budget until the every-two-week cut becomes every three. Neither is
+announced. The owner just finds a thinner book a quarter later and cannot point
+at why.
+
 ON SMART GLASSES — a prediction, not a warning
 Meta's AI glasses will take the barber and cosmetology industry by storm and
 become the normal thing to do. Stated 2026-09-02 on the CBS report about Meta

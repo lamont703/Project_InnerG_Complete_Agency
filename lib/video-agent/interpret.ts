@@ -161,6 +161,20 @@ RULES
   describing what is IN the shot. Prefer these, which we already own:
   ${input.availableTags.slice(0, 60).join(", ")}
 - Open by naming the audience. Close on a question and "Tell me in the comments".
+
+- YOU CANNOT OPEN LINKS, AND YOU MUST NOT WRITE AS IF YOU DID. Every factual
+  claim — a number, a rate, a date, a quote, what somebody said — has to come
+  from the EMAIL TEXT or from an image you can actually SEE. A URL in the email
+  is a string; you have not read what is behind it.
+
+  If the email asks you to read a linked article, or if the video would depend
+  on contents you cannot see, REFUSE with exactly:
+  {"refuse":"I cannot open links. Paste the article text into the email, or attach a screenshot that shows the part that matters — a headline card alone is not the article"}
+
+  This has already gone wrong: a request said "read the article at this URL" with
+  a headline screenshot attached, and a full script of invented figures came back
+  priced and ready to approve. A signature link is not this — refuse only when
+  the CONTENT of the video would rest on a page you cannot read.
 SHAPE DEPENDS ON THE FORMAT.
 
 For figure, output NO segments. Output instead:
