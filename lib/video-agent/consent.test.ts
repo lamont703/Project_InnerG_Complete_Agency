@@ -61,3 +61,31 @@ describe("the daily ceiling refuses rather than queues", () => {
     expect(overDailyLimit({ renders: 0, usd: 0 }, 1.9).over).toBe(true);
   });
 });
+
+describe("which gate refused, and what to do about it", () => {
+  it("names the per-video gate rather than calling it a daily limit", () => {
+    // The real case: 0 renders today, one script at $1.89 against a $1.50 cap.
+    const v = overDailyLimit({ renders: 0, usd: 0 }, 1.89);
+    expect(v.over).toBe(true);
+    if (!v.over) return;
+    expect(v.gate).toBe("per-video");
+    expect(v.reason).toMatch(/NOT the daily limit/);
+    expect(v.reason).toMatch(/too much time on camera/);
+  });
+
+  it("says how many seconds and words to move out of an avatar beat", () => {
+    const v = overDailyLimit({ renders: 0, usd: 0 }, 1.89);
+    if (!v.over) throw new Error("expected a refusal");
+    // ($1.89 - $1.50) / $0.0386 per second ~= 11s, ~33 words at 175 wpm.
+    expect(v.reason).toMatch(/\b1[01]s too much/);
+    expect(v.reason).toMatch(/roughly 3[0-9] words/);
+  });
+
+  it("still reports the daily gates as daily when they are what bit", () => {
+    const byCount = overDailyLimit({ renders: 3, usd: 0 }, 1.0);
+    const bySpend = overDailyLimit({ renders: 1, usd: 4.8 }, 1.0);
+    if (!byCount.over || !bySpend.over) throw new Error("expected refusals");
+    expect(byCount.gate).toBe("renders");
+    expect(bySpend.gate).toBe("spend");
+  });
+});

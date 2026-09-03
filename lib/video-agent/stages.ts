@@ -131,7 +131,7 @@ export async function proposeForRow(db: any, row: any, opts: { quietOnNoBrief?: 
       subject: `Re: ${row.subject}`, inReplyTo: row.gmail_message_id,
       body: `I read this one and did not propose it, because ${limit.reason}.\n\nNothing was rendered and nothing was spent. Send it again tomorrow, or reply here and I will hold it.`,
     });
-    await db.from("video_requests").update({ status: "rejected", error_text: `daily limit: ${limit.reason}` }).eq("id", row.id);
+    await db.from("video_requests").update({ status: "rejected", error_text: `${limit.gate} limit: ${limit.reason}` }).eq("id", row.id);
     return { ok: false, note: `refused: ${limit.reason}` };
   }
 

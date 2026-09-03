@@ -1,4 +1,4 @@
-import { PROFILES, withinBudget } from "@/lib/newsdesk-config";
+import { WORDS_PER_MIN, NEWSDESK, maxAvatarSecs, PROFILES, withinBudget } from "@/lib/newsdesk-config";
 
 /**
  * TURN AN EMAIL INTO A VIDEO SPEC.
@@ -89,6 +89,9 @@ export interface Interpreter {
 /* ------------------------------------------------------------------ */
 
 function promptFor(input: InterpretInput, voice: string): string {
+  /* Stated in seconds AND words, because the model writes words, not seconds. */
+  const maxSecs = maxAvatarSecs(NEWSDESK);
+  const maxWords = Math.floor((maxSecs / 60) * WORDS_PER_MIN);
   const profiles = SPEC_PROFILES.map((p) => {
     const c = PROFILES[p];
     return `  "${p}" — ${c.targetSecs.min}-${c.targetSecs.max}s, avatar billed at $${c.avatar.perSec}/s, cap $${c.budgetUsd}`;
@@ -134,7 +137,26 @@ ${voice}
 RULES
 - Segments alternate. "avatar" is on camera and COSTS MONEY; "voice" is his
   narration over b-roll and is free; "clip" plays a supplied video and is free.
-- Keep total avatar seconds low. Estimate 175 words per minute.
+
+- ONE NARRATION, SLICED. Every segment is the same continuous voice track. The
+  avatar does not "start talking" at a segment — it lip-syncs the slice of
+  narration that belongs to it. So moving a sentence from an avatar segment to a
+  voice segment changes NOTHING about how the video sounds. It only stops us
+  paying for a face during that sentence. This is the default way these are
+  built, not an optimisation to apply at the end.
+
+- HARD BUDGET: AT MOST ${maxSecs} SECONDS ON CAMERA across ALL avatar segments
+  combined, which at 175 wpm is about ${maxWords} WORDS TOTAL of avatar text.
+  Count them. Everything beyond that is a voice segment over b-roll. A spec over
+  this is refused before anything is bought, and the sender gets nothing.
+
+- DEFAULT TO FOUR AVATAR BEATS, and only the four that need a face:
+    the open (name the audience), the pivot (the turn), the thesis (the claim),
+    the close (the question + "Tell me in the comments").
+  Everything in between — the setup, the evidence, the detail, the example — is
+  "voice" over b-roll. When a beat runs long, MOVE A SENTENCE OUT of it into a
+  b-roll segment rather than trimming the argument. The argument is the video;
+  the face is not.
 - Every "voice" segment with visual "broll" needs "tags": lowercase single words
   describing what is IN the shot. Prefer these, which we already own:
   ${input.availableTags.slice(0, 60).join(", ")}
