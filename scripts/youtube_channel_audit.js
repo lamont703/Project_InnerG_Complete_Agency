@@ -50,12 +50,21 @@ const env = internalEnv();
  * only the OAuth script was updated. If you ever change one of these two lists,
  * change the other in the same commit.
  */
-const CLIENT_ID =
-  env.YOUTUBE_CLIENT_ID || env.GOOGLE_INTERNAL_CLIENT_ID || env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET =
-  env.YOUTUBE_CLIENT_SECRET || env.GOOGLE_INTERNAL_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET;
-const REFRESH_TOKEN =
-  env.YOUTUBE_REFRESH_TOKEN || env.GOOGLE_YOUTUBE_REFRESH_TOKEN || env.YT_REFRESH_TOKEN;
+/*
+ * RESOLVED BY PURPOSE, from the one shared list. The comment above warns that
+ * these two chains must change in the same commit — and they did not: this file
+ * kept its own copy preferring the bare YOUTUBE_CLIENT_ID while
+ * scripts/_google_clients.js was updated to prefer GOOGLE_YOUTUBE_CLIENT_ID.
+ * Both names are set in .env.local, so the audit picked the stale client, the
+ * refresh token did not belong to it, and it died with `unauthorized_client` —
+ * the precise failure the comment predicts, caused by the duplication it warns
+ * about. There is no second copy to keep in step now.
+ */
+const { googleClient } = require('./_google_clients.js');
+const YT = googleClient('youtube');
+const CLIENT_ID = YT.clientId;
+const CLIENT_SECRET = YT.clientSecret;
+const REFRESH_TOKEN = YT.refreshToken;
 
 const SHOW_ALL = process.argv.includes('--all');
 const AS_JSON = process.argv.includes('--json');
