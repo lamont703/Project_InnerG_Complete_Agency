@@ -184,7 +184,7 @@ function figure(x, groundY, s, pose, breath, opts = {}) {
   const [nx, ny] = seg(x, hipY, pose.torso + Math.PI, TORSO);
 
   g.strokeStyle = opts.color || INK;
-  g.lineWidth = (opts.weight || 0.030) * s;
+  g.lineWidth = (opts.weight || 0.030) * s * INK_SCALE;
   g.lineCap = "round";
   g.lineJoin = "round";
 
@@ -217,6 +217,142 @@ function figure(x, groundY, s, pose, breath, opts = {}) {
   if (opts.expr) drawFace(hx, hy, hr, pose.torso + pose.head, opts.expr);
 
   return { neck: [nx, ny], head: [hx, hy - hr], hand: handL };
+}
+
+/* ---------- the camera ----------
+ * A camera is three numbers: the world point held at frame centre, and a zoom.
+ *
+ * WHY A CAMERA AT ALL. Every shot so far is the same wide two-shot, because
+ * that is all the format needed — a figure, a bench, a bubble. A macro push
+ * onto a clipper guard is a different kind of shot, and faking it by drawing
+ * the prop enormous means the set behind it stays wide and the scale lies.
+ * Moving the camera keeps one world and lets the frame choose what to look at.
+ *
+ * IT WRAPS THE SET AND THE FIGURES ONLY. Speech bubbles, captions and the
+ * wordmark are surface, not scene: pushing in on the shop must not push in on
+ * the branding, and a bubble that scales with a zoom stops being readable,
+ * which is the one thing it exists to be.
+ */
+const CAM_WIDE = { x: null, y: null, zoom: 1 };   // null = frame centre, i.e. no move
+
+/*
+ * INK IS THE RECIPROCAL OF THE ZOOM, and every stroke width is multiplied by
+ * it. canvas scale() scales strokes too, so a 5.5x macro push rendered the
+ * linework five and a half times heavier and the figure turned to sludge —
+ * correct as magnification, wrong as drawing. Hand-drawn animation holds its
+ * line weight through a push; the pen does not get fatter because the camera
+ * moved. Dividing here keeps one number in one place instead of a correction
+ * scattered through every draw call.
+ */
+let INK_SCALE = 1;
+
+function applyCamera(cam) {
+  INK_SCALE = 1;
+  if (!cam || (cam.zoom === 1 && cam.x == null)) return;
+  const cx = cam.x == null ? W / 2 : cam.x;
+  const cy = cam.y == null ? H / 2 : cam.y;
+  g.translate(W / 2, H / 2);
+  g.scale(cam.zoom, cam.zoom);
+  g.translate(-cx, -cy);
+  INK_SCALE = 1 / cam.zoom;
+}
+
+function blendCamera(a, b, t) {
+  const ax = a.x == null ? W / 2 : a.x, ay = a.y == null ? H / 2 : a.y;
+  const bx = b.x == null ? W / 2 : b.x, by = b.y == null ? H / 2 : b.y;
+  /*
+   * Zoom interpolates GEOMETRICALLY. A linear ramp from 1x to 6x spends most of
+   * its time already close, so a push reads as a lurch then a crawl; the eye
+   * reads equal ratios as equal steps, not equal differences.
+   */
+  return { x: lerp(ax, bx, t), y: lerp(ay, by, t), zoom: a.zoom * Math.pow(b.zoom / a.zoom, t) };
+}
+
+/* ---------- props ----------
+ * Drawn from a local origin at the working end and rotated into place, so a
+ * prop in a hand and the same prop falling to the floor are one function with
+ * a different angle rather than two drawings that can drift apart.
+ */
+
+/** Hair clippers. `guard` may be true, false, or a number of units of slip. */
+function clippers(x, y, s, ang, opts = {}) {
+  const guard = opts.guard === undefined ? true : opts.guard;
+  g.save();
+  g.translate(x, y);
+  g.rotate(ang);
+  g.lineWidth = Math.max(1.5, 0.055 * s) * INK_SCALE;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+
+  // body — a plain rounded block; detail here reads as noise at reel size
+  g.beginPath();
+  if (g.roundRect) g.roundRect(-0.30 * s, 0, 0.60 * s, 1.00 * s, 0.16 * s);
+  else g.rect(-0.30 * s, 0, 0.60 * s, 1.00 * s);
+  g.stroke();
+
+  // blade deck at the working end
+  g.beginPath();
+  g.moveTo(-0.30 * s, 0);
+  g.lineTo(-0.38 * s, -0.16 * s);
+  g.lineTo(0.38 * s, -0.16 * s);
+  g.lineTo(0.30 * s, 0);
+  g.stroke();
+
+  if (guard !== false) {
+    /*
+     * THE GUARD IS DRAWN AS ITS OWN THING, offset by `slip`. That is the whole
+     * reason this prop exists: the shot needs it seated, then hanging, then
+     * gone, and a guard baked into the clipper outline can only ever be seated.
+     */
+    const slip = typeof guard === "number" ? guard : 0;
+    guardComb(0, -0.16 * s - slip * 0.5 * s, s, slip * 0.5, { local: true });
+  }
+  g.restore();
+}
+
+/** The comb attachment. Drawn alone when it has come off and is falling. */
+function guardComb(x, y, s, ang, opts = {}) {
+  if (!opts.local) { g.save(); g.translate(x, y); g.rotate(ang); }
+  else { g.save(); g.translate(x, y); g.rotate(ang); }
+  g.lineWidth = Math.max(1.5, 0.050 * s) * INK_SCALE;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  const halfW = 0.40 * s, depth = 0.20 * s;
+  g.beginPath();
+  g.moveTo(-halfW, 0); g.lineTo(-halfW, -depth); g.lineTo(halfW, -depth); g.lineTo(halfW, 0);
+  g.stroke();
+  const teeth = 7;
+  for (let i = 0; i <= teeth; i++) {
+    const tx = -halfW + (2 * halfW * i) / teeth;
+    g.beginPath(); g.moveTo(tx, -depth); g.lineTo(tx, -depth - 0.22 * s); g.stroke();
+  }
+  g.restore();
+}
+
+/** Hand mirror. `reflect` draws inside the glass, in mirror-local coordinates. */
+function handMirror(x, y, s, ang, opts = {}) {
+  g.save();
+  g.translate(x, y);
+  g.rotate(ang);
+  g.lineWidth = Math.max(1.5, 0.045 * s) * INK_SCALE;
+  g.lineCap = "round";
+  const rx = 0.52 * s, ry = 0.68 * s;
+  g.beginPath(); g.ellipse(0, -ry, rx, ry, 0, 0, Math.PI * 2); g.stroke();
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 0.62 * s); g.stroke();
+  if (opts.reflect) {
+    /*
+     * Clipped to the glass, and the caller is handed the INNER radii — not the
+     * rim's. Passing the outer size let a reflected face fill the oval edge to
+     * edge, and the whole thing read as a face on a stick rather than a face in
+     * a mirror. A mirror is only legible when you can see glass around what is
+     * in it.
+     */
+    g.save();
+    g.beginPath(); g.ellipse(0, -ry, rx * 0.88, ry * 0.88, 0, 0, Math.PI * 2); g.clip();
+    opts.reflect(rx * 0.60, ry * 0.60);
+    g.restore();
+  }
+  g.restore();
 }
 
 /* ---------- the set ---------- */
