@@ -62,6 +62,104 @@ const POSES = {
   wait:   { torso: 0.10, head: 0.14, aL: [0.30, 0.55], aR: [-0.30, -0.55], lL: [1.40, 0.10], lR: [-1.40, -0.10] },
 };
 
+/* ---------- expressions ----------
+ * FOUR NUMBERS, the same way a pose is six. Eye openness, brow angle, mouth
+ * curve, mouth opening — and nothing else. The temptation is a face rig with
+ * pupils that track and cheeks that lift, and the reason to refuse it is the
+ * same reason the pose vocabulary is small: every extra number is another thing
+ * to author per card and another thing to look wrong at 200 pixels.
+ *
+ * WHY FACES AT ALL, when the format shipped without them. The horror format
+ * this is being extended for runs entirely on expression — dread, then relief,
+ * then the real thing. A faceless figure can carry a slump; it cannot carry a
+ * man realising what he has done. Nothing existing changes: a figure drawn
+ * without an `expr` is drawn exactly as before.
+ */
+const EXPR = {
+  calm:   { eye: 0.55, brow:  0.00, curve:  0.00, open: 0.00 },
+  shut:   { eye: 0.00, brow:  0.05, curve:  0.10, open: 0.00 },
+  alert:  { eye: 1.00, brow:  0.20, curve: -0.10, open: 0.15 },
+  panic:  { eye: 1.00, brow:  0.55, curve: -0.70, open: 0.80 },
+  relief: { eye: 0.30, brow:  0.06, curve:  0.65, open: 0.05 },
+  horror: { eye: 1.00, brow:  0.75, curve: -0.85, open: 1.00 },
+};
+
+function blendExpr(a, b, t) {
+  const o = {};
+  for (const k of ["eye", "brow", "curve", "open"]) o[k] = lerp(a[k], b[k], t);
+  return o;
+}
+
+/**
+ * Draw a face inside the head circle.
+ *
+ * THE FACE ROTATES WITH THE HEAD. The head is placed along torso+head, so a
+ * slumped figure's skull leans — and a face drawn in screen space slides off
+ * the side of it. Canvas rotates clockwise for a positive angle while this rig
+ * measures clockwise from straight down, so the rotation applied is the
+ * NEGATIVE of the head angle. Getting that sign wrong tilts the face the wrong
+ * way, which reads as a drawing mistake rather than a maths one.
+ */
+function drawFace(hx, hy, hr, headAngle, e) {
+  g.save();
+  g.translate(hx, hy);
+  g.rotate(-headAngle);
+
+  const ex = 0.40 * hr;          // eye offset from centre
+  const ey = -0.12 * hr;
+  const w  = 0.19 * hr;          // eye half-width
+  const h  = Math.max(0.02, e.eye) * 0.19 * hr;
+
+  g.lineCap = "round";
+  g.lineJoin = "round";
+
+  for (const side of [-1, 1]) {
+    // eye — an ellipse that collapses to a line as openness goes to zero
+    g.beginPath();
+    g.ellipse(side * ex, ey, w, h, 0, 0, Math.PI * 2);
+    g.stroke();
+    if (e.eye > 0.15) {
+      g.beginPath();
+      g.arc(side * ex, ey, Math.min(w, h) * 0.55, 0, Math.PI * 2);
+      g.fillStyle = g.strokeStyle;
+      g.fill();
+    }
+    /*
+     * Brow. POSITIVE `brow` RAISES THE INNER ENDS — the fear shape. Lowering
+     * the inner ends instead is the anger shape, and the two are a sign flip
+     * apart: the first pass had it backwards and panic, alert and horror all
+     * read as a man who was annoyed rather than frightened. Negative values
+     * still give the angry brow, which is why the number is signed instead of
+     * a separate expression field.
+     */
+    const by = ey - h - 0.22 * hr - Math.abs(e.brow) * 0.10 * hr;
+    g.beginPath();
+    g.moveTo(side * (ex - w), by - e.brow * 0.10 * hr);   // inner end
+    g.lineTo(side * (ex + w), by + e.brow * 0.04 * hr);   // outer end
+    g.stroke();
+  }
+
+  /*
+   * Mouth. A closed mouth is one curve; an open one is a filled shape, because
+   * an outline alone at this size reads as a smudge rather than a shout.
+   */
+  const my = 0.44 * hr;
+  const mw = 0.34 * hr;
+  if (e.open > 0.08) {
+    const mh = e.open * 0.34 * hr;
+    g.beginPath();
+    g.ellipse(0, my + mh * 0.2, mw * 0.8, mh, 0, 0, Math.PI * 2);
+    g.fillStyle = g.strokeStyle;
+    g.fill();
+  } else {
+    g.beginPath();
+    g.moveTo(-mw, my);
+    g.quadraticCurveTo(0, my + e.curve * 0.30 * hr, mw, my);
+    g.stroke();
+  }
+  g.restore();
+}
+
 function blendPose(a, b, t) {
   const o = {};
   for (const k of ["torso", "head"]) o[k] = lerp(a[k], b[k], t);
@@ -115,6 +213,8 @@ function figure(x, groundY, s, pose, breath, opts = {}) {
   const hr = 0.20 * s;
   const [hx, hy] = seg(nx, ny, pose.torso + pose.head + Math.PI, hr * 1.25);
   g.beginPath(); g.arc(hx, hy, hr, 0, Math.PI * 2); g.stroke();
+  // Faceless unless asked: every story staged before this one renders unchanged.
+  if (opts.expr) drawFace(hx, hy, hr, pose.torso + pose.head, opts.expr);
 
   return { neck: [nx, ny], head: [hx, hy - hr], hand: handL };
 }
