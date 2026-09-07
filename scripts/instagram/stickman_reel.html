@@ -27,6 +27,8 @@
 const q = new URLSearchParams(location.search);
 const W = +(q.get("w") || 1080), H = +(q.get("h") || 1920);
 const DECK = JSON.parse(q.get("deck") || "[]");
+/* A film is a shot list with no words. Present means render the film path. */
+const FILM = JSON.parse(q.get("film") || "null");
 const CHIP = q.get("chip") || "Shop Talk";
 const TOTAL = DECK.reduce((a, c) => a + c.secs, 0);
 
@@ -60,6 +62,11 @@ const POSES = {
   slump:  { torso: 0.30, head: 0.34, aL: [0.05, 0.30], aR: [-0.05, -0.30], lL: [0.06, 0.02], lR: [-0.06, -0.02] },
   sit:    { torso: 0.05, head: 0.02, aL: [0.55, 0.30], aR: [-0.55, -0.30], lL: [1.45, 0.05], lR: [-1.45, -0.05] },
   wait:   { torso: 0.10, head: 0.14, aL: [0.30, 0.55], aR: [-0.30, -0.55], lL: [1.40, 0.10], lR: [-1.40, -0.10] },
+  // Added for the films. `glance` looks at the floor, `hold` is frozen with the
+  // arms dropped, `raise` lifts the left hand so a prop can be hung off it.
+  glance: { torso: 0.12, head: 0.55, aL: [0.15, 0.25], aR: [-0.15, -0.25], lL: [0.10, 0.02], lR: [-0.10, -0.02] },
+  hold:   { torso: 0.02, head: 0.06, aL: [0.08, 0.05], aR: [-0.08, -0.05], lL: [0.08, 0.02], lR: [-0.08, -0.02] },
+  raise:  { torso: -0.04, head: -0.06, aL: [2.45, 0.60], aR: [-0.18, -0.10], lL: [0.10, 0.02], lR: [-0.12, -0.02] },
 };
 
 /* ---------- expressions ----------
@@ -510,8 +517,84 @@ function furniture() {
   g.moveTo(mx + r, my - r); g.lineTo(mx - r, my + r); g.stroke();
 }
 
+/* ---------- the film ----------
+ * A silent shot list. No cards, no bubbles, no narration, and no wordmark —
+ * the format's whole claim is that it needs none of them, and a logo in the
+ * corner of an 11-second horror beat is the one thing that would break it.
+ */
+const FILM_TOTAL = FILM ? FILM.shots.reduce((a, s) => a + s.secs, 0) : 0;
+
+function drawFilm(now) {
+  let acc = 0, shot = FILM.shots[0], local = 0;
+  for (const s of FILM.shots) {
+    if (now < acc + s.secs) { shot = s; local = now - acc; break; }
+    acc += s.secs;
+    shot = s; local = s.secs;
+  }
+  const p = clamp01(local / shot.secs);
+
+  g.fillStyle = GROUND; g.fillRect(0, 0, W, H);
+
+  /*
+   * Camera moves EASE. A linear push starts and stops abruptly, which reads as
+   * a cut on a moving frame; easeInOut gives it the weight of a hand.
+   */
+  const camA = { x: shot.cam.x * W, y: shot.cam.y * H, zoom: shot.cam.zoom };
+  const camB = shot.camTo
+    ? { x: shot.camTo.x * W, y: shot.camTo.y * H, zoom: shot.camTo.zoom }
+    : camA;
+  const cam = blendCamera(camA, camB, easeInOut(p));
+
+  g.save();
+  applyCamera(cam);
+
+  const set = drawSet("idle", 0, now);
+  const S = U * 0.165;
+
+  if (shot.client) {
+    const c = figure(set.chairX - U * 0.005, set.floorY, S, POSES.sit, Math.sin(now * 1.7), {
+      color: "#5c6a7d", weight: 0.026, seatedAt: set.floorY - U * 0.155,
+      expr: EXPR[shot.client.expr],
+    });
+    if (shot.mirror) {
+      /*
+       * The mirror is held between the barber and the client's face, not in the
+       * barber's hand — the shot is the REFLECTION, and a mirror hung off a
+       * raised arm points wherever the arm happens to be.
+       */
+      const mx = c.head[0] + U * 0.115, my = c.head[1] + U * 0.055;
+      handMirror(mx, my, U * 0.085, 0.10, {
+        reflect: (rx, ry) => {
+          const hy = -ry * 1.6;
+          g.beginPath(); g.arc(0, hy, ry * 0.95, 0, Math.PI * 2); g.stroke();
+          drawFace(0, hy, ry * 0.95, 0, EXPR[shot.mirror]);
+        },
+      });
+    }
+  }
+
+  const barberX = W * 0.20;
+  const b = figure(barberX, set.floorY, S, POSES[shot.barber.pose] || POSES.stand,
+    Math.sin(now * 2.1), { expr: EXPR[shot.barber.expr] });
+
+  // Clippers live in the working hand, so they follow the pose for free.
+  if (shot.guard !== false || !shot.fallen || true) {
+    const grip = b.hand || b.head;
+    clippers(grip[0], grip[1], U * 0.038, 0.30, { guard: shot.guard });
+  }
+
+  if (shot.fallen) {
+    // On the floor by the chair, where it fell. Fixed spot: a guard that moves
+    // between shots reads as a second guard.
+    guardComb(set.chairX - U * 0.10, set.floorY - U * 0.004, U * 0.034, 1.15);
+  }
+
+  g.restore();
+}
+
 /* ---------- the frame ---------- */
 window.__setT = (t) => {
+  if (FILM) return drawFilm(t * FILM_TOTAL);
   const now = t * TOTAL;
   let acc = 0, idx = 0, local = 0;
   for (let i = 0; i < DECK.length; i++) {
@@ -570,5 +653,5 @@ window.__setT = (t) => {
   furniture();
 };
 
-window.__total = () => TOTAL;
+window.__total = () => (FILM ? FILM_TOTAL : TOTAL);
 </script>
