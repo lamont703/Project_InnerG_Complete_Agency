@@ -304,6 +304,48 @@ says to regenerate at 2:3. A crop that large is not a fit, it is a reframe.
 - **Label the cells from the RENDERED grid, never from the prompt.** The model
   renders the category reliably and the specific named cut only sometimes.
 
+## Blender on this machine — EEVEE is broken, and it fails by HANGING
+
+**Render with CYCLES on CPU. Never EEVEE.** EEVEE Next cannot compile its
+shaders here:
+
+    Failed to create PSO for shader: eevee_deferred_tile_classify
+    Compiler encountered an internal error
+
+**It does not error out — it RETRIES every thirty seconds, forever.** That is
+what makes it expensive: a render that never returns looks exactly like a render
+that is slow, so the natural response is to wait longer. It burned two MCP
+connections and about twenty minutes before the log was read. Same family as the
+broken bundled numpy already recorded for this box: macOS 12 on Intel.
+
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device  = 'CPU'
+
+### Never render through the MCP
+
+`bpy.ops.render.render()` blocks Blender's main thread, so the addon cannot
+answer and the connection drops mid-render — and every later MCP call queues
+behind it and hangs too, which reads as "the MCP is broken" rather than "a
+render is still running". The MCP is for BUILDING and INSPECTING a scene.
+Rendering goes on the CLI, in its own process:
+
+    blender -b -P scripts/blender/shop_scene.py
+
+`blender -b` also cannot start the MCP server at all — it says so on startup —
+so the two paths cannot be confused once you are in one.
+
+### What it costs, measured 2026-09-07
+
+Cycles CPU, 64 samples: **0.9s** at 180x320, **19s** at 540x960. A 345-frame
+11-second short is therefore ~1.8 hours at 540x960 and roughly four times that
+at 1080x1920. The canvas renderer in scripts/instagram/ does the same 345 frames
+in about a minute.
+
+**So Blender is not the cheap path to a short film here.** It is worth reaching
+for a reusable 3D set, or the Genjutsu motion-transfer trick, where the render
+cost is paid once. It is the wrong tool for per-frame character animation on
+this hardware.
+
 ## pixel_events claims — two things inflate it, and both look like demand
 
 **Before publishing any figure from `pixel_events`, subtract our own traffic and
