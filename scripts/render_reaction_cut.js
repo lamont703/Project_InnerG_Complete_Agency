@@ -213,10 +213,48 @@ fs.writeFileSync(mtxt, mlist.map((f) => `file '${f}'`).join("\n"));
 const music = path.join(work, "music.wav");
 run(["-f", "concat", "-safe", "0", "-i", mtxt, "-c:a", "pcm_s16le", music], "music concat");
 
-/* 4. mix and mux */
+/*
+ * 4. mix, then MASTER, then mux.
+ *
+ * amix WITH normalize=0 SUMS RATHER THAN AVERAGES, which is what keeps the
+ * voice at full level — but it also means voice plus bed can exceed 0 dBFS.
+ * The first full render came out at -17.8 LUFS with a +0.7 dBFS peak: quieter
+ * than YouTube's -14 target AND already clipping, so the platform would have
+ * turned up a signal that was over. Both numbers are invisible unless measured.
+ *
+ * loudnorm runs on the MIX, never on the pieces — levelling the bed and the
+ * voice separately and then adding them lands somewhere else entirely.
+ *
+ * AND IT RUNS TWICE, WHICH IS NOT OPTIONAL. Single-pass loudnorm is a dynamic
+ * normaliser: it does not hit the target it is given. Asked for -14 it returned
+ * -17.0, and asking again returned -15.8. Two-pass measures the programme first
+ * and applies a computed linear gain, which lands where it says it will.
+ *
+ * JUDGE CLIPPING BY FLAT FACTOR, NOT BY PEAK. ebur128 reported +0.5 dBFS after
+ * mastering and that looked like clipping; astats gave flat factor 0.000000,
+ * meaning no runs of samples pinned at full scale. The overshoot is isolated
+ * AAC decode behaviour, not a clipped signal, and chasing it costs a generation
+ * of processing for nothing audible. The peak alone would have sent someone
+ * re-rendering the whole cut.
+ */
 const out = path.join(OUT, PROOF ? "proof.mp4" : `${spec.slug}.mp4`);
+const MIX = "[1:a]aresample=48000[v];[2:a]aresample=48000[m];" +
+            "[v][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[mix]";
+
+/* pass 1 — measure the mix, decoding only */
+const probe = spawnSync(FF, ["-nostdin", "-hide_banner", "-i", videoOnly, "-i", narration, "-i", music,
+  "-filter_complex", `${MIX};[mix]loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json[a]`,
+  "-map", "[a]", "-f", "null", "-"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+const json = (probe.stderr || "").match(/\{[\s\S]*?\}/g)?.pop();
+if (!json) throw new Error("loudnorm measurement produced no json");
+const M = JSON.parse(json);
+console.log(`  measured   ${M.input_i} LUFS, peak ${M.input_tp} dBTP`);
+
+/* pass 2 — apply it linearly, which actually lands on the target */
 run(["-i", videoOnly, "-i", narration, "-i", music,
-  "-filter_complex", "[1:a]aresample=48000[v];[2:a]aresample=48000[m];[v][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[a]",
+  "-filter_complex",
+  `${MIX};[mix]loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=${M.input_i}:measured_TP=${M.input_tp}` +
+  `:measured_LRA=${M.input_lra}:measured_thresh=${M.input_thresh}:offset=${M.target_offset}:linear=true[a]`,
   "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out], "mux");
 
 fs.rmSync(work, { recursive: true, force: true });
