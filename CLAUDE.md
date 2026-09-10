@@ -91,12 +91,49 @@ rather than restating the list. Adding a format means
 adding it to `VIDEO_TYPES`, and only moving it into the agent's list once it can
 render from a card.
 
-### Two avatars, one voice
+### Five avatars, one voice — and only three can do landscape
 
-`HEYGEN_AVATAR_ID` (grey hoodie) is the Hot Take. `HEYGEN_NEWS_AVATAR_ID`
-(black hoodie) is the News Desk. Different talking photos on purpose, so the
-formats differ on sight as well as by name. Both use the same
-`HEYGEN_VOICE_ID`. **Never point one format at the other's avatar id.**
+All five are HeyGen **talking photos**, and all five use the same
+`HEYGEN_VOICE_ID`. A talking photo renders at the aspect ratio of its SOURCE
+IMAGE, which is what splits the table below in half.
+
+| env var | look | source | format |
+|---|---|---|---|
+| `HEYGEN_AVATAR_ID` | grey hoodie | 608x1080 | Hot Take (9:16) |
+| `HEYGEN_NEWS_AVATAR_ID` | black hoodie | 608x1080 | News Desk (9:16) |
+| `HEYGEN_LANDSCAPE_AVATAR_ID` | black hoodie, straight ahead | 1920x1080 | long-form (16:9) |
+| `HEYGEN_LANDSCAPE_AVATAR_LEFT_ID` | black hoodie, turned left | 1920x1080 | long-form (16:9) |
+| `HEYGEN_LANDSCAPE_AVATAR_RIGHT_ID` | black hoodie, turned right | 1920x1080 | long-form (16:9) |
+
+The grey and black hoodies are different on purpose, so the Hot Take and the
+News Desk differ on sight as well as by name. **Never point one format at
+another format's avatar id.**
+
+#### `aspect_ratio: "16:9"` ON A PORTRAIT AVATAR DOES NOT ERROR
+
+This is the trap, and it produces a file that passes every check.
+
+Asking `HEYGEN_AVATAR_ID` or `HEYGEN_NEWS_AVATAR_ID` for 16:9 returns HTTP 200
+and a genuinely 1920x1080 MP4 — with the portrait render **pillarboxed inside
+white bars**. `ffprobe` says 1920x1080. Nothing anywhere says the picture is
+wrong. `reference/heygen/gbp-vs-social/assets/s1.mp4` is a paid-for example of
+exactly this, and it was read as proof that landscape worked.
+
+**So verify a landscape render by LOOKING AT A FRAME, never by the dimensions.**
+
+The three landscape ids are the only ones with 1920x1080 sources and therefore
+the only ones that fill a 16:9 frame. Confirmed 2026-09-10 by fetching each
+`preview_image_url` from `/v2/avatars` and measuring it — that endpoint returns
+talking photos under `data.talking_photos`, and re-measuring is the cheap way
+to check a new id before spending anything on a render.
+
+#### Three angles is an editing tool, not decoration
+
+One avatar means every face-to-camera beat in a nine-minute cut is the same
+shot. The turned angles let the cut change on an argument turn rather than only
+when b-roll arrives. **`HEYGEN_LANDSCAPE_AVATAR_LEFT_ID` is the workhorse for
+this project**: it is the only one of the three that leaves clean negative space
+on the left of frame, which is where every graphic in the long-form cut lives.
 
 ## Making a News Desk — two commands, and the config decides everything else
 
