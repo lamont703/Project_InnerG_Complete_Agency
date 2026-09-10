@@ -65,6 +65,7 @@ const dur = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-show_entries",
 
 const missing = [];
 for (const b of E.beats) for (const c of b.clips) {
+  if (c.holdLast) continue;
   const p = path.join(ROOT, c.src);
   if (!fs.existsSync(p)) missing.push(c.src);
 }
@@ -89,7 +90,7 @@ if (missing.length) { console.error("missing sources:\n  " + missing.join("\n  "
 {
   let over = 0;
   for (const b of E.beats) for (const c of b.clips) {
-    if (c.still) continue;
+    if (c.still || c.holdLast) continue;
     const have = dur(path.join(ROOT, c.src));
     if (c.out > have + 0.02) {
       console.error(`  ${b.beat}: ${path.basename(c.src)} is ${have.toFixed(2)}s, spec wants up to ${c.out}s`);
@@ -103,11 +104,11 @@ if (missing.length) { console.error("missing sources:\n  " + missing.join("\n  "
 const pins = Object.fromEntries(spec.segments.map((s) => [`${s.beat}:${path.basename(s.id)}`, s.in]));
 let bad = 0;
 for (const b of E.beats) {
-  const total = b.clips.reduce((a, c) => a + (c.out - c.in), 0);
+  const total = b.clips.reduce((a, c) => a + (c.holdLast ?? (c.out - c.in)), 0);
   if (Math.abs(total - b.dur) > 0.05) { console.error(`  ${b.beat}: clips ${total.toFixed(2)}s vs narration ${b.dur}s`); bad++; }
   let at = 0;
   for (const c of b.clips) {
-    if (c.src.startsWith("avatar/")) {
+    if (!c.holdLast && c.src.startsWith("avatar/")) {
       const id = path.basename(c.src, ".mp4");
       const want = pins[`${b.beat}:${id}`];
       if (want === undefined) { console.error(`  ${b.beat}: ${id} is not in spec.segments`); bad++; }
@@ -116,7 +117,7 @@ for (const b of E.beats) {
         bad++;
       }
     }
-    at += c.out - c.in;
+    at += c.holdLast ?? (c.out - c.in);
   }
 }
 if (bad) { console.error("\nRefusing to render.\n"); process.exit(1); }
@@ -198,7 +199,12 @@ const items = [];
 {
   let t = 0;
   for (const [bi, b] of E.beats.entries()) {
-    for (const c of b.clips) { items.push({ c, from: t, to: t + (c.out - c.in), beat: b.beat }); t = t + (c.out - c.in); }
+    for (const c of b.clips) {
+      const d = c.holdLast ?? (c.out - c.in);
+      items.push(c.holdLast ? { hold: true, from: t, to: t + d, beat: b.beat }
+                            : { c, from: t, to: t + d, beat: b.beat });
+      t += d;
+    }
     if (bi < E.beats.length - 1) { items.push({ hold: true, from: t, to: t + E.beatGapSec, beat: b.beat }); t += E.beatGapSec; }
   }
 }
@@ -247,14 +253,30 @@ for (const it of items) {
 }
 console.log(`  ${vlist.length} segments`);
 
+/*
+ * THE OUTRO IS PART OF THE VIDEO AND NOT PART OF THE NARRATION, which is the
+ * only reason the length assert below has a term added to it. The last thing on
+ * screen is him finishing the sentence; then it goes to black. No cutaway after
+ * the close — it disqualifies part of the audience on purpose and a b-roll
+ * button on the end undercuts that.
+ */
+const OUTRO = E.outro?.fadeSec ?? 0;
+if (OUTRO > 0) {
+  const tail = path.join(work, `v${String(n++).padStart(3, "0")}.mp4`);
+  run(["-sseof", "-0.08", "-i", lastReal, "-vf",
+    `${VF},tpad=stop_mode=clone:stop_duration=${OUTRO + 1},fade=t=out:st=0:d=${OUTRO}`,
+    "-frames:v", String(Math.round(OUTRO * E.fps)), ...ENC, "-an", tail], "outro fade");
+  vlist.push(tail);
+}
+
 const vtxt = path.join(work, "v.txt");
 fs.writeFileSync(vtxt, vlist.map((f) => `file '${f}'`).join("\n"));
 const videoOnly = path.join(work, "video.mp4");
 run(["-f", "concat", "-safe", "0", "-i", vtxt, "-c", "copy", videoOnly], "video concat");
 const VID_LEN = dur(videoOnly);
 console.log(`  video      ${Math.floor(VID_LEN / 60)}:${String(Math.round(VID_LEN % 60)).padStart(2, "0")}`);
-if (Math.abs(VID_LEN - NARR_LEN) > 0.5) {
-  throw new Error(`video ${VID_LEN.toFixed(1)}s vs narration ${NARR_LEN.toFixed(1)}s — out of sync`);
+if (Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
+  throw new Error(`video ${VID_LEN.toFixed(1)}s vs narration+outro ${(NARR_LEN + OUTRO).toFixed(1)}s — out of sync`);
 }
 
 /*
@@ -322,8 +344,11 @@ run(["-f", "concat", "-safe", "0", "-i", mtxt, "-c:a", "pcm_s16le", music], "mus
  * re-rendering the whole cut.
  */
 const out = path.join(OUT, PROOF ? "proof.mp4" : `${spec.slug}.mp4`);
+const out_words = () => out.replace(/\.mp4$/, ".words.json");
 const MIX = "[1:a]aresample=48000[v];[2:a]aresample=48000[m];" +
-            "[v][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[mix]";
+            "[v][m]amix=inputs=2:duration=first:dropout_transition=0:normalize=0," +
+            (OUTRO > 0 ? `apad=pad_dur=${OUTRO},afade=t=out:st=${NARR_LEN.toFixed(3)}:d=${OUTRO}` : "anull") +
+            "[mix]";
 
 /* pass 1 — measure the mix, decoding only */
 const probe = spawnSync(FF, ["-nostdin", "-hide_banner", "-i", videoOnly, "-i", narration, "-i", music,
@@ -339,7 +364,40 @@ run(["-i", videoOnly, "-i", narration, "-i", music,
   "-filter_complex",
   `${MIX};[mix]loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=${M.input_i}:measured_TP=${M.input_tp}` +
   `:measured_LRA=${M.input_lra}:measured_thresh=${M.input_thresh}:offset=${M.target_offset}:linear=true[a]`,
-  "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest", out], "mux");
+  "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", out], "mux");
+
+/*
+ * WORD TIMINGS REBASED ONTO THE ASSEMBLED TIMELINE, written beside the mp4 so
+ * add_captions.js finds them by name.
+ *
+ * THREE THINGS MAKE A CAPTION PASS FAIL SILENTLY, all of them recorded from the
+ * News Desk and all of them live here:
+ *   - add_captions.js reads `.words` off an OBJECT; the per-beat files are
+ *     `{duration, word_timestamps}`, a different shape under a different key.
+ *   - those files carry `<start>` and `<end>` marker tokens, which would be
+ *     rendered on screen as literal text.
+ *   - their clocks are per beat. Beat nine's words start at zero in its own
+ *     file and at 452.3s in the cut; captioning off the raw files puts every
+ *     line after beat one in the wrong place.
+ * Each one produces a video that encodes fine and exits 0.
+ */
+{
+  const out = [];
+  let at = 0;
+  for (const [i, b] of E.beats.entries()) {
+    const d = JSON.parse(fs.readFileSync(path.join(NARR, `${b.beat}.words.json`), "utf8"));
+    for (const w of d.word_timestamps || []) {
+      const tok = String(w.word ?? "").trim();
+      if (!tok || tok === "<start>" || tok === "<end>") continue;
+      out.push({ word: tok, start: +(w.start + at).toFixed(3), end: +(w.end + at).toFixed(3) });
+    }
+    at += b.dur + (i < E.beats.length - 1 ? E.beatGapSec : 0);
+  }
+  const wf = out.length ? out[out.length - 1].end : 0;
+  if (Math.abs(wf - NARR_LEN) > 2) throw new Error(`last caption word at ${wf}s but narration is ${NARR_LEN}s`);
+  fs.writeFileSync(out_words(), JSON.stringify({ words: out }, null, 2));
+  console.log(`  captions   ${out.length} words rebased, last at ${wf.toFixed(1)}s`);
+}
 
 fs.rmSync(work, { recursive: true, force: true });
 const L = dur(out);
