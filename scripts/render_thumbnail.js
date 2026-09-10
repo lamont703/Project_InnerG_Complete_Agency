@@ -84,6 +84,12 @@ const ACCENTS = { amber: "#E0A552", claude: "#E2701F" };
  * says: the freed hours filled back up. It is beat 3b at thumbnail scale, so
  * the picture is not promising a diagram the video does not contain.
  */
+/*
+ * D IS THE ONE THAT SHIPPED, copied to FINAL-thumbnail.png. The others are kept
+ * because they are the argument for it: a is the same layout in our amber, and
+ * e is d without the meter. Deleting them would leave the choice looking
+ * arbitrary to whoever opens this next.
+ */
 const VARIANTS = {
   a: { kicker: "I saved a client", hero: "20 HOURS", heroSub: "A MONTH", punch: "NOTHING CHANGED", accent: "amber" },
   b: { kicker: "Month three", hero: "NOTHING", heroSub: "FELT DIFFERENT", punch: "HERE'S WHY", accent: "amber" },
