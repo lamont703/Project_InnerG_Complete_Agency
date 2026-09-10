@@ -16,6 +16,19 @@
  * when a line changes, and the graphics are cut per beat anyway. A single
  * 9-minute WAV would mean re-buying all of it to fix one sentence.
  *
+ * THE .wav EXTENSION IS A LIE AND IT COST AN EDIT. HeyGen's audio_url serves
+ * MP3 bytes; this script writes them under a .wav name, so ffprobe reports
+ * codec_name=mp3 at 44100 Hz on a file called beat-01.wav. Nothing here breaks,
+ * because every consumer decodes by content rather than by name — but a pcm
+ * silence generated to sit BETWEEN these files does not match them, and the
+ * concat demuxer drops a mismatched piece without a word. That is exactly what
+ * happened in render_reaction_cut.js: eight inter-beat gaps vanished and the
+ * cut came out 8:29 instead of 8:33 with nothing on stderr.
+ *
+ * The names are left alone because the spec and the .words.json files are keyed
+ * to them, and renaming to chase a cosmetic accuracy would break both. The rule
+ * instead: decode these to an explicit format before joining them to anything.
+ *
  * word_timestamps ARE SAVED EVEN THOUGH NOTHING READS THEM YET. They come back
  * free with the audio and cannot be recovered later without paying for the
  * audio again — the same reasoning as scripts/video_build_assets.js.
