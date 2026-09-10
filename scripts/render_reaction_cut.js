@@ -78,6 +78,27 @@ for (const b of E.beats) {
 }
 if (missing.length) { console.error("missing sources:\n  " + missing.join("\n  ")); process.exit(1); }
 
+/*
+ * NO CLIP MAY ASK FOR MORE THAN ITS SOURCE HOLDS. ffmpeg does not refuse an
+ * out point past the end of a file — it returns what it has and exits 0. The
+ * spec asked 21s of a 20.4s b-roll clip; the beat came back 16 frames short and
+ * every beat after it slid 0.6s against the narration, which is where three of
+ * the six avatars live. It surfaced as lip sync drift in the back half of the
+ * video, four steps removed from one wrong number in a json file.
+ */
+{
+  let over = 0;
+  for (const b of E.beats) for (const c of b.clips) {
+    if (c.still) continue;
+    const have = dur(path.join(ROOT, c.src));
+    if (c.out > have + 0.02) {
+      console.error(`  ${b.beat}: ${path.basename(c.src)} is ${have.toFixed(2)}s, spec wants up to ${c.out}s`);
+      over++;
+    }
+  }
+  if (over) { console.error("\nRefusing to render: a clip would be silently truncated.\n"); process.exit(1); }
+}
+
 /* Beat clip sums, and the avatar pin — both are silent failures otherwise. */
 const pins = Object.fromEntries(spec.segments.map((s) => [`${s.beat}:${path.basename(s.id)}`, s.in]));
 let bad = 0;
@@ -152,36 +173,80 @@ run(["-f", "concat", "-safe", "0", "-i", nlist, "-c:a", "pcm_s16le", "-ar", AR, 
 const NARR_LEN = dur(narration);
 console.log(`  narration  ${Math.floor(NARR_LEN / 60)}:${String(Math.round(NARR_LEN % 60)).padStart(2, "0")}`);
 
-/* 2. video: normalise every clip, then join */
-const vlist = [];
-let n = 0;
-for (const b of E.beats) {
-  for (const c of b.clips) {
-    const seg = path.join(work, `v${String(n++).padStart(3, "0")}.mp4`);
-    const src = path.join(ROOT, c.src);
-    const len = (c.out - c.in).toFixed(3);
-    if (c.still) {
-      run(["-loop", "1", "-t", len, "-i", src, "-vf", VF, ...ENC, "-an", seg], `still ${c.src}`);
-    } else {
-      run(["-ss", String(c.in), "-t", len, "-i", src, "-vf", VF, ...ENC, "-an", seg], `clip ${c.src}`);
-    }
-    vlist.push(seg);
+/*
+ * 2. video: normalise every clip, then join.
+ *
+ * FRAME COUNTS ARE COMPUTED FROM CUMULATIVE TIME, NOT PER CLIP. This is the
+ * whole reason lip sync survives eight and a half minutes.
+ *
+ * Rounding each clip on its own looks harmless and is not, because the errors
+ * are not random — they skew one way and add up. The half-second inter-beat gap
+ * is the clearest case: 0.5s at 25fps is 12.5 frames, which cannot exist, so it
+ * became 13 and the video gained 0.02s at every one of the eight gaps. Several
+ * clips rounded up too. By the closing beats the picture ran roughly a third of
+ * a second long, and because the avatar segments are pinned to positions in a
+ * continuous narration, that lag landed straight on the mouth: the words
+ * arrived before the lips moved. It was reported as "the voice looks a tad off"
+ * — which is exactly what a slow accumulation feels like, since the early beats
+ * are fine and only the late ones drift.
+ *
+ * Rounding the RUNNING TOTAL instead means each clip absorbs its predecessor's
+ * error rather than passing it on. A clip may be a frame short or a frame long,
+ * but the cut never wanders more than half a frame from the audio, anywhere.
+ */
+const items = [];
+{
+  let t = 0;
+  for (const [bi, b] of E.beats.entries()) {
+    for (const c of b.clips) { items.push({ c, from: t, to: t + (c.out - c.in), beat: b.beat }); t = t + (c.out - c.in); }
+    if (bi < E.beats.length - 1) { items.push({ hold: true, from: t, to: t + E.beatGapSec, beat: b.beat }); t += E.beatGapSec; }
   }
-  /*
-   * A held frame across the gap, not black. The narration pauses between beats;
-   * cutting to black for half a second there reads as a mistake rather than a
-   * breath, and it happens eight times.
-   */
-  if (b !== E.beats[E.beats.length - 1]) {
-    const last = vlist[vlist.length - 1];
-    const hold = path.join(work, `hold${n++}.mp4`);
-    run(["-sseof", "-0.04", "-i", last, "-vf", `${VF},tpad=stop_mode=clone:stop_duration=${E.beatGapSec}`,
-      "-t", String(E.beatGapSec), ...ENC, "-an", hold], "gap hold");
-    vlist.push(hold);
-  }
-  process.stdout.write(".");
 }
-console.log("");
+const fr = (sec) => Math.round(sec * E.fps);
+
+/*
+ * ENCODE, THEN MAKE IT EXACT. Seeking is not frame-accurate on every codec, and
+ * a one-frame miss here and there adds up across forty-four segments. Rather
+ * than trust the encoder, count what came out and correct it: clone the last
+ * frame to make up a shortfall, trim to drop a surplus. Costs one cheap re-mux
+ * on the few segments that need it and removes a whole class of drift.
+ */
+function exactFrames(seg, want, label) {
+  const count = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-select_streams", "v:0",
+    "-count_frames", "-show_entries", "stream=nb_read_frames", "-of", "default=nw=1:nk=1", f]).toString().trim());
+  const got = count(seg);
+  if (got === want) return;
+  const fixed = seg.replace(/\.mp4$/, "-x.mp4");
+  run(["-i", seg, "-vf", `tpad=stop_mode=clone:stop_duration=2`, "-frames:v", String(want), ...ENC, "-an", fixed], `exact ${label}`);
+  const after = count(fixed);
+  if (after !== want) throw new Error(`${label}: wanted ${want} frames, got ${after}`);
+  fs.renameSync(fixed, seg);
+}
+
+const vlist = [];
+let n = 0, lastReal = null;
+for (const it of items) {
+  const frames = fr(it.to) - fr(it.from);
+  const seg = path.join(work, `v${String(n++).padStart(3, "0")}.mp4`);
+  if (it.hold) {
+    /*
+     * A held frame across the gap, not black. The narration pauses between
+     * beats; cutting to black for half a second there reads as a mistake
+     * rather than a breath, and it happens eight times.
+     */
+    run(["-sseof", "-0.08", "-i", lastReal, "-vf", `${VF},tpad=stop_mode=clone:stop_duration=2`,
+      "-frames:v", String(frames), ...ENC, "-an", seg], "gap hold");
+  } else {
+    const src = path.join(ROOT, it.c.src);
+    if (it.c.still) run(["-loop", "1", "-i", src, "-vf", VF, "-frames:v", String(frames), ...ENC, "-an", seg], `still ${it.c.src}`);
+    else run(["-ss", String(it.c.in), "-i", src, "-vf", VF, "-frames:v", String(frames), ...ENC, "-an", seg], `clip ${it.c.src}`);
+    lastReal = seg;
+  }
+  exactFrames(seg, frames, it.hold ? `${it.beat} gap` : path.basename(it.c.src));
+  vlist.push(seg);
+}
+console.log(`  ${vlist.length} segments`);
+
 const vtxt = path.join(work, "v.txt");
 fs.writeFileSync(vtxt, vlist.map((f) => `file '${f}'`).join("\n"));
 const videoOnly = path.join(work, "video.mp4");
@@ -190,6 +255,25 @@ const VID_LEN = dur(videoOnly);
 console.log(`  video      ${Math.floor(VID_LEN / 60)}:${String(Math.round(VID_LEN % 60)).padStart(2, "0")}`);
 if (Math.abs(VID_LEN - NARR_LEN) > 0.5) {
   throw new Error(`video ${VID_LEN.toFixed(1)}s vs narration ${NARR_LEN.toFixed(1)}s — out of sync`);
+}
+
+/*
+ * WHERE EACH AVATAR ACTUALLY LANDED, measured from the encoded segments rather
+ * than from the plan. The plan was right last time and the encode still drifted.
+ */
+{
+  let frames = 0, worst = 0;
+  for (const it of items) {
+    if (!it.hold && it.c.src.startsWith("avatar/")) {
+      const off = frames / E.fps;
+      const err = off - it.from;
+      worst = Math.max(worst, Math.abs(err));
+      console.log(`  ${path.basename(it.c.src, ".mp4")} at ${off.toFixed(3)}s, planned ${it.from.toFixed(3)}s  ${err >= 0 ? "+" : ""}${err.toFixed(3)}s`);
+    }
+    frames += fr(it.to) - fr(it.from);
+  }
+  if (worst > 1 / E.fps) throw new Error(`an avatar is ${worst.toFixed(3)}s off — lips would drift`);
+  console.log(`  worst avatar offset ${(worst * 1000).toFixed(0)}ms (under one frame)`);
 }
 
 /* 3. music: five tracks, each levelled, cut on beat boundaries */
