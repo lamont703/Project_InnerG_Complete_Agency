@@ -61,12 +61,23 @@ const items = [];
   for (const [bi, b] of E.beats.entries()) {
     const wt = words(b.beat);
     let rel = 0;
+    /* A clip carrying `moves` is several shots of one source; the storyboard
+       shows each, because the point of the moves is that they are different
+       pictures and a single card would hide exactly that. */
+    const pieces = [];
     for (const c of b.clips) {
+      if (c.moves?.length) {
+        let from = c.in;
+        for (const mv of c.moves) { pieces.push({ ...c, in: from, out: mv.to, shot: mv.shot, pan: mv.pan }); from = mv.to; }
+      } else pieces.push(c);
+    }
+    for (const c of pieces) {
       const d = c.holdLast ?? (c.out - c.in);
       const said = wt.filter((w) => w.start >= rel - 0.05 && w.start < rel + d)
         .map((w) => String(w.word).trim()).join(" ");
       items.push({
         beat: b.beat, clip: c, hold: !!c.holdLast, abs: t, rel, dur: d, said,
+        shot: c.shot, pan: c.pan,
         src: c.holdLast ? prev.src : c.src,
         seek: c.holdLast ? Math.max(0, prev.out - 0.1) : (c.still ? 0 : c.in + d / 2),
         still: c.holdLast ? prev.still : !!c.still,
@@ -129,6 +140,10 @@ const shot = (it, i) => new Promise((res) => {
   .c.card,.c.hold{border-left:3px solid var(--green)}
   .shot{position:relative;background:#000;line-height:0}
   .shot img{width:100%;height:auto;display:block}
+  /* the thumbnail is the source frame; this shows roughly what the shot crops to */
+  .shot.punch img{transform:scale(1.18);transform-origin:50% 32%}
+  .shot.close img{transform:scale(1.34);transform-origin:50% 32%}
+  .shot.punch,.shot.close{overflow:hidden}
   /* the bottom 180 of 1080 belongs to the burned-in captions */
   .zone{position:absolute;left:0;right:0;bottom:0;height:16.7%;
         background:repeating-linear-gradient(45deg,rgba(226,112,31,.16) 0 7px,rgba(226,112,31,.05) 7px 14px);
@@ -144,11 +159,26 @@ const shot = (it, i) => new Promise((res) => {
   .dur.long{color:var(--amber);font-weight:700}
   .said{padding:10px 12px;font-size:12.5px;color:var(--soft);min-height:62px}
   .said.empty{color:var(--faint);font-style:italic}
+  .live{font:11px/1 ui-monospace,monospace;letter-spacing:.08em;color:var(--faint);
+        text-transform:uppercase;vertical-align:middle;margin-left:12px;cursor:pointer}
   .tag{font:9px/1 ui-monospace,monospace;letter-spacing:.11em;text-transform:uppercase;padding:3px 6px;
        border:1px solid var(--rule);color:var(--faint);flex:none}
 </style>
+<script>
+  /* Regenerate the file and the page picks it up; the scroll position is kept
+     in sessionStorage so a reload does not throw you back to the top, which is
+     the thing that makes an auto-refreshing page unusable. */
+  addEventListener("scroll", () => sessionStorage.setItem("sbY", scrollY));
+  addEventListener("DOMContentLoaded", () => {
+    const y = sessionStorage.getItem("sbY"); if (y) scrollTo(0, +y);
+    const L = document.getElementById("live");
+    if (localStorage.getItem("sbLive") === "0") L.checked = false;
+    L.onchange = () => localStorage.setItem("sbLive", L.checked ? "1" : "0");
+    setInterval(() => { if (L.checked) location.reload(); }, 4000);
+  });
+</script>
 <header>
-  <h1>${esc(spec.title)}</h1>
+  <h1>${esc(spec.title)} <label class="live"><input type="checkbox" id="live" checked> live</label></h1>
   <div class="sub">Storyboard from <code>reaction.spec.json</code> — no render. Shaded band is the caption safe zone (bottom ${SAFE_PX}px).</div>
   <div class="stats">
     <div class="stat"><b>${mmss(total)}</b><span>runtime</span></div>
@@ -170,12 +200,12 @@ const shot = (it, i) => new Promise((res) => {
       const nm = it.hold ? "hold last frame" : path.basename(it.src).replace(/-\d{4,}-\d+x\d+/, "");
       html += `
   <div class="c ${kind(it)}">
-    <div class="shot">${img ? `<img src="${img}" alt="">` : ""}
+    <div class="shot ${it.shot && it.shot !== "wide" ? it.shot : ""}">${img ? `<img src="${img}" alt="">` : ""}
       <div class="tc">${mmss(it.abs)}</div>
       <div class="zone"><i>CAPTIONS</i></div>
     </div>
     <div class="meta"><span class="name">${esc(nm)}</span>
-      <span class="tag">${kind(it)}</span>
+      <span class="tag">${kind(it)}${it.shot && it.shot !== "wide" ? " &middot; " + esc(it.shot) + (it.pan ? "/" + esc(it.pan) : "") : ""}</span>
       <span class="dur${it.dur >= LONG && !it.src.startsWith("avatar/") ? " long" : ""}">${it.dur.toFixed(1)}s</span></div>
     <div class="said${it.said ? "" : " empty"}">${esc(it.said || "— no narration under this clip —")}</div>
   </div>`;

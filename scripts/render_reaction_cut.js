@@ -145,6 +145,26 @@ if (bad) { console.error("\nRefusing to render.\n"); process.exit(1); }
 
 const work = fs.mkdtempSync(path.join(os.tmpdir(), "reaction-cut-"));
 fs.mkdirSync(OUT, { recursive: true });
+/*
+ * SHOTS ARE SCALE-THEN-CROP, NOT zoompan. zoompan is built for stills and
+ * judders on video; scaling to a fixed larger frame and cropping a fixed-size
+ * window out of it is stable, and a moving window gives the drift. Output
+ * geometry never changes, which is what the concat demuxer requires.
+ *
+ * y sits at 0.32 of the available travel rather than centred, because centring
+ * a crop on a seated talking head frames the chest. The face is above centre.
+ */
+const SHOTS = { wide: 1.0, punch: 1.18, close: 1.34 };
+function shotVF(shot, pan, secs) {
+  const S = SHOTS[shot ?? "wide"] ?? 1.0;
+  if (S === 1.0) return VF;
+  const w = Math.round((W * S) / 2) * 2, h = Math.round((H * S) / 2) * 2;
+  const xs = { left: `(iw-ow)*(1-min(1,t/${secs.toFixed(2)}))`, right: `(iw-ow)*min(1,t/${secs.toFixed(2)})` };
+  const x = xs[pan] ?? "(iw-ow)/2";
+  const y = pan === "up" ? `(ih-oh)*(0.46-0.18*min(1,t/${secs.toFixed(2)}))` : "(ih-oh)*0.32";
+  return `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${W}:${H}:'${x}':'${y}',setsar=1,fps=${E.fps},format=yuv420p`;
+}
+
 const VF = `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${E.fps},format=yuv420p`;
 const ENC = PROOF ? ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "30"]
                   : ["-c:v", "libx264", "-preset", "medium", "-crf", "18"];
@@ -237,6 +257,29 @@ const items = [];
   let t = 0;
   for (const [bi, b] of E.beats.entries()) {
     for (const c of b.clips) {
+      /*
+       * `moves` CUT ONE CLIP INTO SEVERAL WITHOUT CHANGING ITS LENGTH. A locked
+       * talking-head held for twenty-four seconds is the thing that kills a
+       * long-form cut, so an avatar clip carries a list of shots and the
+       * renderer emits one sub-clip per shot. Their boundaries come from the
+       * narration's sentence ends, so a jump cut lands on a full stop and reads
+       * as punctuation rather than as a glitch.
+       *
+       * The sum is identical to the original clip by construction — the
+       * boundaries are interior points of the same range — so the avatar pin
+       * and the beat total are untouched.
+       */
+      if (c.moves?.length) {
+        let from = c.in;
+        for (const mv of c.moves) {
+          const d = mv.to - from;
+          items.push({ c: { ...c, in: from, out: mv.to }, shot: mv.shot, pan: mv.pan,
+                       from: t, to: t + d, beat: b.beat });
+          t += d; from = mv.to;
+        }
+        if (Math.abs(from - c.out) > 0.01) throw new Error(`${b.beat}: moves end at ${from}, clip ends at ${c.out}`);
+        continue;
+      }
       const d = c.holdLast ?? (c.out - c.in);
       items.push(c.holdLast ? { hold: true, from: t, to: t + d, beat: b.beat }
                             : { c, from: t, to: t + d, beat: b.beat });
@@ -297,10 +340,11 @@ const plan = [];
     const job = { frames };
     if (it.hold) {
       if (!prev) throw new Error("a hold cannot be the first clip");
-      job.src = prev.src; job.still = prev.still;
+      job.src = prev.src; job.still = prev.still; job.vf = VF;
       job.freezeAt = prev.still ? 0 : Math.max(0, prev.out - 1 / E.fps);
     } else {
       job.src = it.c.src; job.still = !!it.c.still; job.in = it.c.in; job.out = it.c.out;
+      job.vf = shotVF(it.shot, it.pan, it.to - it.from); job.shot = it.shot; job.pan = it.pan;
       prev = { src: it.c.src, still: !!it.c.still, out: it.c.out };
     }
     const abs = path.join(ROOT, job.src);
@@ -308,6 +352,7 @@ const plan = [];
     const key = require("crypto").createHash("sha1").update(JSON.stringify({
       src: job.src, mtime: st.mtimeMs, size: st.size, in: job.in, out: job.out,
       freezeAt: job.freezeAt, still: job.still, frames, W, H, fps: E.fps, enc: ENC.join(),
+      vf: job.vf,
     })).digest("hex").slice(0, 16);
     plan.push({ ...job, label: it.hold ? `${it.beat} hold` : path.basename(job.src), file: path.join(CACHE, `${key}.mp4`) });
   }
@@ -324,14 +369,14 @@ await pool(todo.map((j) => async () => {
   const tmp = j.file + ".part.mp4";
   if (j.freezeAt !== undefined) {
     const args = j.still
-      ? ["-loop", "1", "-i", path.join(ROOT, j.src), "-vf", VF]
+      ? ["-loop", "1", "-i", path.join(ROOT, j.src), "-vf", j.vf || VF]
       : ["-ss", String(j.freezeAt), "-i", path.join(ROOT, j.src),
-         "-vf", `${VF},tpad=stop_mode=clone:stop_duration=${(j.frames / E.fps) + 1}`];
+         "-vf", `${j.vf || VF},tpad=stop_mode=clone:stop_duration=${(j.frames / E.fps) + 1}`];
     await runAsync([...args, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
   } else if (j.still) {
-    await runAsync(["-loop", "1", "-i", path.join(ROOT, j.src), "-vf", VF, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
+    await runAsync(["-loop", "1", "-i", path.join(ROOT, j.src), "-vf", j.vf || VF, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
   } else {
-    await runAsync(["-ss", String(j.in), "-i", path.join(ROOT, j.src), "-vf", VF, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
+    await runAsync(["-ss", String(j.in), "-i", path.join(ROOT, j.src), "-vf", j.vf || VF, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
   }
   /* Exactness still enforced — seeking is not frame-accurate on every codec. */
   if (countFrames(tmp) !== j.frames) {
@@ -385,8 +430,12 @@ if (Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
  */
 {
   let frames = 0, worst = 0;
+  const seenAvatar = new Set();
   for (const it of items) {
-    if (!it.hold && it.c.src.startsWith("avatar/")) {
+    /* Report the FIRST piece of each avatar file. A clip with `moves` becomes
+       several items sharing one source, and only the first carries the pin. */
+    if (!it.hold && it.c.src.startsWith("avatar/") && !seenAvatar.has(it.c.src)) {
+      seenAvatar.add(it.c.src);
       const off = frames / E.fps;
       const err = off - it.from;
       worst = Math.max(worst, Math.abs(err));
