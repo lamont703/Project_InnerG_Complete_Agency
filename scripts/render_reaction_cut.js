@@ -139,11 +139,19 @@ for (const b of E.beats) {
   let at = 0;
   for (const c of b.clips) {
     if (!c.holdLast && c.src.startsWith("avatar/")) {
+      /*
+       * AN AVATAR CLIP MAY BE SPLIT, so the pin is not "starts at the segment's
+       * in" — it is "file time c.in sits at beat time segment.in + c.in".
+       * Cutting away mid-segment to b-roll and coming back is a normal edit;
+       * the earlier check assumed one contiguous piece per segment and would
+       * have refused it. The invariant that actually matters is unchanged: the
+       * frame on screen must correspond to the audio playing under it.
+       */
       const id = path.basename(c.src, ".mp4");
       const want = pins[`${b.beat}:${id}`];
       if (want === undefined) { console.error(`  ${b.beat}: ${id} is not in spec.segments`); bad++; }
-      else if (Math.abs(at - want) > 0.05) {
-        console.error(`  ${b.beat}: ${id} lands at ${at.toFixed(2)}s but its audio starts at ${want}s — lips would drift`);
+      else if (Math.abs(at - (want + c.in)) > 0.05) {
+        console.error(`  ${b.beat}: ${id}[${c.in}] lands at ${at.toFixed(2)}s but its audio is at ${(want + c.in).toFixed(2)}s — lips would drift`);
         bad++;
       }
     }
