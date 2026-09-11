@@ -99,7 +99,32 @@ const dur = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-show_entries",
  * amount — so it lives in one helper rather than in five places.
  */
 const trimOf = (b) => b.trimStart ?? 0;
-const beatDur = (b) => b.dur - trimOf(b);
+
+/*
+ * `cuts` REMOVE RANGES FROM THE MIDDLE OF A BEAT'S NARRATION — a long pause, a
+ * stumble, a word. Written in the beat's ORIGINAL timebase, so they stay
+ * readable against the word_timestamps they were read from and do not have to
+ * be recomputed when a neighbouring cut changes.
+ *
+ * The whole feature is one mapping. Original beat time t becomes
+ *
+ *     t - trimStart - (length of every cut that ends before t)
+ *
+ * and everything else follows from it: the beat's length, where an avatar clip
+ * lands, which words survive and when they are spoken. Get the mapping right
+ * once and the second half of the video cannot drift, which is the thing that
+ * actually goes wrong when you shorten something in the middle.
+ *
+ * A CUT THROUGH A TALKING HEAD NEEDS A SHOT CHANGE OVER THE JOIN. Removing
+ * silence from a locked face makes the head jump. Splitting the avatar clip at
+ * the cut and giving the two halves different shots hides it — the viewer reads
+ * a cut, not a glitch.
+ */
+const cutsOf = (b) => (b.cuts ?? []).slice().sort((x, y) => x[0] - y[0]);
+const removedBefore = (b, t) => cutsOf(b).reduce((a, [f, o]) => a + (o <= t + 1e-6 ? o - f : 0), 0);
+const totalCut = (b) => cutsOf(b).reduce((a, [f, o]) => a + (o - f), 0);
+const mapT = (b, t) => t - trimOf(b) - removedBefore(b, t);
+const beatDur = (b) => b.dur - trimOf(b) - totalCut(b);
 
 /* ---------- validate before doing any work ---------- */
 
@@ -160,8 +185,8 @@ for (const b of E.beats) {
       const id = path.basename(c.src, ".mp4");
       const want = pins[`${b.beat}:${id}`];
       if (want === undefined) { console.error(`  ${b.beat}: ${id} is not in spec.segments`); bad++; }
-      else if (Math.abs(at - (want + c.in - trimOf(b))) > 0.05) {
-        console.error(`  ${b.beat}: ${id}[${c.in}] lands at ${at.toFixed(2)}s but its audio is at ${(want + c.in - trimOf(b)).toFixed(2)}s — lips would drift`);
+      else if (Math.abs(at - mapT(b, want + c.in)) > 0.05) {
+        console.error(`  ${b.beat}: ${id}[${c.in}] lands at ${at.toFixed(2)}s but its audio is at ${mapT(b, want + c.in).toFixed(2)}s — lips would drift`);
         bad++;
       }
     }
@@ -231,12 +256,30 @@ const AR = "48000";
  * moves, which is what an edit actually is.
  */
 const narration = path.join(ACACHE, `narr-${keyOf({
-  beats: E.beats.map((b) => [stampOf(path.join(NARR, `${b.beat}.wav`)), trimOf(b)]), gap: E.beatGapSec, AR })}.wav`);
+  beats: E.beats.map((b) => [stampOf(path.join(NARR, `${b.beat}.wav`)), trimOf(b), cutsOf(b)]), gap: E.beatGapSec, AR })}.wav`);
 const norm = [];
 if (!fs.existsSync(narration)) {
 for (const [i, b] of E.beats.entries()) {
+  /* the spans that survive: after the head trim, between the cuts, to the end */
+  const spans = [];
+  let from = trimOf(b);
+  for (const [f, o] of cutsOf(b)) { if (f > from) spans.push([from, f]); from = Math.max(from, o); }
+  spans.push([from, b.dur]);
+
+  const parts = [];
+  for (const [j, [a, z]] of spans.entries()) {
+    const piece = path.join(work, `n${i}_${j}.wav`);
+    run(["-ss", a.toFixed(3), "-to", z.toFixed(3), "-i", path.join(NARR, `${b.beat}.wav`),
+      "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", piece], `narration ${b.beat}`);
+    parts.push(piece);
+  }
   const seg = path.join(work, `n${i}.wav`);
-  run(["-ss", String(trimOf(b)), "-i", path.join(NARR, `${b.beat}.wav`), "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", seg], `narration ${b.beat}`);
+  if (parts.length === 1) fs.renameSync(parts[0], seg);
+  else {
+    const lst = path.join(work, `n${i}.txt`);
+    fs.writeFileSync(lst, parts.map((f) => `file '${path.resolve(f)}'`).join("\n"));
+    run(["-f", "concat", "-safe", "0", "-i", lst, "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", seg], `narration join ${b.beat}`);
+  }
   norm.push(seg);
 }
 const silence = path.join(work, "gap.wav");
@@ -627,13 +670,14 @@ run(["-i", videoOnly, "-i", narration, "-i", music,
   let at = 0;
   for (const [i, b] of E.beats.entries()) {
     const d = JSON.parse(fs.readFileSync(path.join(NARR, `${b.beat}.words.json`), "utf8"));
-    const trim = trimOf(b);
+    const inCut = (t) => cutsOf(b).some(([f, o]) => t > f - 1e-6 && t < o + 1e-6);
     for (const w of d.word_timestamps || []) {
       const tok = String(w.word ?? "").trim();
       if (!tok || tok === "<start>" || tok === "<end>") continue;
-      if (w.end <= trim + 0.02) continue;              // the word that was cut
-      out.push({ word: tok, start: +(Math.max(0, w.start - trim) + at).toFixed(3),
-                 end: +(w.end - trim + at).toFixed(3) });
+      if (w.end <= trimOf(b) + 0.02) continue;         // inside the head trim
+      if (inCut(w.start) && inCut(w.end)) continue;    // inside an internal cut
+      out.push({ word: tok, start: +(Math.max(0, mapT(b, w.start)) + at).toFixed(3),
+                 end: +(mapT(b, w.end) + at).toFixed(3) });
     }
     at += beatDur(b) + (i < E.beats.length - 1 ? E.beatGapSec : 0);
   }

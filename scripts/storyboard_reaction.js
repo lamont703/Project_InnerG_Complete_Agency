@@ -41,20 +41,26 @@ const OUT = path.join(ROOT, "cut");
 const spec = JSON.parse(fs.readFileSync(SPEC, "utf8"));
 const E = spec.edit;
 
+const bdur = (b) => b.dur - (b.trimStart ?? 0) - (b.cuts ?? []).reduce((a, [x, y]) => a + (y - x), 0);
 const LONG = 12;          // a non-avatar hold this long is worth a second look
 const SAFE_PX = 180;      // caption zone, bottom of a 1080-tall frame
 
 const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-/* trimStart drops the head of a beat, so the words shift with it. */
-function words(beat, trim = 0) {
+/* A beat can drop its head (trimStart) and ranges from its middle (cuts); the
+   words move with both, through the same mapping the renderer uses. */
+function words(beat, trim = 0, cuts = []) {
   const f = path.join(NARR, `${beat}.words.json`);
   if (!fs.existsSync(f)) return [];
+  const cs = cuts.slice().sort((a, b) => a[0] - b[0]);
+  const before = (t) => cs.reduce((a, [x, y]) => a + (y <= t + 1e-6 ? y - x : 0), 0);
+  const map = (t) => t - trim - before(t);
+  const inCut = (t) => cs.some(([x, y]) => t > x - 1e-6 && t < y + 1e-6);
   return (JSON.parse(fs.readFileSync(f, "utf8")).word_timestamps || [])
     .filter((w) => { const t = String(w.word ?? "").trim(); return t && t !== "<start>" && t !== "<end>"; })
-    .filter((w) => w.end > trim + 0.02)
-    .map((w) => ({ ...w, start: Math.max(0, w.start - trim), end: w.end - trim }));
+    .filter((w) => w.end > trim + 0.02 && !(inCut(w.start) && inCut(w.end)))
+    .map((w) => ({ ...w, start: Math.max(0, map(w.start)), end: map(w.end) }));
 }
 
 /* ---------- walk the timeline exactly as the renderer does ---------- */
@@ -62,7 +68,7 @@ const items = [];
 {
   let t = 0, prev = null;
   for (const [bi, b] of E.beats.entries()) {
-    const wt = words(b.beat, b.trimStart ?? 0);
+    const wt = words(b.beat, b.trimStart ?? 0, b.cuts ?? []);
     let rel = 0;
     /* A clip carrying `moves` is several shots of one source; the storyboard
        shows each, because the point of the moves is that they are different
@@ -202,7 +208,7 @@ const shot = (it, i) => new Promise((res) => {
     const mine = items.filter((it) => it.beat === b.beat);
     const sum = mine.reduce((a, it) => a + it.dur, 0);
     html += `\n<h2>${b.beat} &middot; ${mine.length} clips &middot; ${sum.toFixed(1)}s${
-      Math.abs(sum - (b.dur - (b.trimStart ?? 0))) > 0.05 ? ` &middot; MISMATCH vs ${(b.dur - (b.trimStart ?? 0)).toFixed(1)}s` : ""}</h2>\n<div class="grid">`;
+      Math.abs(sum - bdur(b)) > 0.05 ? ` &middot; MISMATCH vs ${bdur(b).toFixed(1)}s` : ""}</h2>\n<div class="grid">`;
     for (const it of mine) {
       const i = items.indexOf(it);
       const img = files[i] ? `data:image/jpeg;base64,${fs.readFileSync(files[i]).toString("base64")}` : "";
