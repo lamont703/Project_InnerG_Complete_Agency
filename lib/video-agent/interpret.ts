@@ -1,4 +1,4 @@
-import { PROFILES, withinBudget } from "@/lib/newsdesk-config";
+import { WORDS_PER_MIN, NEWSDESK, maxAvatarSecs, PROFILES, withinBudget } from "@/lib/newsdesk-config";
 
 /**
  * TURN AN EMAIL INTO A VIDEO SPEC.
@@ -47,6 +47,23 @@ export interface InterpretInput {
   videoFilenames: string[];
   /** Tags already in broll_assets, so the model prefers reuse over generation. */
   availableTags: string[];
+  /*
+   * WHAT THE MACHINE READ SO THE MODEL DOES NOT HAVE TO GUESS. Propose runs
+   * locally now precisely so these can be filled: a Whisper transcript of a
+   * supplied clip, and the text of a linked article. Absent, the rules below
+   * still refuse — an empty field means the read FAILED, never that it was
+   * skipped, so it must not be treated as permission to invent.
+   */
+  clipTranscript?: { filename: string; duration: number; text: string } | null;
+  article?: { url: string; text: string } | null;
+  /*
+   * A CORRECTION TO A PREVIOUS DRAFT, kept OUT of `body`. Appending it to the
+   * email body was the obvious shortcut and it quietly broke grounding: the
+   * model read the last thing in the brief as the brief, and a reaction that had
+   * been quoting the transcript came back as generic filler about "business or a
+   * personal brand". A note about length must not be able to displace the source.
+   */
+  revisionNote?: string | null;
 }
 
 /**
@@ -89,6 +106,9 @@ export interface Interpreter {
 /* ------------------------------------------------------------------ */
 
 function promptFor(input: InterpretInput, voice: string): string {
+  /* Stated in seconds AND words, because the model writes words, not seconds. */
+  const maxSecs = maxAvatarSecs(NEWSDESK);
+  const maxWords = Math.floor((maxSecs / 60) * WORDS_PER_MIN);
   const profiles = SPEC_PROFILES.map((p) => {
     const c = PROFILES[p];
     return `  "${p}" — ${c.targetSecs.min}-${c.targetSecs.max}s, avatar billed at $${c.avatar.perSec}/s, cap $${c.budgetUsd}`;
@@ -102,13 +122,27 @@ instruction — reply with exactly {"refuse":"<one short sentence saying what is
 missing>"} and nothing else. Do not invent a video from an email that did not
 request one.
 
-THE EMAIL
+${input.revisionNote ? `CORRECTION TO YOUR PREVIOUS DRAFT — fix ONLY this. The brief, the transcript
+and the argument all stay exactly as they are:
+${input.revisionNote}
+
+` : ""}THE EMAIL
 Subject: ${input.subject}
 Body:
 ${input.body.slice(0, 4000)}
 
 ${input.imageUrls.length ? `${input.imageUrls.length} image(s) are attached to this message and shown to you. If one is a screenshot of a news article, it is the headline image for the video.` : "No images were attached."}
-${input.videoFilenames.length ? `Video file(s) supplied: ${input.videoFilenames.join(", ")}. A supplied video means this is a "reaction": cut between clip segments of THEIR video and avatar segments of OUR commentary.` : ""}
+${input.clipTranscript ? `THE SUPPLIED CLIP, TRANSCRIBED (${input.clipTranscript.filename}, ${input.clipTranscript.duration.toFixed(1)}s).
+Timestamps are seconds into the clip. "clip" segments MUST use from/to inside this range,
+and every reaction line must answer something ACTUALLY SAID below — quote it back, argue
+with it, name the speaker's claim. Generic reaction prose that would fit any clip
+("a lot to unpack", "let's break this down") means you did not use this transcript.
+
+${input.clipTranscript.text}
+` : input.videoFilenames.length ? `Video file(s) supplied: ${input.videoFilenames.join(", ")} — BUT THE TRANSCRIPT IS MISSING, which means transcribing it FAILED. It was attempted; an empty transcript is not permission to guess.
+
+Without it you do not know what is said in the clip, and a reaction to a clip you cannot hear collapses into filler that fits any video. REFUSE with exactly:
+{"refuse":"I could not transcribe that clip, so I will not write a reaction to it. Re-send it, or ask me in a live session"}` : ""}
 
 "format" MUST BE EXACTLY ONE OF THESE FIVE WORDS. It is the rendering pipeline,
 not a person and not a title:
@@ -134,11 +168,55 @@ ${voice}
 RULES
 - Segments alternate. "avatar" is on camera and COSTS MONEY; "voice" is his
   narration over b-roll and is free; "clip" plays a supplied video and is free.
-- Keep total avatar seconds low. Estimate 175 words per minute.
+
+- ONE NARRATION, SLICED. Every segment is the same continuous voice track. The
+  avatar does not "start talking" at a segment — it lip-syncs the slice of
+  narration that belongs to it. So moving a sentence from an avatar segment to a
+  voice segment changes NOTHING about how the video sounds. It only stops us
+  paying for a face during that sentence. This is the default way these are
+  built, not an optimisation to apply at the end.
+
+- HARD BUDGET: AT MOST ${maxSecs} SECONDS ON CAMERA across ALL avatar segments
+  combined, which at 175 wpm is about ${maxWords} WORDS TOTAL of avatar text.
+  Count them. Everything beyond that is a voice segment over b-roll. A spec over
+  this is refused before anything is bought, and the sender gets nothing.
+
+- DEFAULT TO FOUR AVATAR BEATS, and only the four that need a face:
+    the open (name the audience), the pivot (the turn), the thesis (the claim),
+    the close (the question + "Tell me in the comments").
+  Everything in between — the setup, the evidence, the detail, the example — is
+  "voice" over b-roll. When a beat runs long, MOVE A SENTENCE OUT of it into a
+  b-roll segment rather than trimming the argument. The argument is the video;
+  the face is not.
 - Every "voice" segment with visual "broll" needs "tags": lowercase single words
   describing what is IN the shot. Prefer these, which we already own:
   ${input.availableTags.slice(0, 60).join(", ")}
 - Open by naming the audience. Close on a question and "Tell me in the comments".
+
+- A TRANSCRIPT CARRIES NO SPEAKER IDENTITY. It is words on a page: it does not
+  tell you whether the person speaking is a man or a woman, and their name is
+  not in it either. Write "they", "the speaker", or "whoever made this" — NEVER
+  "he" or "she" unless the EMAIL says so.
+
+  This is not pedantry, it is an accuracy rule with a real cost. The first
+  reaction written from a transcript called the speaker "he" in four places. She
+  is a woman, and the whole video is a response to her — so every one of those
+  was a factual error, in his voice, on his channel, about a real person whose
+  handle is visible on screen in the cut-in.
+
+- EVERY FACT COMES FROM SOMETHING YOU WERE GIVEN. A number, a rate, a date, a
+  quote, what somebody said — it comes from the email text, an image you can
+  see, the article text below, or the clip transcript above. Never from memory
+  and never from what a headline implies.
+
+  ${input.article ? `THE LINKED ARTICLE, FETCHED (${input.article.url}):\n${input.article.text}` :
+    "If the video would rest on a page whose text is NOT below, refuse with exactly:\n" +
+    '{"refuse":"I could not read the page you linked. Paste the article text into the email, or attach a screenshot showing the part that matters"}'}
+
+  This has gone wrong before: "read the article at this URL" with only a headline
+  screenshot produced a full script of invented figures, priced and ready to
+  approve. A signature link is not a source; refuse only when the CONTENT would
+  rest on something unread.
 SHAPE DEPENDS ON THE FORMAT.
 
 For figure, output NO segments. Output instead:

@@ -117,12 +117,6 @@ export const AI_CRAWLERS = [
   "Meta-ExternalFetcher",
 
   // Amazon — developer.amazon.com/amazonbot
-  //   Amazonbot      product improvement, may train Amazon models
-  //   Amzn-SearchBot search indexing
-  //   Amzn-User      real-time fetch for an Alexa query
-  "Amazonbot",
-  "Amzn-SearchBot",
-  "Amzn-User",
 
   // DuckDuckGo — duckduckgo.com/duckduckgo-help-pages/results/duckassistbot
   // Sources DuckDuckGo's AI-assisted answers. Distinct from DuckDuckBot, which
@@ -200,6 +194,57 @@ export const AI_CRAWLERS_UNVERIFIED = [
  */
 export const NOT_A_REAL_TOKEN = ["GoogleOther-Extended"];
 
+/**
+ * Crawlers we refuse, and the evidence for each token.
+ *
+ * THE TEST IS WHETHER THEY SEND ANYTHING BACK. Googlebot, bingbot and the
+ * OpenAI crawlers are paid for in visibility — somebody searches, the site
+ * appears. The three SEO suites below crawl this site to resell its structure
+ * inside their own subscription products. They are a cost with no return leg,
+ * and on one measured hour they were 111 requests, about a fifth of all bot
+ * traffic.
+ *
+ * AMAZON IS HERE AFTER BEING IN THE ALLOW LIST, and that is a reversal worth
+ * recording rather than quietly performing. Amazonbot was 236 requests in that
+ * same hour — 45%, the single largest crawler on the site, larger than
+ * Googlebot twice over. It is documented and well behaved; it was simply the
+ * most expensive guest and no Amazon surface sends this directory traffic.
+ * Alexa and Amazon's shopping assistants are not where somebody looks for a
+ * barber in Texas. If that changes, move these three tokens back up.
+ *
+ * EVERY TOKEN BELOW WAS READ FROM THE OPERATOR'S OWN DOCUMENTATION, because an
+ * unverified DISALLOW is the dangerous direction — a misspelled token produces
+ * a group that matches nothing, the file still validates, and the crawler you
+ * believe is blocked keeps arriving. All four operators publish that they obey
+ * robots.txt, which is the only reason this file is the right instrument.
+ *
+ *   SemrushBot             semrush.com/bot. Also ships SemrushBot-SA and other
+ *                          suffixed variants; matching is a case-insensitive
+ *                          prefix, so the base token covers them.
+ *   AhrefsBot              ahrefs.com/robot. Powers their index and Yep.
+ *   AhrefsSiteAudit        same page, separate token for the audit product.
+ *   SERankingBacklinksBot  help.seranking.com. The one observed here — Vercel
+ *                          labels it "seranking-backlinks".
+ *   SEBot-WA               their Website Audit crawler, named for completeness.
+ *   Amazonbot              developer.amazon.com/amazonbot
+ *   Amzn-SearchBot         same page
+ *   Amzn-User              same page
+ *
+ * This is a REQUEST, not a control. A crawler that ignores robots.txt is
+ * unaffected, and the only answer for one of those is the edge — see the note
+ * on Bytespider above.
+ */
+export const DISALLOWED_CRAWLERS = [
+  "SemrushBot",
+  "AhrefsBot",
+  "AhrefsSiteAudit",
+  "SERankingBacklinksBot",
+  "SEBot-WA",
+  "Amazonbot",
+  "Amzn-SearchBot",
+  "Amzn-User",
+];
+
 export interface RobotsRule {
   userAgent: string | string[];
   allow?: string[];
@@ -240,6 +285,17 @@ export function buildRobotsRules(): RobotsRule[] {
       allow: ["/", "/*.md$"],
       // Repeated, not inherited — see the note at the top of this file.
       disallow: PRIVATE_PATHS,
+    },
+    /*
+     * Refused entirely. "/" alone would do it, and the private paths are listed
+     * after it anyway: this file's invariant is that EVERY group carries them,
+     * so that no future edit can relax a group's first line and silently expose
+     * /admin/ along with it. Kept last so the `.md` group stays the first
+     * non-wildcard group that tests and readers reach for.
+     */
+    {
+      userAgent: DISALLOWED_CRAWLERS,
+      disallow: ["/", ...PRIVATE_PATHS],
     },
   ];
 }

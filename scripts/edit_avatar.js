@@ -63,7 +63,17 @@ async function writePlan({ script, words, joins, duration, tracks }) {
 }
 
 async function askForPlan({ script, words, joins, duration, tracks }) {
-  const prompt = buildPrompt({ script, words, joins, duration, tracks });
+  /*
+   * The agent used to invent stock-search phrases against a library it had
+   * never seen. It gets the actual tag vocabulary now, so a query it writes can
+   * be found.
+   */
+  const { createClient } = require("@supabase/supabase-js");
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const { data: pool } = await db.from("broll_assets").select("tags").is("retired_at", null);
+  const libraryTags = [...new Set((pool ?? []).flatMap((r) => r.tags ?? []))].sort();
+
+  const prompt = buildPrompt({ script, words, joins, duration, tracks, libraryTags });
   /*
    * RESOLVED BY PURPOSE, not read from GEMINI_API_KEY.
    *

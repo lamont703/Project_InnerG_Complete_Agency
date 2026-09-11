@@ -9,8 +9,8 @@ import { AGENT_VIDEO_TYPE_IDS, LEGACY_VIDEO_TYPE_IDS, SEED_GRID, VIDEO_TYPES, VI
  * trustworthy enough to put a dollar figure in front of an operator.
  */
 describe("videoTypeFor", () => {
-  it("offers the five pipelines that exist", () => {
-    expect(VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook", "newsdesk", "reaction"]);
+  it("offers the six pipelines that exist", () => {
+    expect(VIDEO_TYPE_IDS.sort()).toEqual(["figure", "hottake", "lookbook", "newsdesk", "ranking", "reaction"]);
   });
 
   /*

@@ -1,5 +1,5 @@
 import { randomInt, timingSafeEqual } from "node:crypto";
-import { NEWSDESK } from "@/lib/newsdesk-config";
+import { WORDS_PER_MIN, NEWSDESK } from "@/lib/newsdesk-config";
 
 /**
  * CONSENT, AND WHY A From: HEADER IS NOT IT.
@@ -79,17 +79,34 @@ export interface DayUsage { renders: number; usd: number }
 
 export function overDailyLimit(usage: DayUsage, thisJobUsd: number):
   | { over: false }
-  | { over: true; reason: string } {
+  | { over: true; gate: "renders" | "spend" | "per-video"; reason: string } {
   if (usage.renders >= DAILY_MAX_RENDERS) {
-    return { over: true, reason: `${usage.renders} renders already today (limit ${DAILY_MAX_RENDERS})` };
+    return { over: true, gate: "renders",
+      reason: `${usage.renders} renders already today (limit ${DAILY_MAX_RENDERS})` };
   }
   const after = usage.usd + thisJobUsd;
   if (after > DAILY_MAX_USD) {
-    return { over: true, reason: `$${usage.usd.toFixed(2)} spent today, this job adds $${thisJobUsd.toFixed(2)}, over the $${DAILY_MAX_USD} daily cap` };
+    return { over: true, gate: "spend",
+      reason: `$${usage.usd.toFixed(2)} spent today, this job adds $${thisJobUsd.toFixed(2)}, over the $${DAILY_MAX_USD} daily cap` };
   }
-  // A single job can never exceed the per-video gate either.
+  /*
+   * THE PER-VIDEO GATE IS NOT A DAILY ONE, and saying so matters.
+   *
+   * All three refusals used to be stored as "daily limit: ...", so a script that
+   * was simply too long read as "you have used up today's allowance" — which
+   * points at waiting until tomorrow or raising the daily ceiling, neither of
+   * which would ever let this job through. It is one video over the per-video
+   * cap, and the fix is a shorter script or a higher cap. That happened.
+   */
   if (thisJobUsd > NEWSDESK.budgetUsd) {
-    return { over: true, reason: `this job estimates $${thisJobUsd.toFixed(2)}, over the $${NEWSDESK.budgetUsd} per-video cap` };
+    const overSecs = Math.ceil((thisJobUsd - NEWSDESK.budgetUsd) / NEWSDESK.avatar.perSec);
+    const overWords = Math.ceil((overSecs / 60) * WORDS_PER_MIN);
+    return { over: true, gate: "per-video",
+      reason: `this one video estimates $${thisJobUsd.toFixed(2)}, over the $${NEWSDESK.budgetUsd} per-video cap. ` +
+              `This is NOT the daily limit — nothing rendered today counts toward it. ` +
+              `It is about ${overSecs}s too much time on camera, roughly ${overWords} words. ` +
+              `Moving that many words out of an avatar beat and into a b-roll segment fixes it and ` +
+              `changes nothing about how the video sounds, because it is all one narration` };
   }
   return { over: false };
 }

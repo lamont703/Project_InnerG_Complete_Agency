@@ -1,4 +1,5 @@
 import { resolveEditorKey } from "@/lib/gemini-keys";
+import { withRetry } from "@/lib/video-editor/retry.js";
 import type { Interpreter } from "./interpret";
 
 /**
@@ -49,7 +50,12 @@ export function geminiInterpreter(): Interpreter {
         if (part) parts.push(part);
       }
 
-      const res = await fetch(`${ENDPOINT}?key=${key}`, {
+      /*
+       * A 503 here is "high demand", not a bad request — it killed a propose run
+       * outright once. lib/video-editor/retry.js already classifies exactly this
+       * for the render path; one copy, both callers.
+       */
+      const res = await withRetry(() => fetch(`${ENDPOINT}?key=${key}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -57,7 +63,12 @@ export function geminiInterpreter(): Interpreter {
           // Low temperature: this returns a JSON contract, not prose.
           generationConfig: { temperature: 0.4, maxOutputTokens: 4096 },
         }),
-      });
+      }).then(async (r) => {
+        if (r.status === 503 || r.status === 429) {
+          throw new Error(`gemini ${r.status}: high demand`);
+        }
+        return r;
+      }));
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(`gemini ${res.status}: ${JSON.stringify(body).slice(0, 300)}`);

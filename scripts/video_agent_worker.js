@@ -28,6 +28,7 @@ const { createClient } = require("@supabase/supabase-js");
 const gmail = require("../lib/gmail.js");
 const driveLinks = require("../lib/drive-links.js");
 const { PROFILES } = require("../lib/newsdesk-config.js");
+const { missingMaterial } = require("../lib/video-agent/materials.js");
 const { findClips } = require("../lib/broll-library.js");
 const FF = require("ffmpeg-static");
 
@@ -73,6 +74,27 @@ function fitGrid(src, out) {
   const W = +m[1], H = +m[2];
   const tw = Math.round(TARGET * 2 * H / 3);
   if (tw > W) throw new Error(`grid is ${W}x${H}; it is too narrow for a 2x3 layout at the template's cell aspect`);
+  /*
+   * A BIG CROP IS NOT A FIT, IT IS A DIFFERENT PICTURE — and this failed
+   * silently, which is why there is a limit rather than a comment.
+   *
+   * The crop is centred, so it only preserves the grid when each head sits in
+   * the middle of its cell. On a SQUARE source they do not: the heads lean
+   * toward the outer edge of their column, and taking 33% off the width sliced
+   * every one of them in half. ffmpeg was happy, the file was valid, and the
+   * reel would have panned across six half-heads.
+   *
+   * 12% is comfortably above the rounding a correctly-shaped grid needs and far
+   * below anything that reframes the picture. Past it, the source is the wrong
+   * SHAPE and the fix is to generate it at 2:3 — 1696x2528 lands on the
+   * template's cell aspect exactly and needs no crop at all.
+   */
+  const lost = (W - tw) / W;
+  if (lost > 0.12) {
+    throw new Error(
+      `grid is ${W}x${H}; fitting it to the template's cell aspect would cut ${Math.round(lost * 100)}% ` +
+      `of the width, which moves the heads out of their cells. Generate the grid at 2:3 (e.g. 1696x2528) instead.`);
+  }
   execFileSync(FF, ["-y", "-hide_banner", "-loglevel", "error", "-i", src,
     "-vf", `crop=${tw}:${H}:${Math.round((W - tw) / 2)}:0`, "-q:v", "2", out], { stdio: "ignore" });
   return { from: `${W}x${H}`, to: `${tw}x${H}` };
@@ -165,27 +187,15 @@ async function runGrid(client, row, grid) {
  * to complete. Failing loudly beats spending and then failing.
  */
 async function blockers(client, row, req) {
-  const atts = row.attachments || [];
-  const out = [];
-
-  if (req.kind === "grid") {
-    if (!atts.some((a) => /^image\//i.test(a.mimeType || ""))) {
-      out.push("a Lookbook needs a 2x3 grid image attached; none was");
-    }
-    return out;
-  }
-  if (req.kind === "card") return out;   // a figure needs nothing but its fields
+  /*
+   * Material comes from lib/video-agent/materials.js, which the propose stage
+   * reads too. Keeping a second copy here is how the two drift apart, and the
+   * one that matters is whichever runs FIRST — so they have to be the same one.
+   */
+  const out = missingMaterial(req, row.attachments || []);
+  if (req.kind !== "spec") return out;
 
   const spec = req.spec;
-  if (spec.segments.some((sg) => sg.mode !== "avatar" && ["headline", "chart"].includes(sg.visual))
-      && !atts.some((a) => /^image\//i.test(a.mimeType || ""))) {
-    out.push("the spec uses a headline shot but no image was attached");
-  }
-  if (spec.segments.some((sg) => sg.mode === "clip")
-      && !atts.some((a) => /^video\//i.test(a.mimeType || ""))) {
-    out.push("the spec uses clip segments but no video was attached");
-  }
-
   for (const [i, sg] of spec.segments.entries()) {
     if (sg.mode !== "voice" || sg.visual !== "broll") continue;
     const tags = sg.tags || [];

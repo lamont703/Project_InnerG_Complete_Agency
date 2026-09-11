@@ -91,12 +91,49 @@ rather than restating the list. Adding a format means
 adding it to `VIDEO_TYPES`, and only moving it into the agent's list once it can
 render from a card.
 
-### Two avatars, one voice
+### Five avatars, one voice — and only three can do landscape
 
-`HEYGEN_AVATAR_ID` (grey hoodie) is the Hot Take. `HEYGEN_NEWS_AVATAR_ID`
-(black hoodie) is the News Desk. Different talking photos on purpose, so the
-formats differ on sight as well as by name. Both use the same
-`HEYGEN_VOICE_ID`. **Never point one format at the other's avatar id.**
+All five are HeyGen **talking photos**, and all five use the same
+`HEYGEN_VOICE_ID`. A talking photo renders at the aspect ratio of its SOURCE
+IMAGE, which is what splits the table below in half.
+
+| env var | look | source | format |
+|---|---|---|---|
+| `HEYGEN_AVATAR_ID` | grey hoodie | 608x1080 | Hot Take (9:16) |
+| `HEYGEN_NEWS_AVATAR_ID` | black hoodie | 608x1080 | News Desk (9:16) |
+| `HEYGEN_LANDSCAPE_AVATAR_ID` | black hoodie, straight ahead | 1920x1080 | long-form (16:9) |
+| `HEYGEN_LANDSCAPE_AVATAR_LEFT_ID` | black hoodie, turned left | 1920x1080 | long-form (16:9) |
+| `HEYGEN_LANDSCAPE_AVATAR_RIGHT_ID` | black hoodie, turned right | 1920x1080 | long-form (16:9) |
+
+The grey and black hoodies are different on purpose, so the Hot Take and the
+News Desk differ on sight as well as by name. **Never point one format at
+another format's avatar id.**
+
+#### `aspect_ratio: "16:9"` ON A PORTRAIT AVATAR DOES NOT ERROR
+
+This is the trap, and it produces a file that passes every check.
+
+Asking `HEYGEN_AVATAR_ID` or `HEYGEN_NEWS_AVATAR_ID` for 16:9 returns HTTP 200
+and a genuinely 1920x1080 MP4 — with the portrait render **pillarboxed inside
+white bars**. `ffprobe` says 1920x1080. Nothing anywhere says the picture is
+wrong. `reference/heygen/gbp-vs-social/assets/s1.mp4` is a paid-for example of
+exactly this, and it was read as proof that landscape worked.
+
+**So verify a landscape render by LOOKING AT A FRAME, never by the dimensions.**
+
+The three landscape ids are the only ones with 1920x1080 sources and therefore
+the only ones that fill a 16:9 frame. Confirmed 2026-09-10 by fetching each
+`preview_image_url` from `/v2/avatars` and measuring it — that endpoint returns
+talking photos under `data.talking_photos`, and re-measuring is the cheap way
+to check a new id before spending anything on a render.
+
+#### Three angles is an editing tool, not decoration
+
+One avatar means every face-to-camera beat in a nine-minute cut is the same
+shot. The turned angles let the cut change on an argument turn rather than only
+when b-roll arrives. **`HEYGEN_LANDSCAPE_AVATAR_LEFT_ID` is the workhorse for
+this project**: it is the only one of the three that leaves clean negative space
+on the left of frame, which is where every graphic in the long-form cut lives.
 
 ## Making a News Desk — two commands, and the config decides everything else
 
@@ -152,8 +189,31 @@ code, and renders nothing until that code comes back.** The allowlist is a spam
 filter; the code is the consent. A From: header is spoofable and every approval
 spends real money.
 
-`app/api/cron/video-agent/route.ts` polls and proposes. `scripts/video_agent_worker.js`
-runs locally and is the only thing that spends — it never passes `--over-budget`.
+### Two halves, and which half does what
+
+**Vercel does intake and consent. THIS MACHINE writes the script and renders.**
+
+| where | what | spends? |
+|---|---|---|
+| `app/api/cron/video-agent/route.ts` (Vercel, */5) | reads the mailbox, creates rows, matches approval codes | no |
+| `scripts/video_agent_propose.mjs` (local) | transcribes the clip, fetches the article, writes the spec, emails the proposal + code | no |
+| `scripts/video_agent_worker.js` (local) | renders what was approved | YES — and it never passes `--over-budget` |
+
+`scripts/video_agent_tick.sh` runs the two local halves in that order, on launchd
+every 300s (`scripts/install_video_agent_launchd.sh` installs it; **re-run that
+after an nvm node upgrade**, since launchd loads no shell profile and the path is
+pinned absolute).
+
+**Propose is local because writing a script means READING the source.** On Vercel
+there is no Whisper, no ffmpeg, and it had a filename and a URL string — so three
+separate times it filled that gap with prose that fit any source, priced, with a
+live approval code. The cost of moving it is latency: nothing is proposed while
+this Mac is asleep. That was chosen knowingly — a late proposal is recoverable,
+one built on a source nobody read is not.
+
+**Keep the two local halves as separate processes.** One reads and sends and
+never spends; the other spends and never interprets. Merging them lets a single
+bug both invent a job and pay for it.
 
 ### What each format needs from the email
 
@@ -181,6 +241,33 @@ there are 257. Either of those would have gone on screen under a source line.
 So: state the figure in the email, or ask in a live session and do the analysis
 properly. The rule the prompt enforces is that **numbers come from verified
 queries, words come from the model** — never the other way round.
+
+### The agent only knows what it can READ. Three refusals come from that.
+
+It is a text-and-images model behind an email address. It cannot open a link, it
+cannot watch a video, and it cannot query the database — and each of those, left
+unguarded, produced a complete confident spec with a live approval code on it:
+
+| asked for | what came back |
+|---|---|
+| "read the article at this URL" | a full News Desk of invented figures, from the headline alone |
+| "transcribe this video and react to it" | filler that fits any clip — "a lot to unpack", "let's break it down" |
+| "data reels on data we have not shared" | (guarded first) — would have been an invented figure under a source line |
+
+Two of those are now SOLVED rather than refused, because propose moved to the
+machine that can read: a linked article is fetched and a supplied clip is
+transcribed, and the text goes into the prompt. Data Reels stay refused — that
+one needs judgment about what a column means, not a reader.
+
+**A missing transcript or article still refuses.** An empty field means the read
+was attempted and FAILED; it must never be read as permission to improvise.
+
+**A transcript carries no speaker identity.** It is words on a page — write
+"they" or "the speaker", never "he" or "she" unless the email says so. The first
+grounded reaction called a woman "he" four times. **The tell is always the
+same: prose that would read identically if the source were a different article,
+a different clip or a different number.** When adding a format, ask what the
+model would have to KNOW to write it, and whether an email can carry that.
 
 ### Two more things a live session is needed for
 
@@ -211,7 +298,18 @@ entirely in the read path.
 ### Generating new clips
 
 `kling3_0_turbo` at 1080p, 9:16, 5s = **10 credits** — native 1080×1920, which
-is what the renders output, so no upscale. Veo 3.1 Lite is cheaper (6 credits
+is what the renders output, so no upscale.
+
+**THAT IS THE 9:16 NUMBER AND IT DOES NOT CARRY TO 16:9.** Measured 2026-09-11:
+the same model at `aspect_ratio: "16:9"`, 5s costs **7.5 credits** and returns
+**1280×716** — not 1080p, and not even a clean 16:9 (1.788 against 1.778). For a
+1920×1080 timeline that is a 1.5× upscale sitting next to native 1920×1080 and
+3840×2160 Pixabay clips, and it reads softer than they do. Duration is linear:
+10s is 15 credits.
+
+So the "no upscale" line above is true for Shorts and false for long form. Check
+the output geometry of the first clip in any new configuration before generating
+the rest — the cost preflight tells you nothing about resolution. Veo 3.1 Lite is cheaper (6 credits
 for 6s) but its resolution is fixed and undocumented. Do NOT price these from
 memory or from blog posts: preflight with `get_cost: true`, which submits
 nothing. Published third-party numbers for Veo 3.1 were off by roughly 7×
@@ -220,6 +318,81 @@ against the Lite variant we actually use.
 Prompt for **no legible text in frame** — generated on-screen text is where
 these models fall apart. Kling Turbo emits an audio track regardless; the
 renderer maps only our narration, so it is discarded.
+
+## Lookbook grids — generate at 2:3, and never let a crop reframe them
+
+**Generate every grid at 2:3. 1696x2528 lands on the reel template's cell aspect
+exactly and needs no crop at all.** With Higgsfield's `nano_banana_pro`, pass
+`aspect_ratio: "2:3"` — omit it and you get a square 2048x2048, which is the
+failure below.
+
+`reel_hairstyles.html` pans to fixed normalised points, so what matters is the
+CELL aspect: (848/2)/(1264/3) = 1.0063. `fitGrid()` in
+scripts/video_agent_worker.js corrects a near-miss by cropping the width.
+
+### The failure, because it produced a valid file and no error
+
+A centred crop only preserves the grid when each head sits in the MIDDLE of its
+cell. On a square source they do not — the heads lean toward the outer edge of
+their column — so taking 33% off the width sliced every head in half. ffmpeg
+succeeded, the JPEG opened fine, and the reel would have panned across six
+half-heads. Nothing anywhere said the picture was wrong.
+
+`fitGrid()` now refuses any fit that would cut more than 12% of the width and
+says to regenerate at 2:3. A crop that large is not a fit, it is a reframe.
+
+### Two prompt rules that carried over, both still earning their place
+
+- **Say "exactly SIX heads in a 2x3 grid, two columns and three rows, no more"**,
+  and add that each head must be CENTERED in its cell with even margin.
+- **Every cell must differ on CUT as well as colour.** A men's highlights grid
+  came back as six near-identical brown-with-blonde side-parts and was thrown
+  away — the same low-contrast failure as the buzz-cut batch. Naming a different
+  haircut per cell alongside the colour fixed it in one retry.
+- **Label the cells from the RENDERED grid, never from the prompt.** The model
+  renders the category reliably and the specific named cut only sometimes.
+
+## Blender on this machine — EEVEE is broken, and it fails by HANGING
+
+**Render with CYCLES on CPU. Never EEVEE.** EEVEE Next cannot compile its
+shaders here:
+
+    Failed to create PSO for shader: eevee_deferred_tile_classify
+    Compiler encountered an internal error
+
+**It does not error out — it RETRIES every thirty seconds, forever.** That is
+what makes it expensive: a render that never returns looks exactly like a render
+that is slow, so the natural response is to wait longer. It burned two MCP
+connections and about twenty minutes before the log was read. Same family as the
+broken bundled numpy already recorded for this box: macOS 12 on Intel.
+
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device  = 'CPU'
+
+### Never render through the MCP
+
+`bpy.ops.render.render()` blocks Blender's main thread, so the addon cannot
+answer and the connection drops mid-render — and every later MCP call queues
+behind it and hangs too, which reads as "the MCP is broken" rather than "a
+render is still running". The MCP is for BUILDING and INSPECTING a scene.
+Rendering goes on the CLI, in its own process:
+
+    blender -b -P scripts/blender/shop_scene.py
+
+`blender -b` also cannot start the MCP server at all — it says so on startup —
+so the two paths cannot be confused once you are in one.
+
+### What it costs, measured 2026-09-07
+
+Cycles CPU, 64 samples: **0.9s** at 180x320, **19s** at 540x960. A 345-frame
+11-second short is therefore ~1.8 hours at 540x960 and roughly four times that
+at 1080x1920. The canvas renderer in scripts/instagram/ does the same 345 frames
+in about a minute.
+
+**So Blender is not the cheap path to a short film here.** It is worth reaching
+for a reusable 3D set, or the Genjutsu motion-transfer trick, where the render
+cost is paid once. It is the wrong tool for per-frame character animation on
+this hardware.
 
 ## pixel_events claims — two things inflate it, and both look like demand
 

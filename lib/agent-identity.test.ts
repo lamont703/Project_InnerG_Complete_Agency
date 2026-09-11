@@ -110,7 +110,25 @@ describe("the raw transcripts never reach the model", () => {
      * guard against sprawl, not against spend. Re-examine it if the surface
      * ever gets busy.
      */
-    expect(COMMENT.length).toBeLessThan(26000);
+    /*
+     * RAISED AGAIN TO 28,000 ON 2026-09-03 — and this is the second raise, so
+     * the pattern is worth naming rather than repeating silently.
+     *
+     * What grows this block is the BELIEFS library, and that growth is the
+     * POINT: every belief he records is the clone getting closer to him, which
+     * is the whole objective. It is not sprawl, which is what this number is
+     * guarding against. Sprawl is repetition and verbose prose, and the entry
+     * that triggered this raise was already cut from 1,543 to 986 characters
+     * before the number moved.
+     *
+     * THE THIRD TIME, RAISE NOTHING — fix the shape instead. A comment reply
+     * does not need every belief he holds; it needs the ones the comment is
+     * about. Scoping BELIEFS per channel, or selecting by relevance, is the
+     * real answer, and bumping a constant a third time is how that never gets
+     * built. Cost still is not the constraint: 7 comment replies and 28 DMs all
+     * time, about a tenth of a cent each.
+     */
+    expect(COMMENT.length).toBeLessThan(28000);
   });
 });
 
