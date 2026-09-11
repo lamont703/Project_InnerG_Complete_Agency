@@ -165,21 +165,27 @@ const shot = (it, i) => new Promise((res) => {
        border:1px solid var(--rule);color:var(--faint);flex:none}
 </style>
 <script>
-  /* Regenerate the file and the page picks it up; the scroll position is kept
-     in sessionStorage so a reload does not throw you back to the top, which is
-     the thing that makes an auto-refreshing page unusable. */
+  /*
+   * AUTO-RELOAD IS OFF UNLESS ASKED FOR. It was on by default and the page
+   * reloaded under the reader every four seconds, which is useless if you are
+   * trying to actually look at something. A served page could poll for a real
+   * change, but this opens over file:// where fetch and XHR are blocked, so the
+   * only options are a blind timer or nothing — and nothing is the better
+   * default. The generated-at stamp in the header does the job instead: it
+   * tells you at a glance whether what you are reading is current.
+   */
   addEventListener("scroll", () => sessionStorage.setItem("sbY", scrollY));
   addEventListener("DOMContentLoaded", () => {
     const y = sessionStorage.getItem("sbY"); if (y) scrollTo(0, +y);
     const L = document.getElementById("live");
-    if (localStorage.getItem("sbLive") === "0") L.checked = false;
+    L.checked = localStorage.getItem("sbLive") === "1";
     L.onchange = () => localStorage.setItem("sbLive", L.checked ? "1" : "0");
-    setInterval(() => { if (L.checked) location.reload(); }, 4000);
+    setInterval(() => { if (L.checked) location.reload(); }, 8000);
   });
 </script>
 <header>
-  <h1>${esc(spec.title)} <label class="live"><input type="checkbox" id="live" checked> live</label></h1>
-  <div class="sub">Storyboard from <code>reaction.spec.json</code> — no render. Shaded band is the caption safe zone (bottom ${SAFE_PX}px).</div>
+  <h1>${esc(spec.title)} <label class="live"><input type="checkbox" id="live"> auto-reload</label></h1>
+  <div class="sub">Generated ${new Date().toLocaleTimeString()} from <code>reaction.spec.json</code> — no render. Refresh with \u2318R. Shaded band is the caption safe zone (bottom ${SAFE_PX}px).</div>
   <div class="stats">
     <div class="stat"><b>${mmss(total)}</b><span>runtime</span></div>
     <div class="stat"><b>${items.length}</b><span>clips</span></div>
