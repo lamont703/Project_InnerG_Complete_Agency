@@ -308,7 +308,8 @@ const keep = (it) => {
   return ONLY.some((k) =>
     (k === "avatar"  && src.startsWith("avatar/")) ||
     (k === "graphic" && src.startsWith("composition/")) ||
-    (k === "broll"   && src.startsWith("broll/")) ||
+    (k === "broll"   && src.startsWith("broll")) ||
+    (k === "gen"     && src.startsWith("broll-gen/")) ||
     k === it.beat || k === base);
 };
 

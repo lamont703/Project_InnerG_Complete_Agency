@@ -298,7 +298,18 @@ entirely in the read path.
 ### Generating new clips
 
 `kling3_0_turbo` at 1080p, 9:16, 5s = **10 credits** — native 1080×1920, which
-is what the renders output, so no upscale. Veo 3.1 Lite is cheaper (6 credits
+is what the renders output, so no upscale.
+
+**THAT IS THE 9:16 NUMBER AND IT DOES NOT CARRY TO 16:9.** Measured 2026-09-11:
+the same model at `aspect_ratio: "16:9"`, 5s costs **7.5 credits** and returns
+**1280×716** — not 1080p, and not even a clean 16:9 (1.788 against 1.778). For a
+1920×1080 timeline that is a 1.5× upscale sitting next to native 1920×1080 and
+3840×2160 Pixabay clips, and it reads softer than they do. Duration is linear:
+10s is 15 credits.
+
+So the "no upscale" line above is true for Shorts and false for long form. Check
+the output geometry of the first clip in any new configuration before generating
+the rest — the cost preflight tells you nothing about resolution. Veo 3.1 Lite is cheaper (6 credits
 for 6s) but its resolution is fixed and undocumented. Do NOT price these from
 memory or from blog posts: preflight with `get_cost: true`, which submits
 nothing. Published third-party numbers for Veo 3.1 were off by roughly 7×
