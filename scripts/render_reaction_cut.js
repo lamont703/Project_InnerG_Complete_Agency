@@ -91,6 +91,16 @@ async function pool(tasks, width) {
 const dur = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-show_entries", "format=duration",
   "-of", "default=nw=1:nk=1", f]).toString().trim());
 
+/*
+ * trimStart DROPS THE HEAD OF A BEAT'S NARRATION, and five things have to agree
+ * about it or the cut silently desyncs: the narration audio, the avatar's lips,
+ * the beat's length, the avatar pin, and the caption timings. A beat is shorter
+ * by exactly this much and everything inside it moves earlier by the same
+ * amount — so it lives in one helper rather than in five places.
+ */
+const trimOf = (b) => b.trimStart ?? 0;
+const beatDur = (b) => b.dur - trimOf(b);
+
 /* ---------- validate before doing any work ---------- */
 
 const missing = [];
@@ -135,7 +145,7 @@ const pins = Object.fromEntries(spec.segments.map((s) => [`${s.beat}:${path.base
 let bad = 0;
 for (const b of E.beats) {
   const total = b.clips.reduce((a, c) => a + (c.holdLast ?? (c.out - c.in)), 0);
-  if (Math.abs(total - b.dur) > 0.05) { console.error(`  ${b.beat}: clips ${total.toFixed(2)}s vs narration ${b.dur}s`); bad++; }
+  if (Math.abs(total - beatDur(b)) > 0.05) { console.error(`  ${b.beat}: clips ${total.toFixed(2)}s vs narration ${beatDur(b).toFixed(2)}s`); bad++; }
   let at = 0;
   for (const c of b.clips) {
     if (!c.holdLast && c.src.startsWith("avatar/")) {
@@ -150,8 +160,8 @@ for (const b of E.beats) {
       const id = path.basename(c.src, ".mp4");
       const want = pins[`${b.beat}:${id}`];
       if (want === undefined) { console.error(`  ${b.beat}: ${id} is not in spec.segments`); bad++; }
-      else if (Math.abs(at - (want + c.in)) > 0.05) {
-        console.error(`  ${b.beat}: ${id}[${c.in}] lands at ${at.toFixed(2)}s but its audio is at ${(want + c.in).toFixed(2)}s — lips would drift`);
+      else if (Math.abs(at - (want + c.in - trimOf(b))) > 0.05) {
+        console.error(`  ${b.beat}: ${id}[${c.in}] lands at ${at.toFixed(2)}s but its audio is at ${(want + c.in - trimOf(b)).toFixed(2)}s — lips would drift`);
         bad++;
       }
     }
@@ -221,12 +231,12 @@ const AR = "48000";
  * moves, which is what an edit actually is.
  */
 const narration = path.join(ACACHE, `narr-${keyOf({
-  beats: E.beats.map((b) => stampOf(path.join(NARR, `${b.beat}.wav`))), gap: E.beatGapSec, AR })}.wav`);
+  beats: E.beats.map((b) => [stampOf(path.join(NARR, `${b.beat}.wav`)), trimOf(b)]), gap: E.beatGapSec, AR })}.wav`);
 const norm = [];
 if (!fs.existsSync(narration)) {
 for (const [i, b] of E.beats.entries()) {
   const seg = path.join(work, `n${i}.wav`);
-  run(["-i", path.join(NARR, `${b.beat}.wav`), "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", seg], `narration ${b.beat}`);
+  run(["-ss", String(trimOf(b)), "-i", path.join(NARR, `${b.beat}.wav`), "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", seg], `narration ${b.beat}`);
   norm.push(seg);
 }
 const silence = path.join(work, "gap.wav");
@@ -241,7 +251,7 @@ run(["-f", "concat", "-safe", "0", "-i", nlist, "-c:a", "pcm_s16le", "-ar", AR, 
 
 /* The gaps are the whole reason this step is fiddly, so prove they are there. */
 {
-  const want = E.beats.reduce((a, b) => a + b.dur, 0) + E.beatGapSec * (E.beats.length - 1);
+  const want = E.beats.reduce((a, b) => a + beatDur(b), 0) + E.beatGapSec * (E.beats.length - 1);
   const got = dur(narration);
   if (Math.abs(got - want) > 0.3) {
     throw new Error(`narration is ${got.toFixed(2)}s, expected ${want.toFixed(2)}s — the inter-beat gaps did not survive the concat`);
@@ -517,7 +527,7 @@ if (ONLY.length) {
 /* 3. music: five tracks, each levelled, cut on beat boundaries */
 const bounds = [];
 let t = 0;
-for (const b of E.beats) { bounds.push([t, t + b.dur]); t += b.dur + E.beatGapSec; }
+for (const b of E.beats) { bounds.push([t, t + beatDur(b)]); t += beatDur(b) + E.beatGapSec; }
 const music = path.join(ACACHE, `music-${keyOf({
   segs: E.music.segments.map((m) => stampOf(path.join(E.music.dir, m.file))),
   bounds, lufs: E.music.targetLufs, gap: E.beatGapSec })}.wav`);
@@ -617,12 +627,15 @@ run(["-i", videoOnly, "-i", narration, "-i", music,
   let at = 0;
   for (const [i, b] of E.beats.entries()) {
     const d = JSON.parse(fs.readFileSync(path.join(NARR, `${b.beat}.words.json`), "utf8"));
+    const trim = trimOf(b);
     for (const w of d.word_timestamps || []) {
       const tok = String(w.word ?? "").trim();
       if (!tok || tok === "<start>" || tok === "<end>") continue;
-      out.push({ word: tok, start: +(w.start + at).toFixed(3), end: +(w.end + at).toFixed(3) });
+      if (w.end <= trim + 0.02) continue;              // the word that was cut
+      out.push({ word: tok, start: +(Math.max(0, w.start - trim) + at).toFixed(3),
+                 end: +(w.end - trim + at).toFixed(3) });
     }
-    at += b.dur + (i < E.beats.length - 1 ? E.beatGapSec : 0);
+    at += beatDur(b) + (i < E.beats.length - 1 ? E.beatGapSec : 0);
   }
   const wf = out.length ? out[out.length - 1].end : 0;
   if (Math.abs(wf - NARR_LEN) > 2) throw new Error(`last caption word at ${wf}s but narration is ${NARR_LEN}s`);
