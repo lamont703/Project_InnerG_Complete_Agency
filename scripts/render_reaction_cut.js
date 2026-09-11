@@ -48,6 +48,7 @@ const NARR = path.join(ROOT, "script", "narration");
 const OUT = path.join(ROOT, "cut");
 
 const PROOF = process.argv.includes("--proof");
+const FAST = process.argv.includes("--fast") || PROOF;
 const spec = JSON.parse(fs.readFileSync(SPEC, "utf8"));
 const E = spec.edit;
 const W = PROOF ? 480 : E.width;
@@ -58,6 +59,24 @@ const run = (args, label) => {
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
   if (r.status !== 0) throw new Error(`${label} failed:\n${(r.stderr || "").slice(-1200)}`);
 };
+/* Async twin of run(), so segments can encode more than one at a time. */
+const { spawn } = require("child_process");
+function runAsync(args, label) {
+  return new Promise((res, rej) => {
+    const p = spawn(FF, ["-nostdin", "-y", "-hide_banner", "-loglevel", "error", ...args]);
+    let err = "";
+    p.stderr.on("data", (d) => { err += d; });
+    p.on("close", (c) => c === 0 ? res() : rej(new Error(`${label} failed:\n${err.slice(-1200)}`)));
+  });
+}
+async function pool(tasks, width) {
+  let i = 0;
+  const workers = Array.from({ length: Math.min(width, tasks.length) }, async () => {
+    while (i < tasks.length) { const n = i++; await tasks[n](); }
+  });
+  await Promise.all(workers);
+}
+
 const dur = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-show_entries", "format=duration",
   "-of", "default=nw=1:nk=1", f]).toString().trim());
 
@@ -132,6 +151,8 @@ const ENC = PROOF ? ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "30"]
 
 console.log(`\n${PROOF ? "PROOF" : "FINAL"} ${W}x${H} @ ${E.fps}fps\n`);
 
+(async () => {
+
 /*
  * 1. narration: nine takes joined with a beat of air between them.
  *
@@ -146,8 +167,24 @@ console.log(`\n${PROOF ? "PROOF" : "FINAL"} ${W}x${H} @ ${E.fps}fps\n`);
  * The extension is worth distrusting generally. Re-encoding each input to one
  * explicit pcm form costs a second and makes the join deterministic.
  */
+const ACACHE = path.join(OUT, ".segcache", "audio");
+fs.mkdirSync(ACACHE, { recursive: true });
+const keyOf = (o) => require("crypto").createHash("sha1").update(JSON.stringify(o)).digest("hex").slice(0, 16);
+const stampOf = (f) => { const st = fs.statSync(f); return [path.basename(f), st.mtimeMs, st.size]; };
+
 const AR = "48000";
+
+/*
+ * NARRATION AND MUSIC ARE CACHED TOO. With segments cached, a warm run was
+ * still a minute, and all of it was audio being rebuilt from scratch: nine
+ * decodes, five loudnorm passes over the music, and a two-pass loudnorm that
+ * reads the whole 8:35 mix twice. None of that changes when a b-roll in-point
+ * moves, which is what an edit actually is.
+ */
+const narration = path.join(ACACHE, `narr-${keyOf({
+  beats: E.beats.map((b) => stampOf(path.join(NARR, `${b.beat}.wav`))), gap: E.beatGapSec, AR })}.wav`);
 const norm = [];
+if (!fs.existsSync(narration)) {
 for (const [i, b] of E.beats.entries()) {
   const seg = path.join(work, `n${i}.wav`);
   run(["-i", path.join(NARR, `${b.beat}.wav`), "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", seg], `narration ${b.beat}`);
@@ -160,8 +197,8 @@ const nlist = path.join(work, "narr.txt");
 fs.writeFileSync(nlist, norm.flatMap((f, i) =>
   [`file '${f}'`, ...(i < norm.length - 1 ? [`file '${path.resolve(silence)}'`] : [])]
 ).join("\n"));
-const narration = path.join(work, "narration.wav");
 run(["-f", "concat", "-safe", "0", "-i", nlist, "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", narration], "narration concat");
+} else { console.log("  narration  cached"); }
 
 /* The gaps are the whole reason this step is fiddly, so prove they are there. */
 {
@@ -229,29 +266,88 @@ function exactFrames(seg, want, label) {
   fs.renameSync(fixed, seg);
 }
 
-const vlist = [];
-let n = 0, lastReal = null;
-for (const it of items) {
-  const frames = fr(it.to) - fr(it.from);
-  const seg = path.join(work, `v${String(n++).padStart(3, "0")}.mp4`);
-  if (it.hold) {
-    /*
-     * A held frame across the gap, not black. The narration pauses between
-     * beats; cutting to black for half a second there reads as a mistake
-     * rather than a breath, and it happens eight times.
-     */
-    run(["-sseof", "-0.08", "-i", lastReal, "-vf", `${VF},tpad=stop_mode=clone:stop_duration=2`,
-      "-frames:v", String(frames), ...ENC, "-an", seg], "gap hold");
-  } else {
-    const src = path.join(ROOT, it.c.src);
-    if (it.c.still) run(["-loop", "1", "-i", src, "-vf", VF, "-frames:v", String(frames), ...ENC, "-an", seg], `still ${it.c.src}`);
-    else run(["-ss", String(it.c.in), "-i", src, "-vf", VF, "-frames:v", String(frames), ...ENC, "-an", seg], `clip ${it.c.src}`);
-    lastReal = seg;
+/*
+ * SEGMENTS ARE CACHED AND ENCODED IN PARALLEL. Both exist because this file
+ * stopped being a one-shot render and became an editing loop.
+ *
+ * THE CACHE IS THE ONE THAT MATTERS. A typical edit changes two or three clips
+ * out of forty-four; re-encoding the other forty-one produces bytes identical
+ * to the ones already on disk. The key is the content of the job — source path,
+ * its mtime and size, in/out, frame count, geometry and encoder settings — so
+ * ANY change to any of those misses the cache, and nothing else does. Touch the
+ * spec and only what you touched is rebuilt.
+ *
+ * HOLDS READ FROM THE SOURCE, NOT FROM THE PREVIOUS SEGMENT. They used to
+ * freeze the last frame of whatever had just been encoded, which made every
+ * hold depend on its predecessor — fine when the loop was serial, fatal to both
+ * caching and parallelism. Seeking the original clip to its own out point gives
+ * the same frame with no dependency at all.
+ */
+const CACHE = path.join(OUT, ".segcache", `${W}x${H}-${PROOF ? "proof" : "final"}`);
+fs.mkdirSync(CACHE, { recursive: true });
+
+const countFrames = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-select_streams", "v:0",
+  "-count_frames", "-show_entries", "stream=nb_read_frames", "-of", "default=nw=1:nk=1", f]).toString().trim());
+
+const plan = [];
+{
+  let prev = null;
+  for (const it of items) {
+    const frames = fr(it.to) - fr(it.from);
+    const job = { frames };
+    if (it.hold) {
+      if (!prev) throw new Error("a hold cannot be the first clip");
+      job.src = prev.src; job.still = prev.still;
+      job.freezeAt = prev.still ? 0 : Math.max(0, prev.out - 1 / E.fps);
+    } else {
+      job.src = it.c.src; job.still = !!it.c.still; job.in = it.c.in; job.out = it.c.out;
+      prev = { src: it.c.src, still: !!it.c.still, out: it.c.out };
+    }
+    const abs = path.join(ROOT, job.src);
+    const st = fs.statSync(abs);
+    const key = require("crypto").createHash("sha1").update(JSON.stringify({
+      src: job.src, mtime: st.mtimeMs, size: st.size, in: job.in, out: job.out,
+      freezeAt: job.freezeAt, still: job.still, frames, W, H, fps: E.fps, enc: ENC.join(),
+    })).digest("hex").slice(0, 16);
+    plan.push({ ...job, label: it.hold ? `${it.beat} hold` : path.basename(job.src), file: path.join(CACHE, `${key}.mp4`) });
   }
-  exactFrames(seg, frames, it.hold ? `${it.beat} gap` : path.basename(it.c.src));
-  vlist.push(seg);
 }
-console.log(`  ${vlist.length} segments`);
+
+const todo = plan.filter((j) => {
+  if (!fs.existsSync(j.file)) return true;
+  try { return countFrames(j.file) !== j.frames; } catch { return true; }
+});
+console.log(`  ${plan.length} segments — ${plan.length - todo.length} cached, ${todo.length} to encode`);
+
+const WORKERS = Math.max(1, Math.min(4, require("os").cpus().length >> 1));
+await pool(todo.map((j) => async () => {
+  const tmp = j.file + ".part.mp4";
+  if (j.freezeAt !== undefined) {
+    const args = j.still
+      ? ["-loop", "1", "-i", path.join(ROOT, j.src), "-vf", VF]
+      : ["-ss", String(j.freezeAt), "-i", path.join(ROOT, j.src),
+         "-vf", `${VF},tpad=stop_mode=clone:stop_duration=${(j.frames / E.fps) + 1}`];
+    await runAsync([...args, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
+  } else if (j.still) {
+    await runAsync(["-loop", "1", "-i", path.join(ROOT, j.src), "-vf", VF, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
+  } else {
+    await runAsync(["-ss", String(j.in), "-i", path.join(ROOT, j.src), "-vf", VF, "-frames:v", String(j.frames), ...ENC, "-an", tmp], j.label);
+  }
+  /* Exactness still enforced — seeking is not frame-accurate on every codec. */
+  if (countFrames(tmp) !== j.frames) {
+    const fixed = j.file + ".fix.mp4";
+    await runAsync(["-i", tmp, "-vf", "tpad=stop_mode=clone:stop_duration=2", "-frames:v", String(j.frames), ...ENC, "-an", fixed], `exact ${j.label}`);
+    if (countFrames(fixed) !== j.frames) throw new Error(`${j.label}: wanted ${j.frames} frames`);
+    fs.renameSync(fixed, tmp);
+  }
+  fs.renameSync(tmp, j.file);
+  process.stdout.write(".");
+}, ), WORKERS);
+if (todo.length) console.log("");
+
+const vlist = plan.map((j) => j.file);
+let n = plan.length;
+const lastReal = vlist[vlist.length - 1];
 
 /*
  * THE OUTRO IS PART OF THE VIDEO AND NOT PART OF THE NARRATION, which is the
@@ -270,7 +366,11 @@ if (OUTRO > 0) {
 }
 
 const vtxt = path.join(work, "v.txt");
-fs.writeFileSync(vtxt, vlist.map((f) => `file '${f}'`).join("\n"));
+/* ABSOLUTE PATHS. The concat demuxer resolves a relative entry against the
+   directory of the LIST FILE, which lives in a temp dir, not against the
+   working directory — so cached segments referenced relatively resolve to
+   nothing and it fails with "Impossible to open". */
+fs.writeFileSync(vtxt, vlist.map((f) => `file '${path.resolve(f)}'`).join("\n"));
 const videoOnly = path.join(work, "video.mp4");
 run(["-f", "concat", "-safe", "0", "-i", vtxt, "-c", "copy", videoOnly], "video concat");
 const VID_LEN = dur(videoOnly);
@@ -302,7 +402,11 @@ if (Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
 const bounds = [];
 let t = 0;
 for (const b of E.beats) { bounds.push([t, t + b.dur]); t += b.dur + E.beatGapSec; }
+const music = path.join(ACACHE, `music-${keyOf({
+  segs: E.music.segments.map((m) => stampOf(path.join(E.music.dir, m.file))),
+  bounds, lufs: E.music.targetLufs, gap: E.beatGapSec })}.wav`);
 const mlist = [];
+if (!fs.existsSync(music)) {
 for (const m of E.music.segments) {
   const [a, z] = m.beats.split("-").map(Number);
   const from = bounds[a - 1][0];
@@ -315,9 +419,9 @@ for (const m of E.music.segments) {
   console.log(`  music      beats ${m.beats}  ${(to - from).toFixed(1)}s  ${m.file.split(" - ")[0]}`);
 }
 const mtxt = path.join(work, "m.txt");
-fs.writeFileSync(mtxt, mlist.map((f) => `file '${f}'`).join("\n"));
-const music = path.join(work, "music.wav");
+fs.writeFileSync(mtxt, mlist.map((f) => `file '${path.resolve(f)}'`).join("\n"));
 run(["-f", "concat", "-safe", "0", "-i", mtxt, "-c:a", "pcm_s16le", music], "music concat");
+} else { console.log("  music      cached"); }
 
 /*
  * 4. mix, then MASTER, then mux.
@@ -350,6 +454,16 @@ const MIX = "[1:a]aresample=48000[v];[2:a]aresample=48000[m];" +
             (OUTRO > 0 ? `apad=pad_dur=${OUTRO},afade=t=out:st=${NARR_LEN.toFixed(3)}:d=${OUTRO}` : "anull") +
             "[mix]";
 
+/*
+ * --fast SKIPS MASTERING. The measurement pass reads the whole mix and the
+ * apply pass reads it again; neither tells you anything about an edit. Loudness
+ * is a delivery concern, so it belongs on the final and nowhere near the loop
+ * you run twenty times while moving a cut point.
+ */
+if (FAST) {
+  run(["-i", videoOnly, "-i", narration, "-i", music, "-filter_complex", `${MIX};[mix]anull[a]`,
+    "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", out], "mux (fast)");
+} else {
 /* pass 1 — measure the mix, decoding only */
 const probe = spawnSync(FF, ["-nostdin", "-hide_banner", "-i", videoOnly, "-i", narration, "-i", music,
   "-filter_complex", `${MIX};[mix]loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json[a]`,
@@ -365,6 +479,7 @@ run(["-i", videoOnly, "-i", narration, "-i", music,
   `${MIX};[mix]loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=${M.input_i}:measured_TP=${M.input_tp}` +
   `:measured_LRA=${M.input_lra}:measured_thresh=${M.input_thresh}:offset=${M.target_offset}:linear=true[a]`,
   "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", out], "mux");
+}
 
 /*
  * WORD TIMINGS REBASED ONTO THE ASSEMBLED TIMELINE, written beside the mp4 so
@@ -402,3 +517,4 @@ run(["-i", videoOnly, "-i", narration, "-i", music,
 fs.rmSync(work, { recursive: true, force: true });
 const L = dur(out);
 console.log(`\n  ${out}  ${Math.floor(L / 60)}:${String(Math.round(L % 60)).padStart(2, "0")}  ${(fs.statSync(out).size / 1e6).toFixed(1)} MB\n`);
+})().catch((e) => { console.error("\n" + e.message + "\n"); process.exit(1); });
