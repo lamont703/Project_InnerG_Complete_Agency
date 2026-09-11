@@ -5,6 +5,7 @@ import {
   NOT_A_REAL_TOKEN,
   PRIVATE_PATHS,
   buildRobotsRules,
+  DISALLOWED_CRAWLERS,
 } from "./robots-rules";
 
 /**
@@ -85,9 +86,35 @@ describe("crawler list", () => {
     // The original list had ClaudeBot (training) but not Claude-User or
     // Claude-SearchBot — the two that fetch because a person asked a question,
     // which is the traffic this site actually wants.
-    for (const t of ["Claude-User", "Claude-SearchBot", "ChatGPT-User", "Perplexity-User", "Meta-ExternalFetcher", "Amzn-User"]) {
+    //
+    // Amzn-User WAS in this list and was deliberately removed. Amazon was the
+    // largest crawler on the site by a wide margin and no Amazon surface sends
+    // this directory traffic back, so all three Amazon tokens moved to
+    // DISALLOWED_CRAWLERS. The principle above is unchanged — a fetch-on-behalf
+    // crawler is worth more than a training one — but it only earns access when
+    // somebody is actually being sent here.
+    for (const t of ["Claude-User", "Claude-SearchBot", "ChatGPT-User", "Perplexity-User", "Meta-ExternalFetcher"]) {
       expect(AI_CRAWLERS).toContain(t);
     }
+  });
+
+  it("never allows and disallows the same crawler", () => {
+    // A token in both lists produces two groups that match the same request.
+    // Which one wins is a matter of rule ordering rather than intent, and the
+    // file would read as though a decision had been made when none had.
+    const allowed = new Set([...AI_CRAWLERS, ...AI_CRAWLERS_UNVERIFIED].map((t) => t.toLowerCase()));
+    for (const t of DISALLOWED_CRAWLERS) {
+      expect(allowed.has(t.toLowerCase()), `${t} is both allowed and disallowed`).toBe(false);
+    }
+  });
+
+  it("refuses the disallowed crawlers everything, not just the private paths", () => {
+    // The point of the group is the leading "/" — without it the group would
+    // grant these crawlers the entire site, which is the exact precedence trap
+    // this file exists to prevent.
+    const refused = buildRobotsRules().find((r) => Array.isArray(r.userAgent) && r.userAgent.includes("SemrushBot"))!;
+    expect(refused.disallow).toContain("/");
+    expect(refused.allow ?? []).toHaveLength(0);
   });
 
   it("uses no whitespace or wildcards in a token", () => {
