@@ -49,6 +49,17 @@ const OUT = path.join(ROOT, "cut");
 
 const PROOF = process.argv.includes("--proof");
 const FAST = process.argv.includes("--fast") || PROOF;
+/*
+ * --only RENDERS A SLICE OF THE CUT. "Show me the avatar moments" and "show me
+ * beat five" are the two review questions that get asked, and answering either
+ * by watching eight and a half minutes is why they stop getting asked. The
+ * segments are already in the cache, so a subset is a concat and a mux.
+ *
+ * Accepts: avatar | graphic | broll | a beat name | an avatar id | any
+ * comma-separated mix of those.
+ */
+const ONLY = (process.argv.find((a) => a.startsWith("--only=")) || "").slice(7)
+  .split(",").map((x) => x.trim()).filter(Boolean);
 const spec = JSON.parse(fs.readFileSync(SPEC, "utf8"));
 const E = spec.edit;
 const W = PROOF ? 480 : E.width;
@@ -290,6 +301,17 @@ const items = [];
 }
 const fr = (sec) => Math.round(sec * E.fps);
 
+const keep = (it) => {
+  if (!ONLY.length) return true;
+  const src = it.hold ? "" : it.c.src;
+  const base = src ? path.basename(src, path.extname(src)) : "";
+  return ONLY.some((k) =>
+    (k === "avatar"  && src.startsWith("avatar/")) ||
+    (k === "graphic" && src.startsWith("composition/")) ||
+    (k === "broll"   && src.startsWith("broll/")) ||
+    k === it.beat || k === base);
+};
+
 /*
  * ENCODE, THEN MAKE IT EXACT. Seeking is not frame-accurate on every codec, and
  * a one-frame miss here and there adds up across forty-four segments. Rather
@@ -326,6 +348,13 @@ function exactFrames(seg, want, label) {
  * caching and parallelism. Seeking the original clip to its own out point gives
  * the same frame with no dependency at all.
  */
+const chosen = items.filter(keep);
+if (ONLY.length) {
+  if (!chosen.length) { console.error(`--only=${ONLY.join(",")} matched nothing\n`); process.exit(1); }
+  const secs = chosen.reduce((a, it) => a + (it.to - it.from), 0);
+  console.log(`  --only ${ONLY.join(",")} — ${chosen.length} of ${items.length} clips, ${secs.toFixed(1)}s\n`);
+}
+
 const CACHE = path.join(OUT, ".segcache", `${W}x${H}-${PROOF ? "proof" : "final"}`);
 fs.mkdirSync(CACHE, { recursive: true });
 
@@ -335,7 +364,7 @@ const countFrames = (f) => Number(execFileSync(FFPROBE, ["-v", "error", "-select
 const plan = [];
 {
   let prev = null;
-  for (const it of items) {
+  for (const it of chosen) {
     const frames = fr(it.to) - fr(it.from);
     const job = { frames };
     if (it.hold) {
@@ -401,7 +430,7 @@ const lastReal = vlist[vlist.length - 1];
  * the close — it disqualifies part of the audience on purpose and a b-roll
  * button on the end undercuts that.
  */
-const OUTRO = E.outro?.fadeSec ?? 0;
+const OUTRO = ONLY.length ? 0 : (E.outro?.fadeSec ?? 0);
 if (OUTRO > 0) {
   const tail = path.join(work, `v${String(n++).padStart(3, "0")}.mp4`);
   run(["-sseof", "-0.08", "-i", lastReal, "-vf",
@@ -420,7 +449,9 @@ const videoOnly = path.join(work, "video.mp4");
 run(["-f", "concat", "-safe", "0", "-i", vtxt, "-c", "copy", videoOnly], "video concat");
 const VID_LEN = dur(videoOnly);
 console.log(`  video      ${Math.floor(VID_LEN / 60)}:${String(Math.round(VID_LEN % 60)).padStart(2, "0")}`);
-if (Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
+/* A subset is meant to be shorter than the narration; only the whole cut has to
+   match it. */
+if (!ONLY.length && Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
   throw new Error(`video ${VID_LEN.toFixed(1)}s vs narration+outro ${(NARR_LEN + OUTRO).toFixed(1)}s — out of sync`);
 }
 
@@ -428,7 +459,7 @@ if (Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
  * WHERE EACH AVATAR ACTUALLY LANDED, measured from the encoded segments rather
  * than from the plan. The plan was right last time and the encode still drifted.
  */
-{
+if (!ONLY.length) {
   let frames = 0, worst = 0;
   const seenAvatar = new Set();
   for (const it of items) {
@@ -445,6 +476,33 @@ if (Math.abs(VID_LEN - (NARR_LEN + OUTRO)) > 0.5) {
   }
   if (worst > 1 / E.fps) throw new Error(`an avatar is ${worst.toFixed(3)}s off — lips would drift`);
   console.log(`  worst avatar offset ${(worst * 1000).toFixed(0)}ms (under one frame)`);
+}
+
+/*
+ * A SUBSET TAKES ITS AUDIO FROM THE SAME NARRATION, cut to the same ranges.
+ * Reaching for the avatar files' own audio would be easier and wrong: they hold
+ * only the avatar slices, so a subset containing anything else would go silent,
+ * and the levels would not match the cut you are checking against.
+ */
+if (ONLY.length) {
+  const parts = [];
+  for (const [i, it] of chosen.entries()) {
+    const f = path.join(work, `a${i}.wav`);
+    run(["-ss", it.from.toFixed(3), "-t", (it.to - it.from).toFixed(3), "-i", narration,
+      "-c:a", "pcm_s16le", "-ar", AR, "-ac", "1", f], "subset audio");
+    parts.push(f);
+  }
+  const atxt = path.join(work, "a.txt");
+  fs.writeFileSync(atxt, parts.map((f) => `file '${path.resolve(f)}'`).join("\n"));
+  const sub = path.join(work, "subset.wav");
+  run(["-f", "concat", "-safe", "0", "-i", atxt, "-c:a", "pcm_s16le", sub], "subset audio concat");
+  const dest = path.join(OUT, `only-${ONLY.join("-").replace(/[^a-z0-9-]/gi, "")}.mp4`);
+  run(["-i", videoOnly, "-i", sub, "-map", "0:v", "-map", "1:a",
+    "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest", dest], "subset mux");
+  const L = dur(dest);
+  fs.rmSync(work, { recursive: true, force: true });
+  console.log(`\n  ${dest}  ${Math.floor(L / 60)}:${String(Math.round(L % 60)).padStart(2, "0")}  ${(fs.statSync(dest).size / 1e6).toFixed(1)} MB\n`);
+  return;
 }
 
 /* 3. music: five tracks, each levelled, cut on beat boundaries */
