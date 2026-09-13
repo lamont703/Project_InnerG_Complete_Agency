@@ -25,6 +25,32 @@ import { publishToTikTokViaGhl, findGhlTikTokAccountId } from "@/lib/tiktok-ghl-
  * way to tell them apart afterwards.
  */
 
+/*
+ * .env.local IS LOADED HERE BECAUSE NOTHING ELSE LOADS IT.
+ *
+ * vitest.config.ts sets no `env` and its setup file loads no dotenv, so a test
+ * process starts with none of the project's credentials. Every .live test in
+ * this directory reads process.env directly, which means they only ever worked
+ * for someone who had already exported the file into their shell — and the
+ * usage line above this comment promised otherwise. Run verbatim from a clean
+ * terminal it died on
+ *
+ *     Failed to parse URL from undefined/rest/v1/publisher_queue?...
+ *
+ * which reads like a broken query rather than a missing variable, because the
+ * undefined is interpolated into the string before fetch ever sees it.
+ *
+ * An already-exported value WINS: the guard means someone pointing this at a
+ * different database for one run does not get silently overridden by the file.
+ */
+if (!process.env.SUPABASE_URL) {
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    /* CI has no .env.local and supplies the environment directly. */
+  }
+}
+
 const ITEM = process.env.REPUBLISH_ITEM;
 /*
  * tiktok_ghl WAS ADDED AFTER IT WAS THE THING THAT FAILED. The slot on
