@@ -60,6 +60,7 @@ const footerLinks = {
     { label: "Member Engagement Outreach", href: "/admin/member-outreach" },
     { label: "Content Research Agent", href: "/admin/content-research" },
     { label: "CRM Research Agent", href: "/admin/crm-research" },
+    { label: "Conversations (SMS & Email)", href: "/admin/conversations" },
     { label: "HairStyle Selector", href: "/admin/hairstyle-selector" },
     { label: "Ad Performance", href: "/ad-performance" },
     { label: "Ad Campaigns (Assign)", href: "/admin/ad-campaigns" },

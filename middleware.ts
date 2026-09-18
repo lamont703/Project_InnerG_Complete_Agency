@@ -91,6 +91,14 @@ const INTERNAL_TOOL_ROUTES = [
     // in depth, because this middleware fails OPEN on an auth exception.
     "/admin/content-research",
     "/admin/crm-research",
+    /**
+     * Prototype inbox. Every contact on it is invented, but it renders names,
+     * phone numbers and message bodies in the shape of a real customer inbox —
+     * so it is gated for the same reason /admin/credit-report is. The page
+     * re-checks isAdmin() and 404s; this entry is defence in depth, because
+     * this middleware fails OPEN on an auth exception.
+     */
+    "/admin/conversations",
     // Five angles of a named person's head, held in the only private storage
     // bucket in this project. The page re-checks isAdmin() itself.
     "/admin/hairstyle-selector",
