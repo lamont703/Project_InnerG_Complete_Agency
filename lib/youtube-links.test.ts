@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 // @ts-expect-error — plain ESM, deliberately untyped so next.config.mjs can read it.
-import { YOUTUBE_LINKS, youtubeLinkRedirects } from "./youtube-links.mjs";
+import { YOUTUBE_LINKS, youtubeLinkRedirects, sourceTag } from "./youtube-links.mjs";
 import { AUDIENCES } from "./audiences";
 
 const APP = path.join(__dirname, "..", "app");
@@ -48,6 +48,7 @@ describe("youtube audience links", () => {
     // caught, and a 404 on a redirect target is invisible until someone clicks.
     for (const l of YOUTUBE_LINKS as { slug: string; destination: string }[]) {
       expect(l.destination.startsWith("/"), `${l.slug} must be site-relative`).toBe(true);
+      expect(l.destination, `${l.slug} destination carries its own query`).not.toContain("?");
       const dir = path.join(APP, l.destination);
       const exists = ["page.tsx", "page.ts", "page.jsx", "page.js", "route.ts"]
         .some((f) => fs.existsSync(path.join(dir, f)));
@@ -66,6 +67,31 @@ describe("youtube audience links", () => {
       // The prefix is doing real work: prove the bare slug would have collided
       // or could later, by asserting we never rely on it being free.
       expect(fs.existsSync(path.join(APP, "youtube", bare))).toBe(false);
+    }
+  });
+
+  it("stamps a source tag so attribution cannot be left off a description", () => {
+    // The pixel never fires on /youtube/<slug> — a 307 serves no HTML, so
+    // nothing is recorded there and the destination's query string is the only
+    // carrier of where the visit came from. Leaving that to whoever writes the
+    // description means the one video that matters is the one it was forgotten
+    // on, so the redirect stamps it.
+    for (const r of youtubeLinkRedirects() as { source: string; destination: string }[]) {
+      const slug = r.source.replace("/youtube/", "");
+      const q = new URLSearchParams(r.destination.split("?")[1] || "");
+      expect(q.get("src"), `${r.source} must stamp ?src=`).toBe(sourceTag(slug));
+    }
+  });
+
+  it("leaves room for a per-video tag rather than owning the whole query", () => {
+    // Next.js merges the request's query into the destination's, which is what
+    // lets a description add ?v=<video id> on top. Verified against the running
+    // server: /youtube/barbers?v=X -> ...?v=X&src=youtube-barbers. If the
+    // destination ever hardcoded the whole query this would stop being true.
+    for (const r of youtubeLinkRedirects() as { destination: string }[]) {
+      const q = new URLSearchParams(r.destination.split("?")[1] || "");
+      expect([...q.keys()]).toEqual(["src"]);
+      expect(q.get("v"), "v= belongs to the description, not the redirect").toBeNull();
     }
   });
 });
