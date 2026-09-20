@@ -75,42 +75,111 @@ export interface TikTokGhlPublishInput {
  */
 let cachedUserId: string | null = null;
 
-export async function findGhlPostingUserId(): Promise<string | null> {
+/**
+ * THE LOOKUP IS RETRIED, AND THE REASON IT FAILED TRAVELS WITH THE ANSWER.
+ *
+ * Both of those come from one incident: metro-spread-hyperframes published on
+ * 2026-09-13 with `tiktok_ghl: { ok: false, error: "Could not resolve a GHL
+ * user to post as." }` while YouTube, Instagram and GBP all succeeded. The same
+ * call had worked on the two publishes before it and worked again when
+ * exercised by hand minutes later — HTTP 200 in 538ms, six users, an admin
+ * among them. So the post was lost to a single transient blip in somebody
+ * else's API, on a call whose answer this file's own comment calls stable.
+ *
+ * ONE ATTEMPT WAS THE BUG. A stable answer fetched once, with no retry, in the
+ * one moment that decides whether a post happens.
+ *
+ * AND THE REASON WAS UNREACHABLE, WHICH IS THE SECOND BUG. This function
+ * already refused to swallow it — the warn below predates the incident and says
+ * why. But a console warning lives in the platform logs, and the artifact that
+ * actually survives is the `results` JSON on the queue row, which only ever got
+ * the caller's generic sentence. Three different causes — a non-200, a thrown
+ * fetch, an empty user list — all reach the caller as the same string, and
+ * picking between them afterwards was not possible from anything persisted.
+ * So the reason is returned, not just logged, and the caller writes it into the
+ * row.
+ */
+/* Discriminated on `ok`, not on whether `id` is null — a union split by
+   `string | null` does not narrow on truthiness and the compiler says so. */
+export type GhlUserResolution =
+  | { ok: true; id: string }
+  | { ok: false; reason: string };
+
+/* The waits are a parameter so the tests can run in milliseconds rather than
+   sleeping through the real backoff. Production never passes them. */
+export const GHL_USER_LOOKUP_BACKOFF_MS = [600, 1800];
+
+export async function resolveGhlPostingUser(
+  opts: { backoffMs?: number[] } = {},
+): Promise<GhlUserResolution> {
+  const backoff = opts.backoffMs ?? GHL_USER_LOOKUP_BACKOFF_MS;
   // An env override wins, so this can be pinned without a deploy if the lookup
   // ever becomes the thing standing between the publisher and a post.
-  if (process.env.GHL_POSTING_USER_ID) return process.env.GHL_POSTING_USER_ID;
-  if (cachedUserId) return cachedUserId;
+  if (process.env.GHL_POSTING_USER_ID) return { ok: true, id: process.env.GHL_POSTING_USER_ID };
+  if (cachedUserId) return { ok: true, id: cachedUserId };
 
   const apiKey = process.env.GHL_API_KEY;
   const locationId = process.env.GHL_LOCATION_ID;
-  if (!apiKey || !locationId) return null;
-
-  try {
-    /*
-     * CACHED, BECAUSE THIS ENDPOINT IS SLOW. Measured at 17.8 seconds for six
-     * users. Paying that on every post would make the publisher look broken and
-     * risks tripping whatever timeout sits above it. The answer is stable —
-     * which human account a post is filed under does not change between posts.
-     */
-    const r = await fetch(`${GHL_API_BASE}/users/?locationId=${locationId}`, {
-      headers: { Authorization: `Bearer ${apiKey}`, Version: "2021-07-28", Accept: "application/json" },
-      cache: "no-store",
-    });
-    if (!r.ok) {
-      // Logged, not swallowed. A bare null here once cost a debugging round
-      // trip: the caller reported "could not resolve a user" and the actual
-      // reason — whatever this endpoint said — had already been discarded.
-      console.warn(`[tiktok-ghl] user lookup HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`);
-      return null;
-    }
-    const j = (await r.json()) as { users?: { id: string; roles?: { role?: string } }[] };
-    const users = j.users ?? [];
-    cachedUserId = users.find((u) => u.roles?.role === "admin")?.id ?? users[0]?.id ?? null;
-    return cachedUserId;
-  } catch (e) {
-    console.warn(`[tiktok-ghl] user lookup failed: ${e instanceof Error ? e.message : String(e)}`);
-    return null;
+  if (!apiKey || !locationId) {
+    return { ok: false, reason: "GHL_API_KEY / GHL_LOCATION_ID are not set" };
   }
+
+  /*
+   * CACHED, BECAUSE THIS ENDPOINT IS SLOW. Measured at 17.8 seconds for six
+   * users, and at 538ms for the same six on another day. Paying the slow case
+   * on every post would make the publisher look broken and risks tripping
+   * whatever timeout sits above it. The answer is stable — which human account
+   * a post is filed under does not change between posts.
+   *
+   * That spread is also why the retry waits rather than hammering: if the
+   * endpoint is having a slow minute, three calls 400ms apart are three calls
+   * into the same slow minute.
+   */
+  const ATTEMPTS = backoff.length + 1;
+  let last = "no attempt made";
+
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    if (attempt > 1) await new Promise((r) => setTimeout(r, backoff[attempt - 2]));
+    try {
+      const r = await fetch(`${GHL_API_BASE}/users/?locationId=${locationId}`, {
+        headers: { Authorization: `Bearer ${apiKey}`, Version: "2021-07-28", Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (!r.ok) {
+        last = `HTTP ${r.status}: ${(await r.text()).slice(0, 160)}`;
+        // Logged as well as returned. A bare null here once cost a debugging
+        // round trip: the caller reported "could not resolve a user" and the
+        // actual reason had already been discarded.
+        console.warn(`[tiktok-ghl] user lookup attempt ${attempt}/${ATTEMPTS} ${last}`);
+        continue;
+      }
+      const j = (await r.json()) as { users?: { id: string; roles?: { role?: string } }[] };
+      const users = j.users ?? [];
+      const picked = users.find((u) => u.roles?.role === "admin")?.id ?? users[0]?.id ?? null;
+      if (!picked) {
+        /* NOT RETRIED IN SPIRIT, THOUGH THE LOOP WILL. An empty list is a real
+           answer about the workspace rather than a blip, and repeating it is
+           cheap enough not to special-case — but the reason must say so, or a
+           reader assumes the endpoint was down. */
+        last = `endpoint returned ${users.length} user(s); none usable`;
+        console.warn(`[tiktok-ghl] user lookup attempt ${attempt}/${ATTEMPTS} ${last}`);
+        continue;
+      }
+      cachedUserId = picked;
+      if (attempt > 1) console.warn(`[tiktok-ghl] user lookup recovered on attempt ${attempt}`);
+      return { ok: true, id: picked };
+    } catch (e) {
+      last = `threw: ${e instanceof Error ? e.message : String(e)}`;
+      console.warn(`[tiktok-ghl] user lookup attempt ${attempt}/${ATTEMPTS} ${last}`);
+    }
+  }
+  return { ok: false, reason: `${ATTEMPTS} attempts failed, last: ${last}` };
+}
+
+/** Back-compat wrapper. Prefer resolveGhlPostingUser, which carries the reason. */
+export async function findGhlPostingUserId(): Promise<string | null> {
+  const r = await resolveGhlPostingUser();
+  return r.ok ? r.id : null;
 }
 
 export type TikTokGhlPublishResult =
@@ -169,8 +238,17 @@ export async function publishToTikTokViaGhl(
 
   const caption = input.caption.slice(0, TIKTOK_GHL_CAPTION_LIMIT);
 
-  const userId = input.userId ?? (await findGhlPostingUserId());
-  if (!userId) return { ok: false, error: "Could not resolve a GHL user to post as." };
+  let userId = input.userId;
+  if (!userId) {
+    const resolved = await resolveGhlPostingUser();
+    if (!resolved.ok) {
+      /* The reason goes into the error string because that string is what ends
+         up in publisher_queue.results, which is the only record that outlives
+         the run. */
+      return { ok: false, error: `Could not resolve a GHL user to post as — ${resolved.reason}` };
+    }
+    userId = resolved.id;
+  }
 
   const uploaded = await uploadToGhlMedia(input.videoUrl, apiKey);
   if (!uploaded.ok) return { ok: false, error: uploaded.error };

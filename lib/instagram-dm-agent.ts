@@ -60,6 +60,31 @@ async function connection(admin: any): Promise<Connection | null> {
   return { igUserId: data.ig_user_id, accessToken: data.access_token };
 }
 
+/**
+ * The DM agent's off switch. Set INSTAGRAM_DM_AGENT=off to stop it replying.
+ *
+ * OFF MEANS SILENT, NOT DEAF. The check sits AFTER the inbound message is
+ * written to instagram_dm_messages and after the mid dedupe, so a paused agent
+ * still records what people said and still refuses to answer a redelivery
+ * twice. Returning early from the webhook instead would have been one line
+ * fewer and would have thrown the messages away — and Meta does not let you go
+ * back for them, so the conversation would resume with a hole in it.
+ *
+ * WHY AN ENV VAR AND NOT THE CONNECTION ROW. instagram_connection.status is the
+ * only instant lever that already exists, and flipping it would also stop the
+ * Reel publisher, the carousel queue, the comment agent, the token refresh and
+ * content metrics — twelve files read that row. "Deactivate the DM agent" must
+ * not take down publishing.
+ *
+ * DEFAULTS ON, and only the exact strings below turn it off. A typo in the
+ * variable name leaves the agent running, which is the safe direction to fail
+ * for a value that is absent in every environment that has not set it.
+ */
+export function dmAgentDisabled(): boolean {
+  const v = (process.env.INSTAGRAM_DM_AGENT || "").trim().toLowerCase();
+  return v === "off" || v === "false" || v === "0" || v === "disabled";
+}
+
 async function loadThread(admin: any, senderId: string): Promise<DmThreadState> {
   const { data } = await admin
     .from("instagram_dm_threads")
@@ -276,6 +301,12 @@ export async function handleInstagramDm(input: {
     text_body: text.slice(0, 4000),
     message_mid: input.mid ?? null,
   });
+
+  /* Paused. The message above is on the record; nothing goes back out. */
+  if (dmAgentDisabled()) {
+    console.warn("[instagram-dm] INSTAGRAM_DM_AGENT is off — recorded, not answering");
+    return { handled: false, reason: "agent deactivated", sent: 0 };
+  }
 
   const preface: string[] = [];
   if (needsDisclosure(thread, now)) preface.push(DISCLOSURE);

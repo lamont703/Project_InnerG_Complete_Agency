@@ -3,11 +3,12 @@ import { describe, it, expect } from "vitest";
 import { publishToYouTube } from "@/lib/youtube-publish";
 import { publishToGbpBrand } from "@/lib/gbp-brand-publish";
 import { buildGbpSummary, SITE } from "@/lib/admin/publisher-copy";
+import { publishToTikTokViaGhl, findGhlTikTokAccountId } from "@/lib/tiktok-ghl-publish";
 
 /**
  * Republish ONE queue item to ONE platform. Opted into explicitly:
  *
- *   REPUBLISH_ITEM=<item_key> REPUBLISH_PLATFORM=youtube|gbp \
+ *   REPUBLISH_ITEM=<item_key> REPUBLISH_PLATFORM=youtube|gbp|tiktok_ghl \
  *     npx vitest run lib/admin/republish.live.test.ts --environment=node
  *
  * WHY THIS EXISTS. A slot publishes to several platforms and any one can fail
@@ -24,8 +25,44 @@ import { buildGbpSummary, SITE } from "@/lib/admin/publisher-copy";
  * way to tell them apart afterwards.
  */
 
+/*
+ * .env.local IS LOADED HERE BECAUSE NOTHING ELSE LOADS IT.
+ *
+ * vitest.config.ts sets no `env` and its setup file loads no dotenv, so a test
+ * process starts with none of the project's credentials. Every .live test in
+ * this directory reads process.env directly, which means they only ever worked
+ * for someone who had already exported the file into their shell — and the
+ * usage line above this comment promised otherwise. Run verbatim from a clean
+ * terminal it died on
+ *
+ *     Failed to parse URL from undefined/rest/v1/publisher_queue?...
+ *
+ * which reads like a broken query rather than a missing variable, because the
+ * undefined is interpolated into the string before fetch ever sees it.
+ *
+ * An already-exported value WINS: the guard means someone pointing this at a
+ * different database for one run does not get silently overridden by the file.
+ */
+if (!process.env.SUPABASE_URL) {
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    /* CI has no .env.local and supplies the environment directly. */
+  }
+}
+
 const ITEM = process.env.REPUBLISH_ITEM;
-const PLATFORM = (process.env.REPUBLISH_PLATFORM || "youtube") as "youtube" | "gbp";
+/*
+ * tiktok_ghl WAS ADDED AFTER IT WAS THE THING THAT FAILED. The slot on
+ * 2026-09-13 lost exactly one platform — TikTok via GoHighLevel — and this
+ * tool, whose whole purpose is retrying one platform without re-posting the
+ * others, could not retry that one. A recovery tool that does not cover the
+ * platform that broke is a recovery tool for the failures you already had.
+ */
+const PLATFORM = (process.env.REPUBLISH_PLATFORM || "youtube") as
+  | "youtube"
+  | "gbp"
+  | "tiktok_ghl";
 
 describe.skipIf(!ITEM)(`republish to ${PLATFORM}`, () => {
   it("publishes the failed item and corrects the row", async () => {
@@ -59,7 +96,7 @@ describe.skipIf(!ITEM)(`republish to ${PLATFORM}`, () => {
       outcome = r.ok
         ? { ok: true, id: r.id, url: `https://youtube.com/shorts/${r.id}` }
         : { ok: false, error: r.error };
-    } else {
+    } else if (PLATFORM === "gbp") {
       // The brand connection lives in publisher_connections, and its refresh
       // token is redeemed by lib/gbp-brand-publish against the brand client.
       const [conn] = await fetch(
@@ -79,6 +116,22 @@ describe.skipIf(!ITEM)(`republish to ${PLATFORM}`, () => {
         url: SITE,
       });
       outcome = r.ok ? { ok: true, id: r.postName } : { ok: false, error: r.error };
+    } else {
+      /* Same module the cron calls. The account id is resolved live rather than
+         carried here, for the reason the publisher documents: a hardcoded id
+         works and tells a later reader nothing about where it came from. */
+      expect(row.video_url, "row has no video").toBeTruthy();
+      const accountId = await findGhlTikTokAccountId();
+      expect(accountId, "no GHL TikTok account found for this location").toBeTruthy();
+
+      const r = await publishToTikTokViaGhl({
+        videoUrl: row.video_url,
+        caption: row.caption ?? row.title ?? "",
+        accountId: accountId!,
+      });
+      outcome = r.ok
+        ? { ok: true, id: r.id }
+        : { ok: false, error: r.error };
     }
 
     if (!outcome.ok) throw new Error(outcome.error);
