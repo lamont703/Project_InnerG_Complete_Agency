@@ -1,3 +1,5 @@
+import { youtubeLinkRedirects } from "./lib/youtube-links.mjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   /**
@@ -320,6 +322,20 @@ const nextConfig = {
         destination: "https://shearquery.com/:path*",
         permanent: true,
       },
+      // --- Audience links for video descriptions ---
+      //
+      // /youtube/<audience> -> whatever that audience's offer is TODAY. A
+      // published video's description cannot be revised at scale, so it points
+      // here and this indirection absorbs every later change of offer.
+      //
+      // ALL OF THESE ARE 307, NOT 308, AND THAT IS LOAD-BEARING. A permanent
+      // redirect is cached by the browser forever, so changing an offer would
+      // silently fail to reach anyone who had already clicked. lib/youtube-links.mjs
+      // carries the reasoning and lib/youtube-links.test.ts stops it regressing.
+      //
+      // Redirects are checked before the filesystem, so these win over the
+      // /youtube/callback route tree without shadowing it (different segment).
+      ...youtubeLinkRedirects(),
       ...cityRedirects,
       // Houston's separate market-analysis sub-feature moved along with
       // the rest of its URL tree for full consistency.

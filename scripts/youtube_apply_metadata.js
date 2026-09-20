@@ -58,8 +58,35 @@ const CLIENT_ID =
   env.YOUTUBE_CLIENT_ID || env.GOOGLE_INTERNAL_CLIENT_ID || env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET =
   env.YOUTUBE_CLIENT_SECRET || env.GOOGLE_INTERNAL_CLIENT_SECRET || env.GOOGLE_CLIENT_SECRET;
-const REFRESH_TOKEN =
+const DEFAULT_REFRESH_TOKEN =
   env.YOUTUBE_REFRESH_TOKEN || env.GOOGLE_YOUTUBE_REFRESH_TOKEN || env.YT_REFRESH_TOKEN;
+
+/**
+ * --account main -> GOOGLE_YOUTUBE_MAIN_REFRESH_TOKEN. Same resolution as
+ * scripts/upload_youtube.js, deliberately: this account owns more than one
+ * channel, and the bare token chain above still points at the experimental one.
+ * Without this the script silently addresses the wrong channel — the writes
+ * fail rather than landing somewhere wrong, but "video not found" reads like a
+ * bad id rather than like the wrong account, which is a slow thing to work out.
+ * The channel it resolved to is printed before any write either way.
+ */
+function refreshTokenFor(account) {
+  if (!account) return null;
+  const v = `GOOGLE_YOUTUBE_${account.toUpperCase()}_REFRESH_TOKEN`;
+  if (!process.env[v]) {
+    console.error(`\n  --account ${account} needs ${v} in .env.local\n`);
+    process.exit(1);
+  }
+  /* THE CLIENT MUST COME FROM THE SAME CHAIN THAT MINTED THE TOKEN, and that
+     is not the chain at the top of this file. scripts/youtube_oauth_setup.js
+     mints these with googleClient("youtube") — the per-purpose resolver — so a
+     token from there presented to the internal client fails as
+     `unauthorized_client`, which reads like a revoked token rather than like a
+     mismatched pair. Resolving both together is what keeps them in step. */
+  const { googleClient } = require('./_google_clients.js');
+  const c = googleClient('youtube');
+  return { token: process.env[v], clientId: c.clientId, clientSecret: c.clientSecret, from: v };
+}
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);
@@ -73,6 +100,11 @@ const ALLOW_CLEAR = flag('--allow-clear');
 const FROM = value('--from', null);
 const LIMIT = Number(value('--limit', '0')) || 0;
 const BUDGET = Number(value('--budget', '5000'));
+const ACCOUNT = value('--account', null);
+const OVERRIDE = refreshTokenFor(ACCOUNT);
+const REFRESH_TOKEN = OVERRIDE ? OVERRIDE.token : DEFAULT_REFRESH_TOKEN;
+const OAUTH_ID = OVERRIDE ? OVERRIDE.clientId : CLIENT_ID;
+const OAUTH_SECRET = OVERRIDE ? OVERRIDE.clientSecret : CLIENT_SECRET;
 
 const COST_UPDATE = 50;
 const COST_LIST = 1;
@@ -133,7 +165,7 @@ async function main() {
     process.exit(1);
   }
 
-  const auth = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET);
+  const auth = new google.auth.OAuth2(OAUTH_ID, OAUTH_SECRET);
   auth.setCredentials({ refresh_token: REFRESH_TOKEN });
   const yt = google.youtube({ version: 'v3', auth });
 
@@ -163,7 +195,12 @@ async function main() {
     // MERGE onto the full existing snippet. Never build one from scratch.
     const next = { ...snip };
     const changes = [];
-    for (const field of ['title', 'description', 'tags']) {
+    /* categoryId is mergeable because videos.update REQUIRES it in the
+       snippet anyway — it is already being written on every run, carried over
+       from the read. Making it settable changes nothing about the risk and
+       removes the one field that otherwise had to be changed by hand in
+       Studio, out of step with the spec file that is meant to be the record. */
+    for (const field of ['title', 'description', 'tags', 'categoryId']) {
       if (!(field in p)) continue;
       const before = snip[field];
       const after = p[field];
