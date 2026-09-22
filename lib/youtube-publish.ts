@@ -46,6 +46,64 @@ export async function youtubeAccessToken(): Promise<string> {
 }
 
 /**
+ * THE CHANNEL UPLOADS GO TO: @shearqueryai.
+ *
+ * TWO CHANNELS SHARE THE TITLE "ShearQuery by Inner G Complete Agency", and
+ * nothing in an upload response says which one received the video. The token
+ * above (youtubeAccessToken) belongs to the OLDER one, @shearquery
+ * (UC0gJXad-Y8_Mlg8rMN8U57Q, 508 videos), and every publisher upload went there
+ * until 2026-09-22 — found by looking up the channelId of the last eight
+ * youtube_ids, not by any error. That token stays as it is, because the comment
+ * sync and the reporting scripts READ the older channel through it.
+ *
+ * So uploads get their own credential, and the channel is checked on every
+ * upload rather than trusted: a token minted against the wrong account uploads
+ * happily and the title check that looks right cannot tell the two apart.
+ */
+export const YOUTUBE_PUBLISH_CHANNEL_ID = "UC2R_pYoza1bxm-iOhWtO6AA";
+
+/** Refuses unless the token's own channel is the publishing channel. */
+export function assertPublishChannel(channelIds: string[]): void {
+  if (channelIds.length !== 1 || channelIds[0] !== YOUTUBE_PUBLISH_CHANNEL_ID) {
+    throw new Error(
+      `YouTube publish token belongs to ${channelIds.join(", ") || "no channel"}, ` +
+        `not @shearqueryai (${YOUTUBE_PUBLISH_CHANNEL_ID}) — refusing to upload to the wrong channel`
+    );
+  }
+}
+
+/**
+ * Access token for UPLOADS ONLY, from GOOGLE_YOUTUBE_PUBLISH_REFRESH_TOKEN.
+ *
+ * NO FALLBACK to the purpose chain. Falling back is exactly how uploads ended up
+ * on the older channel; a missing variable should stop YouTube publishing
+ * loudly, not quietly redirect it. The client id and secret still come from
+ * googleClient("youtube") — a refresh token belongs to the client that minted
+ * it, and scripts/youtube_oauth_setup.js mints with that client.
+ */
+export async function youtubePublishAccessToken(): Promise<string> {
+  const { clientId, clientSecret } = googleClient("youtube");
+  const refreshToken = process.env.GOOGLE_YOUTUBE_PUBLISH_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("GOOGLE_YOUTUBE_PUBLISH_REFRESH_TOKEN is not set — YouTube publishing is off until it points at @shearqueryai");
+  }
+  const r = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
+  });
+  const j = await r.json();
+  if (!j.access_token) throw new Error(`publish token refresh failed: ${JSON.stringify(j).slice(0, 200)}`);
+
+  // 1 quota unit. Cheap insurance against the silent failure described above.
+  const ch = await fetch("https://www.googleapis.com/youtube/v3/channels?part=id&mine=true", {
+    headers: { Authorization: `Bearer ${j.access_token}` },
+  });
+  if (!ch.ok) throw new Error(`channel check ${ch.status}: ${(await ch.text()).slice(0, 200)}`);
+  assertPublishChannel(((await ch.json()).items ?? []).map((i: { id: string }) => i.id));
+  return j.access_token as string;
+}
+
+/**
  * Upload to YouTube. Takes the bytes rather than fetching them, so the same
  * download serves every platform that needs the file.
  */
@@ -54,7 +112,7 @@ export async function publishToYouTube(
   bytes: Buffer
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    const token = await youtubeAccessToken();
+    const token = await youtubePublishAccessToken();
 
     const metadata = {
       snippet: {
