@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   Users,
   Clock,
@@ -291,17 +290,6 @@ export default async function WaitlistPage({
               Join the ShearQuery waitlist
               <ArrowRight className="h-4 w-4" />
             </a>
-            <p className="mt-6 text-sm text-slate-500">
-              Want to see how I work first?{" "}
-              <Link href="/directory" className="font-bold text-blue-700 underline">
-                Browse the directory
-              </Link>{" "}
-              or{" "}
-              <Link href="/shearquery-credit-report" className="font-bold text-blue-700 underline">
-                see the booth rent credit report
-              </Link>
-              .
-            </p>
           </section>
         </div>
       </main>

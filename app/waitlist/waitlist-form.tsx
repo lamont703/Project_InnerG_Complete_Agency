@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Loader2, CheckCircle2, ArrowRight } from "lucide-react";
 import { joinWaitlistAction } from "./actions";
 
 /**
@@ -23,19 +24,31 @@ export function WaitlistForm({ source }: { source?: string }) {
 
   if (done) {
     return (
-      <div
-        id="join"
-        className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-5"
-      >
-        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-        <div className="text-sm text-emerald-900">
-          <p className="font-black">You&apos;re on the list.</p>
-          <p className="mt-1">
-            I&apos;ll write to you when it opens, and I&apos;ll tell you what it is before I ask you
-            for anything. In the meantime the videos keep coming, and everything I work out I put
-            in them.
-          </p>
+      <div id="join" className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div className="text-sm text-emerald-900">
+            <p className="font-black">You&apos;re on the list.</p>
+            <p className="mt-1">
+              I&apos;ll write to you when it opens, and I&apos;ll tell you what it is before I ask
+              you for anything. In the meantime, go use the AI I already built for this industry.
+              Ask it anything beauty or barber and see what it gives you back.
+            </p>
+          </div>
         </div>
+        {/*
+          THE SECOND ASK, AND IT IS THE ONLY ONE ON THIS SCREEN. Somebody who has
+          just handed over their details is the most willing they will be all
+          session, so the one thing offered here is the product that already
+          works — not a menu of links, which is what the old page bottom was.
+        */}
+        <Link
+          href="/search"
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
+        >
+          Try the ShearQuery search
+          <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
     );
   }
