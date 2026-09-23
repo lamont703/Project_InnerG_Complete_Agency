@@ -10,6 +10,7 @@ import type { McpIdentity } from "@/lib/mcp/connection";
 // community_member_entity_links), which the module-level client above cannot
 // reach when only the anon key is present.
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getMemberGbpAudit } from "@/lib/gbp-audit-fetch";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -783,6 +784,138 @@ const myAccount: McpTool = {
   },
 };
 
+// ── 8. This owner's real audit ──────────────────────────────────────────────
+
+/**
+ * The owner-level audit — all of it, not the public five.
+ *
+ * WHY THIS EXISTS, in the owner's own words: barbers live in Claude and will
+ * rarely open shearquery.com. Before this tool, a connected owner asking "audit
+ * my profile" got the PUBLIC audit — 5 checks of 13, scored on what any
+ * stranger can see — and then a link to the website for the other eight. That
+ * is a correct answer and a useless one: the eight it cannot see are attributes,
+ * secondary categories, services, the description, the searches people actually
+ * used, review replies, Google's pending edits and verification status. Those
+ * are the ones with the fixes in them.
+ *
+ * IT REACHES GOOGLE, so openWorldHint is true — the first tool here for which
+ * that is the case, and the reason McpToolAnnotations is a required field rather
+ * than a default.
+ *
+ * IT STATES ITS OWN AGE. getMemberGbpAudit caches for six hours per location,
+ * because it is ~10 Google calls. An owner who adds three photos and asks again
+ * will see the old number, and a model that presents a cached figure as live
+ * turns our own cache into an accusation that the owner did nothing.
+ */
+const myProfileAudit: McpTool = {
+  name: "my_google_profile_audit",
+  title: "The full Google Business Profile audit for this owner's listing",
+  description:
+    "Run the complete authenticated Google Business Profile audit for the owner this connection belongs to: every check, the score, what is failing, and the specific fix for each one. This sees what only the profile owner can see — attributes, secondary categories, services, the business description, the search terms people used to find the business, review replies, Google's pending edits and verification status — which the public audit_google_business_profile tool cannot. Requires the owner to have connected Google; call my_shearquery_account first if unsure. Results are cached for up to six hours.",
+  requiresIdentity: true,
+  // Reads, but reaches Google rather than only our own database.
+  annotations: { readOnlyHint: true, openWorldHint: true },
+  inputSchema: { type: "object", properties: {} },
+  handler: async (_args, ctx) => {
+    const identity = ctx.identity;
+    if (!identity) return "This tool needs an owner connection and this connection has none.";
+
+    const result = await getMemberGbpAudit(identity.memberId);
+
+    // Each failure names the fix and where it happens. "Not connected" is not an
+    // error to retry — no amount of retrying connects a Google account.
+    if (result.status === "not-connected") {
+      return [
+        "This owner has not connected their Google Business Profile, so the full audit cannot run.",
+        "",
+        `They connect it at ${SITE}/account/gbp-audit — it takes a minute and needs the Google account that manages the listing.`,
+        "",
+        "Until then the only thing available is the PUBLIC audit, which scores what any visitor can see (photos, reviews, hours, website, phone) and cannot see attributes, categories, services, the description, search terms, review replies or verification. Use audit_google_business_profile for that, and say plainly that it is the partial one.",
+      ].join("\n");
+    }
+    if (result.status === "no-location") {
+      return `Google is connected but no location has been chosen, so there is nothing to audit yet. The owner picks which location this listing is at ${SITE}/account/gbp-audit.`;
+    }
+    if (result.status === "error") {
+      return [
+        `The audit could not run: ${safeEcho(result.message, 200)}`,
+        "",
+        `If that mentions credentials or permission, the Google connection has expired and must be reconnected at ${SITE}/account/gbp-audit. Retrying will not fix that one.`,
+      ].join("\n");
+    }
+
+    const { business, report, performance, keywords, generatedAt } = result.bundle;
+    const hoursOld = Math.floor((Date.now() - new Date(generatedAt).getTime()) / 3_600_000);
+
+    const line = (c: (typeof report.checks)[number]) =>
+      `- [${c.status.toUpperCase()}] ${c.label} (${c.area})\n    ${c.detail}${c.fix ? `\n    FIX: ${c.fix}` : ""}`;
+
+    const failing = report.checks.filter((c) => c.status === "fail");
+    const warning = report.checks.filter((c) => c.status === "warn");
+    const passing = report.checks.filter((c) => c.status === "pass");
+    const info = report.checks.filter((c) => c.status === "info");
+
+    const out: (string | null)[] = [
+      `FULL AUDIT — ${safeEcho(business.name, 80)}${business.city ? `, ${safeEcho(business.city, 40)}` : ""}`,
+      `Score ${report.score}/100 (${report.grade}), across all ${report.checks.length} checks. This is the authenticated audit, not the public one.`,
+      "",
+    ];
+
+    if (failing.length) out.push(`FAILING — ${failing.length}, do these first:`, ...failing.map(line), "");
+    if (warning.length) out.push(`WARNINGS — ${warning.length}:`, ...warning.map(line), "");
+    if (info.length) out.push(`FOR INFORMATION — ${info.length}:`, ...info.map(line), "");
+    if (passing.length) {
+      out.push(
+        `PASSING — ${passing.length}: ${passing.map((c) => c.label).join(", ")}.`,
+        ""
+      );
+    }
+
+    out.push(
+      "BY AREA",
+      ...(Object.entries(report.areas) as [string, { earned: number; possible: number }][]).map(
+        // Weights are fractional, so raw earned prints as 12.969999999999999.
+        // One decimal is as much precision as a score out of twenty can carry.
+        ([area, a]) => `  ${area}: ${Math.round(a.earned * 10) / 10}/${a.possible}`
+      ),
+      ""
+    );
+
+    if (performance) {
+      out.push(
+        "WHAT THE PROFILE DID (Google's own numbers, last 30 days)",
+        `  ${performance.impressions} impressions · ${performance.calls} calls · ${performance.website} website clicks · ${performance.directions} direction requests`,
+        ""
+      );
+    }
+
+    if (keywords.length) {
+      const top = keywords.slice(0, 10);
+      out.push(
+        "WHAT PEOPLE SEARCHED TO FIND IT",
+        ...top.map((k) =>
+          // Google reports low-volume queries only as "fewer than N". Printing
+          // the threshold as if it were a count would overstate every small
+          // term, and those are most of them.
+          `  ${safeEcho(k.keyword, 60)} — ${
+            k.value != null ? `${k.value} impressions` : `fewer than ${k.threshold} impressions (Google does not give an exact figure)`
+          }`
+        ),
+        ""
+      );
+    }
+
+    out.push(
+      hoursOld >= 1
+        ? `These figures were fetched from Google about ${hoursOld} hour${hoursOld === 1 ? "" : "s"} ago and are cached for six hours, so a change made since then will not show yet.`
+        : "These figures were just fetched from Google.",
+      `Fixes that change the live profile go through approval: draft one and the owner approves it at ${SITE}/account/my-requests. Nothing reaches Google until they do.`
+    );
+
+    return out.filter((l) => l !== null).join("\n");
+  },
+};
+
 export const MCP_TOOLS: McpTool[] = [
   compareSchools,
   compareShops,
@@ -791,6 +924,7 @@ export const MCP_TOOLS: McpTool[] = [
   verifyLicense,
   boothRentForCity,
   myAccount,
+  myProfileAudit,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

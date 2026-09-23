@@ -45,7 +45,51 @@ import {
  */
 
 export const SERVER_NAME = "com.innergcomplete/shearquery";
-export const SERVER_VERSION = "0.3.0";
+export const SERVER_VERSION = "0.4.0";
+
+/**
+ * How we identify ourselves in a client's UI.
+ *
+ * WITHOUT THIS, CLAUDE DREW A GENERIC HOUSE GLYPH. `serverInfo` is an
+ * `Implementation`, which carries optional `icons`, `description` and
+ * `websiteUrl` — none of which we were sending, so there was nothing to draw and
+ * the client fell back to a placeholder. A connector with no icon looks
+ * unfinished next to the built-in ones, and this is the only place a server gets
+ * to say what it is.
+ *
+ * SERVED FROM OUR OWN ORIGIN, DELIBERATELY. The spec: "Consumers SHOULD take
+ * steps to ensure URLs serving icons are from the same domain as the
+ * client/server or a trusted domain." An icon on a CDN we don't control is one a
+ * careful client is right to refuse.
+ *
+ * PNG AT THREE REAL SIZES. PNG and JPEG are the only formats a client that
+ * renders icons MUST support; SVG and WebP are a SHOULD, and SVG additionally
+ * carries a script-execution warning that makes refusal reasonable. The files
+ * are genuinely 48, 96 and 192 pixels — see the sizes note below, because the
+ * existing public/icon-*-32x32.png files are 640x640 and half a megabyte each.
+ *
+ * `theme` is deliberately absent: the artwork has its own dark background baked
+ * in, so it reads on either a light or a dark surface, and claiming one would
+ * stop a client using it on the other.
+ */
+const SERVER_ICONS = [
+  { src: `${SITE_URL}/icon-48.png`, mimeType: "image/png", sizes: ["48x48"] },
+  { src: `${SITE_URL}/icon-96.png`, mimeType: "image/png", sizes: ["96x96"] },
+  { src: `${SITE_URL}/icon-192.png`, mimeType: "image/png", sizes: ["192x192"] },
+];
+
+const SERVER_DESCRIPTION =
+  "Barber, beauty and wellness industry data: school exam pass rates, booth rent, Texas licences, and Google profile audits.";
+
+/** The Implementation object both eras send, so they cannot describe us differently. */
+const SERVER_INFO = {
+  name: SERVER_NAME,
+  title: "ShearQuery",
+  version: SERVER_VERSION,
+  description: SERVER_DESCRIPTION,
+  websiteUrl: SITE_URL,
+  icons: SERVER_ICONS,
+};
 
 /**
  * Browser origins allowed to reach this endpoint. The spec requires Origin
@@ -421,9 +465,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
               supportedVersions: SUPPORTED_PROTOCOL_VERSIONS,
               capabilities: { tools: {} },
               instructions: ctx.identity ? OWNER_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
-              _meta: {
-                [META_SERVER_INFO_KEY]: { name: SERVER_NAME, version: SERVER_VERSION },
-              },
+              _meta: { [META_SERVER_INFO_KEY]: SERVER_INFO },
             })
           );
 
@@ -455,7 +497,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
           // nothing to notify about, and claiming otherwise would promise a
           // notification channel this stateless server cannot open.
           capabilities: { tools: { listChanged: false } },
-          serverInfo: { name: SERVER_NAME, title: "ShearQuery", version: SERVER_VERSION },
+          serverInfo: SERVER_INFO,
           instructions: ctx.identity ? OWNER_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
         });
       }
