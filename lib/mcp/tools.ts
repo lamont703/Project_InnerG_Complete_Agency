@@ -664,7 +664,17 @@ const myAccount: McpTool = {
     }
 
     const who = [member.first_name, member.last_name].filter(Boolean).join(" ").trim() || "this owner";
-    const lines: string[] = [`Connection: ShearQuery account for ${safeEcho(who, 60)} (key ${identity.keyPrefix}…).`, ""];
+    /**
+     * null means "leave this line out"; "" means "a blank line goes here".
+     *
+     * They were both "" and filtered with Boolean, which silently ate every
+     * paragraph break and returned the whole account summary as one block of
+     * text. It read as a wall and nothing errored.
+     */
+    const lines: (string | null)[] = [
+      `Connection: ShearQuery account for ${safeEcho(who, 60)} (key ${identity.keyPrefix}…).`,
+      "",
+    ];
 
     // ── the claimed listing ──
     if (!link?.entity_type) {
@@ -686,7 +696,7 @@ const myAccount: McpTool = {
       }
       lines.push(
         `CLAIMED LISTING: ${safeEcho(name || "a listing", 80)}${cfg ? ` (${cfg.label})` : ""}.`,
-        slug && cfg ? `  ${SITE}${cfg.route}/${slug}` : ""
+        slug && cfg ? `  ${SITE}${cfg.route}/${slug}` : null
       );
     }
     lines.push("");
@@ -716,7 +726,7 @@ const myAccount: McpTool = {
       lines.push(
         `GOOGLE BUSINESS PROFILE: connected.`,
         `  Location: ${safeEcho(chosen?.title || conn.selected_location, 80)}`,
-        conn.last_synced_at ? `  Last synced: ${String(conn.last_synced_at).slice(0, 10)}` : ""
+        conn.last_synced_at ? `  Last synced: ${String(conn.last_synced_at).slice(0, 10)}` : null
       );
     }
 
@@ -731,7 +741,7 @@ const myAccount: McpTool = {
       `Anything drafted here becomes a pending change the owner approves at ${SITE}/account/my-requests. Until they do, nothing has reached Google — say so rather than reporting a change as live.`
     );
 
-    return lines.filter(Boolean).join("\n");
+    return lines.filter((l) => l !== null).join("\n");
   },
 };
 
