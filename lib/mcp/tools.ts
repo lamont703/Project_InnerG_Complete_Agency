@@ -42,10 +42,41 @@ export interface McpToolContext {
   identity: McpIdentity | null;
 }
 
+/**
+ * What a tool does to the world, in the protocol's own vocabulary.
+ *
+ * WHY THIS IS REQUIRED AND NOT OPTIONAL. `readOnlyHint` defaults to FALSE and
+ * `destructiveHint` defaults to TRUE, so a tool that says nothing is advertised
+ * as one that may destroy something. Every tool here only reads, and because we
+ * never said so, Claude's connector asked the owner to decide tool by tool
+ * whether to trust seven harmless queries — a question they had no way to
+ * answer.
+ *
+ * It is required rather than defaulted because the propose_* tools are coming.
+ * A central default of "read-only" would silently mislabel the first tool that
+ * writes; a required field makes the compiler ask.
+ */
+export interface McpToolAnnotations {
+  /** True only if the tool cannot change anything, anywhere. */
+  readOnlyHint: boolean;
+  /**
+   * True if the tool reaches outside our own data. False for everything that
+   * only queries our database — which is all of them today.
+   */
+  openWorldHint: boolean;
+  /** Meaningful only when readOnlyHint is false. */
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+}
+
+/** Reads our own database and nothing else. */
+const READ_ONLY: McpToolAnnotations = { readOnlyHint: true, openWorldHint: false };
+
 export interface McpTool {
   name: string;
   title: string;
   description: string;
+  annotations: McpToolAnnotations;
   inputSchema: Record<string, unknown>;
   /**
    * True for anything scoped to a single owner's account.
@@ -97,6 +128,7 @@ const compareSchools: McpTool = {
   title: "Compare barber & cosmetology schools by exam pass rate",
   description:
     "Rank barber or cosmetology schools by real 2026 state licensing exam outcomes — written and practical pass rates, first-attempt rate, average attempts to pass, students tested, and tuition. Optionally filter to one city. This data is not published by Google, school websites, or review sites. Schools with fewer than 5 recorded test-takers are excluded because a percentage from a handful of students is not meaningful.",
+  annotations: READ_ONLY,
   inputSchema: {
     type: "object",
     properties: {
@@ -162,6 +194,7 @@ const compareShops: McpTool = {
   title: "Compare barbershops & salons by booth rent and chair availability",
   description:
     "Find barbershops and salons ranked by weekly booth rent, with chairs available, Google rating, review count and hiring status. Answers what a chair costs in a given city and which shops have one free. Booth rent is quoted directly by shops rather than scraped, so coverage is partial — the response states how many listings actually publish a rate.",
+  annotations: READ_ONLY,
   inputSchema: {
     type: "object",
     properties: {
@@ -231,6 +264,7 @@ const licenseeCounts: McpTool = {
   title: "Count Texas barber & cosmetology licensees",
   description:
     "Count active Texas licensees from the TDLR public record by licence type, optionally limited to those whose licence expires before a given date. Answers how many people a rule change, CE requirement or fee change actually affects — the number is not published anywhere in this form.",
+  annotations: READ_ONLY,
   inputSchema: {
     type: "object",
     properties: {
@@ -299,6 +333,7 @@ const auditGoogleProfile: McpTool = {
   title: "Score a barbershop, salon, school or supply store's Google listing",
   description:
     "Score a named barbershop, salon, barber/cosmetology school or beauty supply store's public Google Business Profile and return what is missing, ranked. Compares photos, reviews, rating, hours, website and phone against other listings in the same city — the local median is computed from our own directory and is not published anywhere. Returns a coverage figure with the score because the public tier can only see part of the full audit; never present the score as a complete audit.",
+  annotations: READ_ONLY,
   inputSchema: {
     type: "object",
     properties: {
@@ -394,6 +429,7 @@ const verifyLicense: McpTool = {
   title: "Check a Texas barber or cosmetology licence against the TDLR record",
   description:
     "Look up a Texas barber, cosmetology, school or establishment licence in the state regulator's own licensee record — by licence number, or by name with an optional city. Returns the licence type, number, expiry and whether it had expired as of the data snapshot. Texas only. This reports what TDLR published on the snapshot date; it is not a live check and it does not report disciplinary action or continuing-education status.",
+  annotations: READ_ONLY,
   inputSchema: {
     type: "object",
     properties: {
@@ -494,6 +530,7 @@ const boothRentForCity: McpTool = {
   title: "What a chair actually rents for in a given city",
   description:
     "Return what barbershops and salons in a city actually charge for a chair or suite — median weekly rent, the range, how many venues report a rate, how many chairs they hold, and how many are hiring. Built from rents collected per venue in the ShearQuery directory — deepest in Houston, thinner elsewhere; no public source publishes this. Omit the city to get the overall picture and the cities with the most reported rates. Cities with fewer than 5 reported rates return the count without a median, because a rate from a handful of shops is an anecdote, not a benchmark.",
+  annotations: READ_ONLY,
   inputSchema: {
     type: "object",
     properties: {
@@ -634,6 +671,7 @@ const myAccount: McpTool = {
   description:
     "Report which business this authenticated ShearQuery connection is for: the claimed directory listing, whether the owner's Google Business Profile is connected, which Google location is selected, and what this connection is allowed to do. Call this first before any other my_* or propose_* tool — those need a claimed listing and, for anything Google-side, a live Google connection.",
   requiresIdentity: true,
+  annotations: READ_ONLY,
   inputSchema: { type: "object", properties: {} },
   handler: async (_args, ctx) => {
     const identity = ctx.identity;
@@ -767,10 +805,14 @@ export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
  */
 export const toolDescriptors = (ctx?: McpToolContext) =>
   MCP_TOOLS.filter((t) => !t.requiresIdentity || ctx?.identity).map(
-    ({ name, title, description, inputSchema }) => ({
+    ({ name, title, description, annotations, inputSchema }) => ({
       name,
       title,
       description,
+      // Sent so a client can tell a query from a change without asking the
+      // person to guess. Clients treat annotations from an untrusted server as
+      // hints, which is correct — ours are accurate either way.
+      annotations,
       inputSchema,
     })
   );

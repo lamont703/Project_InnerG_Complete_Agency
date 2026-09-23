@@ -383,9 +383,31 @@ export default function ConnectClaudePage() {
   --header "Authorization: Bearer <your key>"`}
             </pre>
 
-            <p className="mt-5 text-sm leading-relaxed text-slate-600">
-              Then ask it something like <em>&quot;audit my Google profile and fix what you can&quot;</em>.
-              Drafts land in{" "}
+            {/* The step that used to be missing. Claude asks per tool, and the
+                answer is uniform today because every tool only reads. */}
+            <h3 className="mt-6 text-sm font-black uppercase tracking-wide text-slate-500">
+              Then it asks about each tool
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+              Claude shows a permission screen listing every tool and asks whether to allow it or
+              ask you each time. <strong className="font-black">Allow all of them.</strong> Every
+              tool ShearQuery offers today only <em>looks things up</em> — none of them changes
+              anything, spends anything, or touches your Google profile. We mark them read-only in
+              the connection itself, so a client that reads those markers can work that out without
+              asking you.
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-700">
+              That will change, and this is the line to watch for. Tools whose names begin with{" "}
+              <code className="rounded bg-slate-100 px-1 font-mono text-[12px]">propose_</code> are
+              coming — they write a draft change to your listing. Set those to{" "}
+              <strong className="font-black">ask each time</strong>. They still cannot publish
+              anything; you approve every change here. But a tool that writes is worth seeing
+              happen.
+            </p>
+
+            <p className="mt-6 text-sm leading-relaxed text-slate-600">
+              Once it&apos;s connected, ask it something like{" "}
+              <em>&quot;audit my Google profile and fix what you can&quot;</em>. Drafts land in{" "}
               <Link href="/account/my-requests" className="font-bold text-blue-700 underline">
                 your requests
               </Link>{" "}
