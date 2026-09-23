@@ -5,6 +5,11 @@ import { queryVenues, getRentBenchmarks, getVenueIndex } from "@/lib/compare-sho
 import { SITE_URL } from "../site";
 import { PUBLIC_ENTITY_TYPES } from "@/lib/gbp-audit-public";
 import { auditPublicEntity } from "@/lib/gbp-audit-public-fetch";
+import type { McpIdentity } from "@/lib/mcp/connection";
+// Owner-scoped tools read tables with RLS on and no policies (gbp_connections,
+// community_member_entity_links), which the module-level client above cannot
+// reach when only the anon key is present.
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -26,12 +31,32 @@ const supabase = createClient(
 
 const SITE = SITE_URL;
 
+/**
+ * What a tool knows about who is asking.
+ *
+ * `identity` is null on the public endpoint and set on /mcp/k/<key>. Tools that
+ * answer about the whole industry ignore it; tools that answer about ONE
+ * business require it and say so with requiresIdentity.
+ */
+export interface McpToolContext {
+  identity: McpIdentity | null;
+}
+
 export interface McpTool {
   name: string;
   title: string;
   description: string;
   inputSchema: Record<string, unknown>;
-  handler: (args: Record<string, any>) => Promise<string>;
+  /**
+   * True for anything scoped to a single owner's account.
+   *
+   * Enforced in lib/mcp/handler.ts, once, before dispatch — not inside each
+   * handler, because a handler that forgets the check is a data leak and this
+   * flag cannot be forgotten in one place. It also keeps these tools out of the
+   * anonymous tools/list entirely.
+   */
+  requiresIdentity?: boolean;
+  handler: (args: Record<string, any>, ctx: McpToolContext) => Promise<string>;
 }
 
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v * 100)}%`);
@@ -582,6 +607,134 @@ const boothRentForCity: McpTool = {
   },
 };
 
+// ── 7. This owner's account ─────────────────────────────────────────────────
+
+/**
+ * The first identity-scoped tool, and the one the rest depend on.
+ *
+ * Every my_* and propose_* tool needs three facts: which business this account
+ * claimed, whether Google is connected, and which location was selected. Rather
+ * than each tool re-deriving them and reporting a different story when one is
+ * missing, this tool states all three plainly and is the model's starting point
+ * for anything about this owner.
+ *
+ * IT REPORTS GAPS AS GAPS. "No claimed listing" and "Google not connected" are
+ * the two states that make every downstream tool unusable, and each has a
+ * specific next step on the site. A model that cannot tell "you have nothing
+ * connected" from "I could not read it" will guess, and a guess here reads as a
+ * statement about the owner's own business.
+ *
+ * Deliberately not included: the owner's email, phone, or the Google account
+ * address. None of them is needed to do the work, and all of them would land in
+ * a transcript the owner may paste somewhere else.
+ */
+const myAccount: McpTool = {
+  name: "my_shearquery_account",
+  title: "What this ShearQuery connection can see",
+  description:
+    "Report which business this authenticated ShearQuery connection is for: the claimed directory listing, whether the owner's Google Business Profile is connected, which Google location is selected, and what this connection is allowed to do. Call this first before any other my_* or propose_* tool — those need a claimed listing and, for anything Google-side, a live Google connection.",
+  requiresIdentity: true,
+  inputSchema: { type: "object", properties: {} },
+  handler: async (_args, ctx) => {
+    const identity = ctx.identity;
+    // Unreachable through the handler, which gates on requiresIdentity before
+    // dispatch. Kept because a future caller that skips that gate must fail
+    // closed here rather than read a null member id as "everyone".
+    if (!identity) return "This tool needs an owner connection and this connection has none.";
+
+    const admin = createAdminClient();
+
+    const [{ data: member }, { data: link }, { data: conn }] = await Promise.all([
+      (admin.from("community_members") as any)
+        .select("first_name, last_name")
+        .eq("id", identity.memberId)
+        .maybeSingle(),
+      (admin.from("community_member_entity_links") as any)
+        .select("entity_type, entity_id")
+        .eq("community_member_id", identity.memberId)
+        .maybeSingle(),
+      (admin.from("gbp_connections") as any)
+        .select("status, selected_location, locations, last_synced_at")
+        .eq("community_member_id", identity.memberId)
+        .maybeSingle(),
+    ]);
+
+    if (!member) {
+      return "This connection key is valid but its ShearQuery account no longer exists. Ask the owner to sign in at shearquery.com and generate a new connection.";
+    }
+
+    const who = [member.first_name, member.last_name].filter(Boolean).join(" ").trim() || "this owner";
+    const lines: string[] = [`Connection: ShearQuery account for ${safeEcho(who, 60)} (key ${identity.keyPrefix}…).`, ""];
+
+    // ── the claimed listing ──
+    if (!link?.entity_type) {
+      lines.push(
+        "CLAIMED LISTING: none.",
+        `This account has not claimed a business on ShearQuery yet, so there is no listing to audit or change. The owner claims theirs from its own page — search for it at ${SITE}/search and use "Claim this listing".`
+      );
+    } else {
+      const cfg = PUBLIC_ENTITY_TYPES[link.entity_type];
+      let name: string | null = null;
+      let slug: string | null = null;
+      if (cfg) {
+        const { data: row } = await (admin.from(cfg.table) as any)
+          .select(`${cfg.nameField}, slug`)
+          .eq("id", link.entity_id)
+          .maybeSingle();
+        name = row?.[cfg.nameField] ?? null;
+        slug = row?.slug ?? null;
+      }
+      lines.push(
+        `CLAIMED LISTING: ${safeEcho(name || "a listing", 80)}${cfg ? ` (${cfg.label})` : ""}.`,
+        slug && cfg ? `  ${SITE}${cfg.route}/${slug}` : ""
+      );
+    }
+    lines.push("");
+
+    // ── the Google connection ──
+    const status = String(conn?.status || "");
+    if (!conn) {
+      lines.push(
+        "GOOGLE BUSINESS PROFILE: not connected.",
+        `Without it, only what is publicly visible can be scored — attributes, search terms, and Google's pending edits are owner-only. The owner connects Google at ${SITE}/account/gbp-audit.`
+      );
+    } else if (status === "revoked") {
+      lines.push(
+        "GOOGLE BUSINESS PROFILE: connection expired or was revoked.",
+        `Nothing Google-side can be read or drafted until it is reconnected at ${SITE}/account/gbp-audit. Retrying will not fix it.`
+      );
+    } else if (!conn.selected_location) {
+      const count = Array.isArray(conn.locations) ? conn.locations.length : 0;
+      lines.push(
+        `GOOGLE BUSINESS PROFILE: connected, but no location chosen${count ? ` (${count} available on the Google account)` : ""}.`,
+        `The owner picks which one this ShearQuery listing is at ${SITE}/account/gbp-audit.`
+      );
+    } else {
+      const chosen = Array.isArray(conn.locations)
+        ? conn.locations.find((l: any) => l?.name === conn.selected_location)
+        : null;
+      lines.push(
+        `GOOGLE BUSINESS PROFILE: connected.`,
+        `  Location: ${safeEcho(chosen?.title || conn.selected_location, 80)}`,
+        conn.last_synced_at ? `  Last synced: ${String(conn.last_synced_at).slice(0, 10)}` : ""
+      );
+    }
+
+    // ── what this connection may do ──
+    lines.push(
+      "",
+      "WHAT THIS CONNECTION CAN DO",
+      `  read    — ${identity.scopes.includes("read") ? "yes" : "no"}: this owner's audit, reviews, photos and change history.`,
+      `  propose — ${identity.scopes.includes("propose") ? "yes" : "no"}: queue a change for the owner to approve.`,
+      "  publish — NO. No connection key can publish to Google.",
+      "",
+      `Anything drafted here becomes a pending change the owner approves at ${SITE}/account/my-requests. Until they do, nothing has reached Google — say so rather than reporting a change as live.`
+    );
+
+    return lines.filter(Boolean).join("\n");
+  },
+};
+
 export const MCP_TOOLS: McpTool[] = [
   compareSchools,
   compareShops,
@@ -589,15 +742,25 @@ export const MCP_TOOLS: McpTool[] = [
   auditGoogleProfile,
   verifyLicense,
   boothRentForCity,
+  myAccount,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
 
-/** The wire shape — handler stripped, since it must never be serialized. */
-export const toolDescriptors = () =>
-  MCP_TOOLS.map(({ name, title, description, inputSchema }) => ({
-    name,
-    title,
-    description,
-    inputSchema,
-  }));
+/**
+ * The wire shape — handler stripped, since it must never be serialized.
+ *
+ * Owner-scoped tools are omitted entirely without an identity rather than
+ * listed-and-refused. A tool in the list is a promise the connection can keep;
+ * advertising one that always fails invites the model to keep trying it and
+ * then explain our product to the user incorrectly.
+ */
+export const toolDescriptors = (ctx?: McpToolContext) =>
+  MCP_TOOLS.filter((t) => !t.requiresIdentity || ctx?.identity).map(
+    ({ name, title, description, inputSchema }) => ({
+      name,
+      title,
+      description,
+      inputSchema,
+    })
+  );
