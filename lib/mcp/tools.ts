@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { getSchoolIndex, getSchoolBenchmarks, MIN_SAMPLE } from "@/lib/compare-schools-data";
-import { queryVenues, getRentBenchmarks } from "@/lib/compare-shops-data";
+import { queryVenues, getRentBenchmarks, getVenueIndex } from "@/lib/compare-shops-data";
 import { SITE_URL } from "../site";
 import { PUBLIC_ENTITY_TYPES } from "@/lib/gbp-audit-public";
 import { auditPublicEntity } from "@/lib/gbp-audit-public-fetch";
@@ -458,12 +458,137 @@ const verifyLicense: McpTool = {
   },
 };
 
+
+// ── 6. Booth rent for a city ────────────────────────────────────────────────
+
+/** A rate built from a handful of shops is an anecdote wearing a number. */
+const RENT_MIN_SAMPLE = 5;
+
+const boothRentForCity: McpTool = {
+  name: "booth_rent_for_city",
+  title: "What a chair actually rents for in a given city",
+  description:
+    "Return what barbershops and salons in a city actually charge for a chair or suite — median weekly rent, the range, how many venues report a rate, how many chairs they hold, and how many are hiring. Built from rents collected per venue in the ShearQuery directory — deepest in Houston, thinner elsewhere; no public source publishes this. Omit the city to get the overall picture and the cities with the most reported rates. Cities with fewer than 5 reported rates return the count without a median, because a rate from a handful of shops is an anecdote, not a benchmark.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      city: { type: "string", description: "City to report on, e.g. \"Houston\". Omit for the overall picture across every city we hold." },
+      type: { type: "string", enum: ["shop", "salon", "all"], description: "Barbershops, salons, or both (default both)." },
+      examples: { type: "integer", description: "How many example venues with a published rate to list (0-15, default 5)." },
+    },
+  },
+  handler: async (args) => {
+    const city = typeof args.city === "string" ? args.city.trim() : "";
+    const type = args.type === "shop" || args.type === "salon" ? args.type : "all";
+    const examples = clampLimit(args.examples ?? 5, 5, 15);
+
+    const { venues, cities } = await getVenueIndex();
+
+    /* No city: the overall picture, plus where we actually have depth. */
+    if (!city) {
+      const b = await getRentBenchmarks();
+      return [
+        `Booth and suite rent across the ShearQuery directory:`,
+        "",
+        `- ${b.venueCount.toLocaleString()} venues across ${b.cityCount} cities. ${b.totalChairs.toLocaleString()} chairs RECORDED — most listings do not state a chair count, so that is not the total number of chairs.`,
+        `- ${b.sampleSize.toLocaleString()} of them publish a weekly rate. Median $${b.medianWeekly ?? "—"}/week` +
+          (b.minWeekly != null && b.maxWeekly != null ? `, ranging $${b.minWeekly} to $${b.maxWeekly}.` : "."),
+        `- ${b.commissionCount.toLocaleString()} work on commission instead of a flat rent, so they carry no weekly figure.`,
+        "",
+        `Cities with at least ${RENT_MIN_SAMPLE} reported rates — the only ones where a median means anything:`,
+        ...(() => {
+          const solid = b.topRentCities.filter((c) => c.withRent >= RENT_MIN_SAMPLE);
+          if (solid.length) {
+            return solid.map(
+              (c) => `- ${c.city}, ${c.state}: median $${c.medianWeeklyRent ?? "—"}/week from ${c.withRent} venues`
+            );
+          }
+          return ["- none yet."];
+        })(),
+        "",
+        `Everywhere else has fewer than ${RENT_MIN_SAMPLE} reported rates, so no city median is quoted for it. Thin coverage is the honest state of this dataset, not a gap in the answer.`,
+        "",
+        `Ask again with a city for the detail. Full comparison: ${SITE}/compare-shops`,
+      ].join("\n");
+    }
+
+    const needle = city.toLowerCase();
+    const rollup = cities.find((c) => c.city.toLowerCase() === needle)
+      ?? cities.find((c) => c.city.toLowerCase().includes(needle));
+
+    let local = venues.filter((v) => (v.city || "").toLowerCase().includes(needle));
+    if (type !== "all") local = local.filter((v) => v.type === type);
+    if (!local.length) {
+      const near = cities
+        .filter((c) => c.withRent >= RENT_MIN_SAMPLE)
+        .sort((a, b) => b.withRent - a.withRent)
+        .slice(0, 8)
+        .map((c) => `${c.city}, ${c.state}`);
+      return (
+        `No ${type === "all" ? "venues" : type + "s"} on record in "${safeEcho(city)}". ` +
+        `Coverage is deepest around Houston and thins out fast beyond it.\n` +
+        `Cities with enough reported rates to be worth quoting: ${near.join("; ")}.`
+      );
+    }
+
+    const withRent = local.filter((v) => v.weeklyRent != null);
+    const rents = withRent.map((v) => v.weeklyRent as number).sort((a, b) => a - b);
+    const med = rents.length ? rents[Math.floor(rents.length / 2)] : null;
+    const chairs = local.reduce((sum, v) => sum + (v.chairs ?? 0), 0);
+    const hiring = local.filter((v) => v.hiring).length;
+    const commission = local.filter((v) => v.rentKind === "commission").length;
+
+    const head =
+      `${safeEcho(rollup?.city ?? city)}${rollup?.state ? `, ${rollup.state}` : ""} — ` +
+      `${local.length} ${type === "all" ? "barbershops and salons" : type + "s"} on record` +
+      `${chairs ? `, ${chairs} chairs recorded across the few that state one` : ""}.`;
+
+    /*
+     * A MEDIAN FROM UNDER FIVE RATES IS WITHHELD, not shown with a caveat. A
+     * number on screen gets quoted; a sentence next to it does not travel with
+     * it, and this figure ends up in somebody's rent negotiation.
+     */
+    if (rents.length < RENT_MIN_SAMPLE) {
+      return [
+        head,
+        "",
+        `Only ${rents.length} publish a weekly rate — too few to quote a median for a city, so no figure is given here rather than one that would not hold up.`,
+        commission ? `${commission} work on commission instead of flat rent.` : "",
+        `Every venue and what it lists: ${SITE}/compare-shops`,
+      ].filter(Boolean).join("\n");
+    }
+
+    const sample = withRent
+      .sort((a, b) => (a.weeklyRent as number) - (b.weeklyRent as number))
+      .slice(0, examples)
+      .map(
+        (v) =>
+          `- $${v.weeklyRent}/week — ${v.name}${v.chairs ? ` (${v.chairs} chairs)` : ""}${v.hiring ? " — hiring" : ""}` +
+          `${v.slug ? `\n  ${SITE}/shop/${v.slug}` : ""}`
+      );
+
+    return [
+      head,
+      "",
+      `- ${rents.length} publish a weekly rate. Median $${med}/week, ranging $${rents[0]} to $${rents[rents.length - 1]}.`,
+      `- ${hiring} are hiring or list an open chair.`,
+      commission ? `- ${commission} work on commission rather than a flat rent, so they carry no weekly figure.` : "",
+      "",
+      `Lowest rates on record here:`,
+      ...sample,
+      "",
+      `Rates are what each venue reports, not an offer — confirm with the shop. Compare them all: ${SITE}/compare-shops`,
+    ].filter(Boolean).join("\n");
+  },
+};
+
 export const MCP_TOOLS: McpTool[] = [
   compareSchools,
   compareShops,
   licenseeCounts,
   auditGoogleProfile,
   verifyLicense,
+  boothRentForCity,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
