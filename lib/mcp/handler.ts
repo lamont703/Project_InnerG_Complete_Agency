@@ -3,6 +3,13 @@ import { TOOL_BY_NAME, toolDescriptors, type McpToolContext } from "@/lib/mcp/to
 import { SITE_URL } from "@/lib/site";
 import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import type { McpIdentity } from "@/lib/mcp/connection";
+import {
+  negotiateProtocol,
+  negotiatedInitializeVersion,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  META_VERSION_KEY,
+  META_SERVER_INFO_KEY,
+} from "@/lib/mcp/protocol";
 
 /**
  * The MCP request handler, shared by both endpoints.
@@ -18,21 +25,27 @@ import type { McpIdentity } from "@/lib/mcp/connection";
  * drifting away from the keyed one — a divergence that would show up as an
  * owner-scoped tool reachable without a key.
  *
- * Spec conformance (2025-06-18), each verified against the transport doc:
+ * DUAL-ERA. The current revision (2026-07-28) dropped the initialize handshake
+ * for per-request metadata and replaced it with `server/discover`; plenty of
+ * installed clients still speak the handshake. Both are served here, and which
+ * one a request gets is decided by the version it declares — see
+ * lib/mcp/protocol.ts, which also records what went wrong when this server
+ * spoke only the old one.
+ *
+ * Spec conformance, each verified against the transport doc on 2026-09-22:
  *   - single path serving POST and GET
  *   - a JSON-RPC *request* may be answered with one application/json object
  *   - a *notification* or *response* MUST get 202 Accepted with no body
- *   - GET MUST return text/event-stream or 405; we offer no stream, so 405
- *   - Origin MUST be validated (DNS-rebinding defence)
- *   - an unsupported MCP-Protocol-Version MUST be 400
+ *   - GET and DELETE on a modern-only endpoint MUST be 405; we offer no stream
+ *   - Origin MUST be validated, and MUST be 403 when present and invalid
+ *   - an unimplemented protocol version MUST be 400 with an
+ *     UnsupportedProtocolVersionError naming the versions we do support
+ *   - an unimplemented method MUST be 404 with -32601 on a modern request
+ *   - Mcp-Session-Id and Last-Event-ID are ignored; we mint no sessions
  */
 
 export const SERVER_NAME = "com.innergcomplete/shearquery";
-export const SERVER_VERSION = "0.2.0";
-
-/** Versions whose wire format this handler actually implements. */
-const SUPPORTED_PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
-const DEFAULT_PROTOCOL_VERSION = "2025-06-18";
+export const SERVER_VERSION = "0.3.0";
 
 /**
  * Browser origins allowed to reach this endpoint. The spec requires Origin
@@ -109,6 +122,30 @@ function rpcResult(id: unknown, result: unknown) {
   );
 }
 
+/**
+ * A JSON-RPC error carried on a non-200 HTTP status.
+ *
+ * The modern revision requires specific pairings — 400 with an
+ * UnsupportedProtocolVersionError or a HeaderMismatch, 404 with a
+ * Method not found — and the pairing is load-bearing. A dual-era client
+ * looks at the status to decide whether to inspect the body at all, then at the
+ * body to decide whether to retry or fall back to `initialize`. Returning the
+ * error on HTTP 200, the way a legacy JSON-RPC error goes out, hides it from
+ * that logic entirely.
+ */
+function rpcErrorWithStatus(
+  id: unknown,
+  status: number,
+  code: number,
+  message: string,
+  data?: Record<string, unknown>
+) {
+  return NextResponse.json(
+    { jsonrpc: "2.0", id: id ?? null, error: data ? { code, message, data } : { code, message } },
+    { status, headers: { "Cache-Control": "no-store" } }
+  );
+}
+
 function originAllowed(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return true; // non-browser client
@@ -146,6 +183,99 @@ const OWNER_INSTRUCTIONS =
   "their own listing. Changes you draft are NOT published: every propose_* tool queues a " +
   "pending change that the owner must approve on shearquery.com before anything reaches " +
   "Google. Tell them that approval is still required, and never claim a change is live.";
+
+type LogFn = (fields: {
+  mcpMethod?: string | null;
+  toolName?: string | null;
+  toolArguments?: unknown;
+  statusCode: number;
+  isError?: boolean;
+}) => void;
+
+/**
+ * tools/call, shared by both eras.
+ *
+ * Identical work either way — the only difference is that a modern result
+ * carries `resultType`, which `wrap` adds. Shared rather than duplicated
+ * because the identity gate lives in here: two copies of this function is two
+ * places to forget it, and forgetting it is a data leak.
+ */
+async function callTool(
+  id: unknown,
+  params: any,
+  ctx: McpRequestContext,
+  toolContext: McpToolContext,
+  log: LogFn,
+  wrap: (result: Record<string, unknown>) => Record<string, unknown>
+) {
+  const name = params?.name;
+  const tool = typeof name === "string" ? TOOL_BY_NAME.get(name) : undefined;
+  // Recorded before dispatch, so a call for a tool we do not have is still
+  // counted. That is the highest-value row in the table: it names a capability
+  // a real client came here expecting to find.
+  log({
+    mcpMethod: "tools/call",
+    toolName: typeof name === "string" ? name : null,
+    toolArguments: params?.arguments ?? null,
+    statusCode: 200,
+    isError: !tool,
+  });
+
+  if (!tool) {
+    // Unknown tool is a PROTOCOL error, distinct from a tool that ran and
+    // failed — that one comes back as isError below.
+    return rpcError(id, JSONRPC_INVALID_PARAMS, `Unknown tool: ${String(name)}`);
+  }
+
+  /**
+   * The gate. An owner-scoped tool is not in the anonymous tool list at all,
+   * but a client can still name one directly — tool lists get cached, and a
+   * model that saw the list on a keyed connection can carry the name to an
+   * unkeyed one. Checked here rather than inside each handler, because a
+   * handler that forgets is a data leak and this cannot be forgotten in one
+   * place.
+   */
+  if (tool.requiresIdentity && !ctx.identity) {
+    return rpcResult(
+      id,
+      wrap({
+        content: [
+          {
+            type: "text",
+            text:
+              `"${tool.name}" answers about one specific business, so it needs that owner's own ` +
+              `connection. This connection is the public one. The owner can generate their ` +
+              `connection URL at ${SITE_URL}/account/claude and add that instead of ${SITE_URL}/mcp.`,
+          },
+        ],
+        isError: true,
+      })
+    );
+  }
+
+  try {
+    const text = await tool.handler(params?.arguments ?? {}, toolContext);
+    return rpcResult(id, wrap({ content: [{ type: "text", text }], isError: false }));
+  } catch (err) {
+    // Execution failure is reported in the result so the model can see it and
+    // adapt, rather than as a transport-level error it cannot read.
+    console.error(`[mcp] tool ${tool.name} failed:`, err);
+    return rpcResult(
+      id,
+      wrap({
+        content: [
+          {
+            type: "text",
+            text: `The "${tool.name}" tool could not complete: ${
+              err instanceof Error ? err.message : "unknown error"
+            }`,
+          },
+        ],
+        isError: true,
+      })
+    );
+  }
+}
 
 /**
  * Every POST leaves a row, including the ones that are refused.
@@ -201,12 +331,15 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
     return NextResponse.json({ error: "Request body too large" }, { status: 413 });
   }
 
-  const requested = request.headers.get("mcp-protocol-version");
-  if (requested && !SUPPORTED_PROTOCOL_VERSIONS.includes(requested)) {
-    log({ statusCode: 400, isError: true });
-    return NextResponse.json({ error: `Unsupported MCP-Protocol-Version: ${requested}` }, { status: 400 });
-  }
-
+  /**
+   * Version checking happens AFTER the body is read, not before.
+   *
+   * It used to be a header check up here, which is why this server could not be
+   * added to Claude: a modern client's version was rejected with a bare
+   * `{"error":"…"}` and no JSON-RPC id, because at that point neither the id nor
+   * the body's own declared version had been parsed. The error a client can act
+   * on needs both.
+   */
   let body: any;
   try {
     // Read as text first: Content-Length can be absent or lie under chunked
@@ -238,24 +371,86 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
   }
 
   const { id, method, params } = body;
-  // Logged once here rather than at each return: every branch below answers
-  // with HTTP 200 (JSON-RPC carries its own error channel in the body), so the
-  // status code distinguishes nothing and the method is what we actually want
-  // to count. tools/call adds the tool name and arguments at its own branch.
+
+  /**
+   * Which era and version this request speaks. A refusal here is a real
+   * JSON-RPC error on HTTP 400 with the supported versions attached, so a
+   * client can pick one and retry instead of reporting the server as broken.
+   */
+  const negotiated = negotiateProtocol({
+    headerVersion: request.headers.get("mcp-protocol-version"),
+    metaVersion: params?._meta?.[META_VERSION_KEY],
+  });
+  if (!negotiated.ok) {
+    log({
+      mcpMethod: typeof method === "string" ? method : null,
+      statusCode: negotiated.status,
+      isError: true,
+    });
+    return rpcErrorWithStatus(id, negotiated.status, negotiated.code, negotiated.message, negotiated.data);
+  }
+
+  // Logged once here rather than at each return: the branches below answer with
+  // HTTP 200 (JSON-RPC carries its own error channel in the body), so the status
+  // code distinguishes nothing and the method is what we actually want to count.
+  // tools/call adds the tool name and arguments at its own branch.
   if (method !== "tools/call") log({ mcpMethod: typeof method === "string" ? method : null, statusCode: 200 });
 
+  /**
+   * Result envelope. The modern revision tags every result with `resultType`,
+   * because a result may instead be an `input_required` round trip; legacy has
+   * no such field. Everything else about our results is identical, so the era
+   * only decides whether this one key is added.
+   */
+  const wrap = (result: Record<string, unknown>) =>
+    negotiated.era === "modern" ? { resultType: "complete", ...result } : result;
+
   try {
+    /**
+     * MODERN — no handshake. `server/discover` replaces `initialize`, and an
+     * unimplemented method must come back as 404 with -32601 so a dual-era
+     * client can tell "this endpoint does not speak modern MCP" from "this
+     * server does not have that method".
+     */
+    if (negotiated.era === "modern") {
+      switch (method) {
+        case "server/discover":
+          return rpcResult(
+            id,
+            wrap({
+              supportedVersions: SUPPORTED_PROTOCOL_VERSIONS,
+              capabilities: { tools: {} },
+              instructions: ctx.identity ? OWNER_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
+              _meta: {
+                [META_SERVER_INFO_KEY]: { name: SERVER_NAME, version: SERVER_VERSION },
+              },
+            })
+          );
+
+        case "ping":
+          return rpcResult(id, wrap({}));
+
+        case "tools/list":
+          return rpcResult(id, wrap({ tools: toolDescriptors(toolContext) }));
+
+        case "tools/call":
+          return callTool(id, params, ctx, toolContext, log, wrap);
+
+        default:
+          log({ mcpMethod: typeof method === "string" ? method : null, statusCode: 404, isError: true });
+          return rpcErrorWithStatus(id, 404, JSONRPC_METHOD_NOT_FOUND, `Method not found: ${method}`);
+      }
+    }
+
+    // LEGACY — the initialize handshake, unchanged.
     switch (method) {
       case "initialize": {
         // Echo the client's version when we implement it, otherwise answer with
-        // ours and let the client decide whether it can proceed.
-        const clientVersion = params?.protocolVersion;
-        const protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(clientVersion)
-          ? clientVersion
-          : DEFAULT_PROTOCOL_VERSION;
-
+        // our floor and let the client decide whether it can proceed. Only
+        // LEGACY versions are eligible: answering a handshake with a modern
+        // version would name a revision that has no handshake at all.
         return rpcResult(id, {
-          protocolVersion,
+          protocolVersion: negotiatedInitializeVersion(params?.protocolVersion),
           // listChanged: false — the tool list is compiled in, so there is
           // nothing to notify about, and claiming otherwise would promise a
           // notification channel this stateless server cannot open.
@@ -271,68 +466,8 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
       case "tools/list":
         return rpcResult(id, { tools: toolDescriptors(toolContext) });
 
-      case "tools/call": {
-        const name = params?.name;
-        const tool = typeof name === "string" ? TOOL_BY_NAME.get(name) : undefined;
-        // Recorded before dispatch, so a call for a tool we do not have is
-        // still counted. That is the highest-value row in the table: it names
-        // a capability a real client came here expecting to find.
-        log({
-          mcpMethod: "tools/call",
-          toolName: typeof name === "string" ? name : null,
-          toolArguments: params?.arguments ?? null,
-          statusCode: 200,
-          isError: !tool,
-        });
-        if (!tool) {
-          // Unknown tool is a PROTOCOL error, distinct from a tool that ran and
-          // failed — that one comes back as isError below.
-          return rpcError(id, JSONRPC_INVALID_PARAMS, `Unknown tool: ${String(name)}`);
-        }
-
-        /**
-         * The gate. An owner-scoped tool is not in the anonymous tool list at
-         * all, but a client can still name one directly — tool lists get cached,
-         * and a model that saw the list on a keyed connection can carry the name
-         * to an unkeyed one. Checked here rather than inside each handler,
-         * because a handler that forgets is a data leak and this cannot be
-         * forgotten in one place.
-         */
-        if (tool.requiresIdentity && !ctx.identity) {
-          return rpcResult(id, {
-            content: [
-              {
-                type: "text",
-                text:
-                  `"${tool.name}" answers about one specific business, so it needs that owner's own ` +
-                  `connection. This connection is the public one. The owner can generate their ` +
-                  `connection URL at ${SITE_URL}/account/claude and add that instead of ${SITE_URL}/mcp.`,
-              },
-            ],
-            isError: true,
-          });
-        }
-
-        try {
-          const text = await tool.handler(params?.arguments ?? {}, toolContext);
-          return rpcResult(id, { content: [{ type: "text", text }], isError: false });
-        } catch (err) {
-          // Execution failure is reported in the result so the model can see it
-          // and adapt, rather than as a transport-level error it cannot read.
-          console.error(`[mcp] tool ${tool.name} failed:`, err);
-          return rpcResult(id, {
-            content: [
-              {
-                type: "text",
-                text: `The "${tool.name}" tool could not complete: ${
-                  err instanceof Error ? err.message : "unknown error"
-                }`,
-              },
-            ],
-            isError: true,
-          });
-        }
-      }
+      case "tools/call":
+        return callTool(id, params, ctx, toolContext, log, wrap);
 
       default:
         return rpcError(id, JSONRPC_METHOD_NOT_FOUND, `Method not found: ${method}`);
