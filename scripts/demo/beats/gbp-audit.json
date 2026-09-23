@@ -1,0 +1,65 @@
+{
+  "_what": "Screen demo of the free Google Business Profile audit. The beats are the lesson: type a name, see your own score, see what is missing, see what needs Google connected. Nothing is asked for before the value lands, which is the whole design of that page (see app/google-business-profile-audit/page.tsx).",
+  "_business": "Buzzard's Barbershop is used because it is genuinely in the directory \u2014 it came back in the /search demo. A made-up name would demo the 'not found' path, which is a different lesson.",
+  "url": "https://shearquery.com/google-business-profile-audit",
+  "beats": [
+    {
+      "wait": 2
+    },
+    {
+      "click": {
+        "placeholder": "Your business name"
+      }
+    },
+    {
+      "type": "Buzzard's Barbershop"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "click": {
+        "placeholder": "City"
+      }
+    },
+    {
+      "type": "Houston"
+    },
+    {
+      "wait": 1
+    },
+    {
+      "press": "Enter"
+    },
+    {
+      "wait": 4
+    },
+    {
+      "click": {
+        "text": "The Shop Club"
+      }
+    },
+    {
+      "wait": 9
+    },
+    {
+      "scroll": 360
+    },
+    {
+      "wait": 3
+    },
+    {
+      "scroll": 360
+    },
+    {
+      "wait": 3
+    },
+    {
+      "scroll": 360
+    },
+    {
+      "wait": 4
+    }
+  ],
+  "_flow": "Two steps, and BOTH are needed: Enter (or the AUDIT button) produces the match list, then the match row must be CLICKED to get the score. Removing the Enter left nothing to click; ending at the list showed no number, which is the whole point of the page."
+}

@@ -12,6 +12,7 @@ const footerLinks = {
   ],
   "Industry Tools": [
     { label: "Join the ShearQuery Waitlist (AI for Your Business)", href: "/waitlist" },
+    { label: "Use ShearQuery With Claude (Free AI Prompts)", href: "/for-claude" },
     { label: "Compare Barbershops & Salons (Booth Rent & Chairs)", href: "/compare-shops" },
     { label: "Compare Barber & Cosmetology Schools (Pass Rates)", href: "/compare-schools" },
     { label: "Barbershop Apprentice Jobs Houston", href: "/barbershop-apprentice-jobs-houston" },
