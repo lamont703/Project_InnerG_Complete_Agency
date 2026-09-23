@@ -3,11 +3,13 @@ import { createClient } from "@supabase/supabase-js";
 import { getSchoolIndex, getSchoolBenchmarks, MIN_SAMPLE } from "@/lib/compare-schools-data";
 import { queryVenues, getRentBenchmarks } from "@/lib/compare-shops-data";
 import { SITE_URL } from "../site";
+import { PUBLIC_ENTITY_TYPES } from "@/lib/gbp-audit-public";
+import { auditPublicEntity } from "@/lib/gbp-audit-public-fetch";
 
 /**
  * Tools exposed over MCP at /mcp.
  *
- * Deliberately the three questions our data answers and public sources don't:
+ * Deliberately the questions our data answers and public sources don't:
  * school licensing-exam outcomes, what a chair actually costs in a given city,
  * and how many Texas licensees a rule change touches. A wrapper around data an
  * agent could already scrape would not be worth publishing.
@@ -264,7 +266,205 @@ const licenseeCounts: McpTool = {
   },
 };
 
-export const MCP_TOOLS: McpTool[] = [compareSchools, compareShops, licenseeCounts];
+
+// ── 4. Google Business Profile audit ────────────────────────────────────────
+
+const auditGoogleProfile: McpTool = {
+  name: "audit_google_business_profile",
+  title: "Score a barbershop, salon, school or supply store's Google listing",
+  description:
+    "Score a named barbershop, salon, barber/cosmetology school or beauty supply store's public Google Business Profile and return what is missing, ranked. Compares photos, reviews, rating, hours, website and phone against other listings in the same city — the local median is computed from our own directory and is not published anywhere. Returns a coverage figure with the score because the public tier can only see part of the full audit; never present the score as a complete audit.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      business_name: { type: "string", description: "The business name as it appears on Google, e.g. \"Buzzard's Barbershop\". At least two characters." },
+      city: { type: "string", description: "Optional city to narrow the match, e.g. \"Houston\"." },
+    },
+    required: ["business_name"],
+  },
+  handler: async (args) => {
+    const q = String(args.business_name ?? "").trim();
+    if (q.length < 2) return "Give a business name of at least two characters.";
+    const city = typeof args.city === "string" ? args.city.trim() : "";
+
+    /* Searched across every entity type at once: an owner knows their name, not
+       which of our tables they are in. Same path the public tool uses. */
+    const found = (
+      await Promise.all(
+        Object.entries(PUBLIC_ENTITY_TYPES).map(async ([key, cfg]) => {
+          let query = (supabase.from(cfg.table) as any)
+            .select(`${cfg.nameField}, slug, city`)
+            .ilike(cfg.nameField, `%${q}%`)
+            .limit(5);
+          if (city) query = query.ilike("city", `%${city}%`);
+          const { data } = await query;
+          return (data || [])
+            .filter((r: any) => r.slug)
+            .map((r: any) => ({ type: key, label: cfg.label, name: r[cfg.nameField], slug: r.slug, city: r.city }));
+        })
+      )
+    ).flat();
+
+    if (!found.length) {
+      return (
+        `No listing found for "${safeEcho(q)}"${city ? ` in "${safeEcho(city)}"` : ""} in the ShearQuery directory ` +
+        `(Texas and California barbershops, salons, schools and supply stores).\n` +
+        `Not being in it does not mean the business has no Google profile — it means we hold no record to score. ` +
+        `The owner can create one and get the full audit by connecting Google at ${SITE}/google-business-profile-audit`
+      );
+    }
+
+    /* More than one match is an answer, not an error: the caller picks. */
+    if (found.length > 1) {
+      const exact = found.filter((f) => f.name.toLowerCase() === q.toLowerCase());
+      if (exact.length !== 1) {
+        return [
+          `${found.length} listings match "${safeEcho(q)}"${city ? ` in "${safeEcho(city)}"` : ""}. Ask which one, then call again with the fuller name:`,
+          "",
+          ...found.slice(0, 10).map((f, i) => `${i + 1}. ${f.name}${f.city ? ` — ${f.city}` : ""} (${f.label})`),
+        ].join("\n");
+      }
+    }
+
+    const pick = found.length === 1 ? found[0] : found.find((f) => f.name.toLowerCase() === q.toLowerCase())!;
+    const cfg = PUBLIC_ENTITY_TYPES[pick.type];
+    const scored = await auditPublicEntity(supabase as any, pick.type, cfg, pick.slug);
+    if (!scored) return `Found "${safeEcho(pick.name)}" but could not score it — the record is missing the fields the audit reads.`;
+
+    const { business, audit } = scored;
+    const rank = { fail: 0, warn: 1, unavailable: 2, pass: 3 } as const;
+    const checks = [...audit.checks].sort((a, b) => rank[a.status] - rank[b.status]);
+
+    return [
+      `${business.name}${business.city ? ` — ${business.city}` : ""} (${business.typeLabel})`,
+      `Public score ${audit.score}/100, covering ${audit.coverage.visible} of ${audit.coverage.total} checks.`,
+      `THIS IS NOT A COMPLETE AUDIT: the other ${audit.coverage.total - audit.coverage.visible} checks are only visible to the owner once Google is connected.`,
+      "",
+      "What the public profile shows:",
+      ...checks.map((c) => `- [${c.status.toUpperCase()}] ${c.label}${c.detail ? ` — ${c.detail}` : ""}`),
+      "",
+      audit.locked.length
+        ? `Not visible from outside (${audit.locked.length}): ${audit.locked.map((l) => l.label).join(", ")}.`
+        : "",
+      `Full audit, free, no account: ${SITE}/google-business-profile-audit`,
+      `Listing: ${business.href}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+};
+
+// ── 5. Licence verification ─────────────────────────────────────────────────
+
+/** TDLR publishes MM/DD/CCYY strings, not dates. Parse rather than compare text. */
+function parseTdlrDate(v: unknown): Date | null {
+  const m = String(v ?? "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+const verifyLicense: McpTool = {
+  name: "verify_texas_license",
+  title: "Check a Texas barber or cosmetology licence against the TDLR record",
+  description:
+    "Look up a Texas barber, cosmetology, school or establishment licence in the state regulator's own licensee record — by licence number, or by name with an optional city. Returns the licence type, number, expiry and whether it had expired as of the data snapshot. Texas only. This reports what TDLR published on the snapshot date; it is not a live check and it does not report disciplinary action or continuing-education status.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      license_number: { type: "string", description: "The licence number, if known. Exact match. Fastest and least ambiguous." },
+      name: { type: "string", description: "Person or business name, e.g. \"Smith\" or \"Baytown Beauty\". TDLR stores people as \"LAST, FIRST\"." },
+      city: { type: "string", description: "Optional city to narrow a name search." },
+      limit: { type: "integer", description: "How many matches to return (1-25, default 10)." },
+    },
+  },
+  handler: async (args) => {
+    const num = String(args.license_number ?? "").trim();
+    const name = String(args.name ?? "").trim();
+    const city = String(args.city ?? "").trim();
+    const limit = clampLimit(args.limit, 10, 25);
+    if (!num && name.length < 2) {
+      return "Give either a licence number, or a name of at least two characters.";
+    }
+
+    /* Deliberately NOT selecting owner_telephone or street_address: this answers
+       "is this licence real and current", and a phone number is not part of
+       that answer. */
+    let q = supabase
+      .from("tdlr_licensees_raw")
+      .select("license_number, license_type, business_name, license_expiration_date_mmddccyy, city, county, snapshot_date, source_dataset")
+      .limit(num ? 12 : limit * 3);
+    q = num ? q.eq("license_number", num) : q.ilike("business_name", `%${name}%`);
+    if (city) q = q.ilike("city", `%${city}%`);
+
+    const { data, error } = await q;
+    if (error) return `Could not reach the licence record: ${error.message}`;
+    if (!data?.length) {
+      return (
+        `No Texas licence found${num ? ` for number "${safeEcho(num)}"` : ` matching "${safeEcho(name)}"`}${city ? ` in "${safeEcho(city)}"` : ""}.\n` +
+        `This covers TEXAS only, and a licence issued after our snapshot would not appear. Check TDLR directly before treating this as proof of anything: ` +
+        `https://www.tdlr.texas.gov/LicenseSearch/`
+      );
+    }
+
+    /*
+     * SCHOOL LICENCES SIT IN TWO SOURCE DATASETS, so the same licence comes back
+     * twice and a naive answer reports two schools where there is one. Dedupe on
+     * licence number — recorded in CLAUDE.md, and the reason a plain count of
+     * "Cosmetology Private School" returns exactly double the real number.
+     */
+    const seen = new Map<string, any>();
+    for (const r of data) if (!seen.has(r.license_number)) seen.set(r.license_number, r);
+    const rows = [...seen.values()].slice(0, limit);
+
+    const snapshot = rows[0]?.snapshot_date ?? "unknown";
+    const lines = rows.map((r) => {
+      const exp = parseTdlrDate(r.license_expiration_date_mmddccyy);
+      const snap = new Date(String(r.snapshot_date ?? ""));
+      const expired = exp ? exp.getTime() < Date.now() : null;
+      /*
+       * "EXPIRED" NEEDS A QUALIFIER WHEN IT EXPIRED AFTER OUR SNAPSHOT. The lake
+       * is a dated copy, so a licence whose date passed since then may well have
+       * been renewed and we would hold no evidence of it — saying a working shop
+       * is unlicensed is the worst thing this tool could get wrong. Measured
+       * 2026-09-23: licence 705563 expired 11 days earlier, two months after the
+       * snapshot was taken.
+       */
+      const renewable = expired && exp && !Number.isNaN(snap.getTime()) && exp.getTime() > snap.getTime();
+      const state =
+        exp === null
+          ? "no expiry date on record"
+          : expired
+            ? renewable
+              ? `expiry ${r.license_expiration_date_mmddccyy} has passed, but it fell AFTER our snapshot — it may have been renewed since`
+              : "EXPIRED, and it had already expired when this snapshot was taken"
+            : `valid to ${r.license_expiration_date_mmddccyy}`;
+      return (
+        `- ${r.business_name} — ${r.license_type}\n` +
+        `  licence ${r.license_number} | ${state}` +
+        `${r.city ? ` | ${r.city}` : ""}${r.county ? `, ${r.county} County` : ""}`
+      );
+    });
+
+    return [
+      `Texas licence record${num ? ` for ${safeEcho(num)}` : ` matching "${safeEcho(name)}"`}${city ? ` in "${safeEcho(city)}"` : ""} — ${rows.length} result${rows.length === 1 ? "" : "s"}:`,
+      "",
+      ...lines,
+      "",
+      `Source: TDLR public licensee record, snapshot ${snapshot}. Expiry is compared against today, everything else is as published on that date.`,
+      `This does NOT report disciplinary history, and it does not say whether continuing education is met — TDLR's own field for that does not state what it means.`,
+      `Verify anything that matters at https://www.tdlr.texas.gov/LicenseSearch/`,
+    ].join("\n");
+  },
+};
+
+export const MCP_TOOLS: McpTool[] = [
+  compareSchools,
+  compareShops,
+  licenseeCounts,
+  auditGoogleProfile,
+  verifyLicense,
+];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
 
