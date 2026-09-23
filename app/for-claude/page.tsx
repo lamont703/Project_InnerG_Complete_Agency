@@ -242,6 +242,22 @@ export default function ForClaudePage() {
               <li>2. Compare barbershops and salons by booth rent and chair availability.</li>
               <li>3. Count Texas barber and cosmetology licensees, by type and area.</li>
             </ul>
+            {/* The owner tier. Deliberately below the public one: it needs an
+                account and a claimed listing, so leading with it would gate a
+                page whose whole point is that nothing is gated. */}
+            <p className="mt-6 text-sm font-black uppercase tracking-wide text-slate-500">
+              If you own a listed business
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-700">
+              Claim your listing and you can generate a connection of your own, which adds tools
+              that answer about <em>your</em> shop — its audit score, its reviews, what Google is
+              missing — and draft the fixes. Nothing is published to Google until you approve it
+              here.{" "}
+              <Link href="/account/claude" className="font-bold text-blue-700 underline">
+                Set that up
+              </Link>
+              .
+            </p>
             <p className="mt-4 text-sm leading-relaxed text-slate-600">
               That list is short on purpose and it&apos;s going to grow. If there&apos;s something
               you want your AI to be able to ask us,{" "}
