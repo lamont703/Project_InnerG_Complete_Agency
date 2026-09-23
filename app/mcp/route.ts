@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MCP_TOOLS } from "@/lib/mcp/tools";
 import { handleMcpPost } from "@/lib/mcp/handler";
+import { keyFromRequest, resolveConnectionKey } from "@/lib/mcp/connection";
+import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import { SITE_URL } from "@/lib/site";
 
 /**
@@ -24,8 +26,76 @@ import { SITE_URL } from "@/lib/site";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/**
+ * Anonymous by default, and owner-scoped when an `Authorization: Bearer sq_…`
+ * header is presented.
+ *
+ * WHY THIS ENDPOINT ACCEPTS A KEY AT ALL, when /mcp/k/<key> exists. Claude's
+ * connector setup offers a "Request headers" box whose values are "stored
+ * securely and never shown again". That is a strictly better home for a
+ * credential than a URL: a URL gets pasted into screenshots, support chats and
+ * bug reports — which happened three times while this feature was being built —
+ * while a stored header does not. So the recommended install is this plain URL
+ * plus a header, and the keyed URL stays for clients with no header field.
+ *
+ * A BAD KEY IS 401, NOT A QUIET FALLBACK TO PUBLIC. Serving anonymous results
+ * to someone who presented a credential would look like success: the tools work,
+ * the owner's own tools are missing, and nothing says why. That is a worse
+ * failure than being refused.
+ *
+ * A BEARER TOKEN THAT IS NOT OURS IS IGNORED. Only `sq_`-shaped values are
+ * treated as an attempt to authenticate here; anything else is some other
+ * system's token that we have no business inspecting, and the caller gets the
+ * public tools.
+ */
 export async function POST(request: NextRequest) {
-  return handleMcpPost(request, { logPath: "/mcp", identity: null });
+  const presented = keyFromRequest({ authorization: request.headers.get("authorization") });
+
+  if (!presented) return handleMcpPost(request, { logPath: "/mcp", identity: null });
+
+  let identity = null;
+  try {
+    identity = await resolveConnectionKey(presented);
+  } catch (err) {
+    // Service-role key missing or Supabase unreachable: a deployment fault, not
+    // a bad credential. 503 rather than 401, so nobody regenerates a working
+    // connection chasing this.
+    console.error("[mcp] key resolution failed:", err);
+    return NextResponse.json(
+      { error: "ShearQuery cannot check connections right now. Try again shortly." },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
+  if (!identity) {
+    recordAgentRequest({
+      surface: "mcp",
+      path: "/mcp",
+      userAgent: request.headers.get("user-agent"),
+      clientIp: clientIpFrom(request.headers),
+      statusCode: 401,
+      isError: true,
+    });
+    return NextResponse.json(
+      {
+        error:
+          "That ShearQuery connection key is not valid. It may have been revoked or replaced — " +
+          `generate a new one at ${SITE_URL}/account/claude. To use ShearQuery without an account, ` +
+          "send no Authorization header.",
+      },
+      {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": `Bearer realm="ShearQuery MCP", error="invalid_token"`,
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
+  // Logged as /mcp, which is the real path. There is no key in it to redact —
+  // that is the advantage of the header.
+  return handleMcpPost(request, { logPath: "/mcp", identity });
 }
 
 /**
