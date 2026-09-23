@@ -4,8 +4,18 @@ The map of the MCP tools that let a barber point their own Claude at their own
 listing, what each one wraps, and the one rule that makes it safe to ship.
 
 Status: the **authentication layer is built** (`lib/mcp/connection.ts`,
-`/mcp/k/<key>`, `my_shearquery_account`). Everything in the Propose section
-below is designed and not yet written. Written 2026-09-22.
+`/mcp/k/<key>`, plus `Authorization: Bearer` on `/mcp`), and two read tools
+ship: `my_shearquery_account` and `my_google_profile_audit`. Everything in the
+Propose section below is designed and not yet written. Written 2026-09-22.
+
+**Why the audit shipped first, from a real session.** A connected owner asked
+their own Claude to audit their profile and got the PUBLIC audit — 5 checks of
+16, scored on what a stranger can see — followed by a link to shearquery.com for
+the rest. Correct, and useless: barbers live in Claude and will rarely open the
+site. The full audit returns 16 checks and finds different things — the public
+tier reported "5 photos, low for a barbershop" where the authenticated one
+reports 90 photos covering 1 of the 5 categories customers look for. Same
+listing, opposite advice.
 
 ---
 
@@ -47,7 +57,7 @@ can ask about another owner's listing.
 | Tool | Wraps | Notes |
 |---|---|---|
 | `my_shearquery_account` | `community_members`, `community_member_entity_links`, `gbp_connections` | **Built.** The prerequisite check: claimed listing, Google connected, location selected. Reports each gap as a gap with its fix on the site. |
-| `my_google_profile_audit` | `getMemberGbpAudit(memberId)` → `lib/gbp-audit-fetch.ts` + `buildGbpAudit` | The full authenticated audit — the one that sees attributes, search terms and Google's pending edits. Returns checks worst-first, each with its area and fix. |
+| `my_google_profile_audit` | `getMemberGbpAudit(memberId)` → `lib/gbp-audit-fetch.ts` + `buildGbpAudit` | **Built.** The full authenticated audit — attributes, search terms, Google's pending edits. Checks worst-first with each fix, area scores, 30-day performance, and the search terms people used. States its own age, because the bundle is cached six hours and a stale score reads as "you did nothing". `openWorldHint: true` — the only tool so far that reaches Google. |
 | `my_audit_history` | `recentSnapshots()`, `diffSnapshots()` → `lib/gbp-audit-history.ts` | "What changed since last time" — the tool that makes a weekly cadence possible instead of a one-off audit. |
 | `my_google_reviews` | `getGoogleReviewsForEntity()` → `lib/gbp-reviews.ts`, `selectUnanswered()` → `lib/gbp-review-replies.ts` | Unanswered first. Star rating, comment, date, reviewer first name only. |
 | `my_photo_coverage` | `analysePhotoCoverage()` → `lib/gbp-photos.ts` | Which of Google's photo categories are empty, against `PHOTO_CATEGORIES`. |
