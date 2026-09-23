@@ -1,0 +1,935 @@
+{
+ "_what": "Every Higgsfield video generation on this account, matched to the local files that hold it. Byte-size match against every video on disk; the cache copy is named by generation id, the used_in paths are the human-named copies in project folders.",
+ "_why": "No local file recorded which generation produced it. Without this, a clip on disk could not be traced to its prompt or its cost, and 65 of 89 generations looked lost when only 5 were.",
+ "_generated": "2026-09-23",
+ "_counts": {
+  "generations": 89,
+  "with_cache_copy": 29,
+  "with_project_copy": 60,
+  "no_local_copy": 0
+ },
+ "clips": [
+  {
+   "generation_id": "bc582a9e-2a65-4cb8-8e8a-0912831d4410",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 4225556,
+   "prompt": "The mannequin head rotates very slowly in place through a narrow arc: it turns from this rear three-quarter view, through the full back of the head, to the rear three-quarter view on the opposite side. The rotation is slow and small and covers only the back and sides. It never turns far enough to show a side profile, and the front of the face never comes into view at any point. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. The mannequin is a smooth matte white featureless form. The hairstyle is two-strand twists: pairs of hair sections wound around each other into distinct rope-like twists, each twist keeping its exact thickness, length, spiral pattern and position with the parting grid visible on the scalp between them, and the tapered faded sides stay exactly as they are. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-2-v1.mp4"
+   ]
+  },
+  {
+   "generation_id": "16eac493-26a5-4d76-b938-676edb4e3715",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 4226485,
+   "prompt": "The mannequin head rotates very slowly in place through a narrow arc: it turns from this rear three-quarter view, through the full back of the head, to the rear three-quarter view on the opposite side. The rotation is slow and small and covers only the back and sides. It never turns far enough to show a side profile, and the front of the face never comes into view at any point. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. The mannequin is a smooth matte white featureless form. The hairstyle is starter locs: individual rope-like coiled sections that stay separate and distinct with the visible parting grid on the scalp between them, each loc keeping its exact thickness, length and position, and the tapered faded sides stay exactly as they are. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-3-v2.mp4"
+   ]
+  },
+  {
+   "generation_id": "a13034be-7961-4881-9e5b-16688c42f50f",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 4044169,
+   "prompt": "The mannequin head rotates very slowly in place through a narrow arc: it turns from this rear three-quarter view, through the full back of the head, to the rear three-quarter view on the opposite side. The rotation is slow and small and covers only the back and sides. It never turns far enough to show a side profile, and the front of the face never comes into view at any point. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. The mannequin is a smooth matte white featureless form. The hairstyle is 360 waves: concentric ripple rings radiating outward from the crown, the rings staying sharp, evenly spaced and perfectly continuous around the head, and the shaved hard part line on the side stays exactly as it is. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-1-v1.mp4"
+   ]
+  },
+  {
+   "generation_id": "dd844356-fc56-4e25-8dd8-14e9675e1524",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 4806477,
+   "prompt": "The mannequin head rotates in place, turning AWAY from the camera. It rotates in the direction that brings the back of the head fully into view and then continues around toward the opposite side. The front of the face never comes into view at any point in the shot, we only ever see the back and the sides of the head. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. The mannequin is a smooth matte white featureless form. The hairstyle is starter locs: individual rope-like coiled sections that stay separate and distinct with the visible parting grid on the scalp between them, each loc keeping its exact thickness, length and position, and the tapered faded sides stay exactly as they are. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-3-v1.mp4"
+   ]
+  },
+  {
+   "generation_id": "e9e3a831-00b4-4aea-a56c-d25934989fbd",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 5113088,
+   "prompt": "The mannequin head rotates in place, turning AWAY from the camera. It rotates in the direction that brings the back of the head fully into view and then continues around toward the opposite side. The front of the face never comes into view at any point in the shot, we only ever see the back and the sides of the head. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. The mannequin is a smooth matte white featureless form. The hairstyle is a twist-out: defined springy curl clumps from unravelled two-strand twists, each clump keeping its exact shape, size and separation, and the tapered faded sides stay exactly as they are. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-4-v1.mp4"
+   ]
+  },
+  {
+   "generation_id": "d8d6d49b-9239-4a89-90a8-4c59990ab807",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 4458407,
+   "prompt": "The mannequin head rotates in place, turning AWAY from the camera. It rotates in the direction that brings the back of the head fully into view and then continues around toward the opposite side. The front of the face never comes into view at any point in the shot, we only ever see the back and the sides of the head. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. The mannequin is a smooth matte white featureless form. The hairstyle is individual defined finger coils, separate spiral coiled strands that stay distinct and keep their exact shape, length and separation, they must not merge together into a solid afro. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-5-v2.mp4"
+   ]
+  },
+  {
+   "generation_id": "b1164438-f009-42b6-a10a-fdee65486a19",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 4784808,
+   "prompt": "The mannequin head rotates in place, turning three-quarters from this rear three-quarter view around toward the camera. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. Only the head rotates, nothing else in the scene changes. The mannequin is completely featureless with no eyes, no nose, no mouth, no facial features of any kind, smooth matte white surface throughout. The hairstyle is individual defined finger coils, separate spiral coiled strands that stay distinct and keep their exact shape, length and separation, they must not merge together into a solid afro. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-5-v1.mp4"
+   ]
+  },
+  {
+   "generation_id": "cb5d75f0-65e6-473f-8904-9e031a37ebdf",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 3822125,
+   "prompt": "The mannequin head rotates in place, turning three-quarters from profile toward the camera. The camera is completely locked off on a tripod: it does not move, does not zoom, does not pull back, does not dolly. The framing stays identical from the first frame to the last, the head stays exactly the same size and in the same position in frame the whole time. Only the head rotates, nothing else in the scene changes. The mannequin is completely featureless with no eyes, no nose, no mouth, no facial features of any kind, smooth matte white surface throughout. The dark textured afro keeps its exact shape, length and density. Soft even studio lighting, plain seamless warm grey backdrop, unchanging. No text, no words, no letters, no logos, no watermark anywhere in frame.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-6-v2.mp4"
+   ]
+  },
+  {
+   "generation_id": "ed1f97a0-2bb9-4532-8150-d5fb27ecbe52",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-15",
+   "bytes": 2809069,
+   "prompt": "Slow smooth turntable rotation: the blank white mannequin head turns three-quarters from profile toward the camera on a fixed studio turntable. The mannequin is completely featureless - no eyes, no nose, no mouth, no facial features of any kind, smooth matte white surface throughout. The dark textured afro hairstyle keeps its exact shape, length and density and does not change. Locked-off static camera, soft even studio lighting, plain seamless warm grey backdrop. No text, no words, no letters, no logos, no watermark anywhere in frame. Photographic product-turntable style.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-textured/spins/rank-6-v1.mp4"
+   ]
+  },
+  {
+   "generation_id": "f58314b5-d7bc-44d6-b860-ee5ddbe30547",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-13",
+   "bytes": 7493583,
+   "prompt": "Close-up of the back of a man's head in a barbershop, blond hair carved into an intricate bird design. A barber's hand draws the black comb slowly down through the bird's wing and tail feathers; the carved strands separate under the teeth and settle back into place, the feather pattern staying sharp and intact. A fine mist of water sprays across the hair from the left, droplets catching the light and darkening the strands. Slow, subtle, realistic motion. Shallow depth of field, warm salon light, blurred mirrors behind. No text, no captions, no watermark, no logos.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/haircut-bird-design/bird-comb-spray.mp4"
+   ]
+  },
+  {
+   "generation_id": "4c8578f4-c877-4c01-bc5f-bcc28734fd3e",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-11",
+   "bytes": 5483440,
+   "prompt": "Very slow steady dolly forward into the barbershop. Subtle natural movement only: the barber's hands working, faint dust in the light. Locked, documentary, no camera shake, no whip pans, no zoom. Nothing else in the scene moves. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "reference/reaction-one-person-ai/broll-gen/gen1-shop-wide.mp4"
+   ]
+  },
+  {
+   "generation_id": "49c76b01-ef16-4d6b-9764-192452aa4d10",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-11",
+   "bytes": 8155692,
+   "prompt": "Very slow push forward toward the opening in the demolished wall, drifting from the sheeted barber chairs toward the empty room beyond. Dust hangs and drifts in the work light. Nothing is being demolished on camera, no people. Locked, documentary, smooth, no shake. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "reference/reaction-one-person-ai/broll-gen/gen3-wall-down.mp4"
+   ]
+  },
+  {
+   "generation_id": "561cfcaf-c8b8-43b2-bc9e-cfe28df87d72",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-11",
+   "bytes": 6556758,
+   "prompt": "Very slow lateral tracking shot gliding along the row of empty barber chairs, so each chair passes the frame in turn. The chairs stay perfectly still. Locked, documentary, smooth, no shake, no zoom. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "reference/reaction-one-person-ai/broll-gen/gen2-chairs-row.mp4"
+   ]
+  },
+  {
+   "generation_id": "2e47a31f-4ce9-40b0-a736-7ac03de94675",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-11",
+   "bytes": 4773074,
+   "prompt": "Very slow arc drifting a few degrees around the single empty barber chair, the warm rim light sliding across the chrome. The chair does not move. Locked, documentary, smooth, no shake, no zoom. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "reference/reaction-one-person-ai/broll-gen/gen6-chair-close.mp4"
+   ]
+  },
+  {
+   "generation_id": "fe8cb551-bf4b-44b4-bb53-61324554a47c",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-11",
+   "bytes": 4125867,
+   "prompt": "Extremely slow push into the empty darkened barbershop after hours. The single warm practical light flickers almost imperceptibly. Nothing else moves; the chairs are still and empty. Locked, documentary, quiet, no shake, no zoom. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "reference/reaction-one-person-ai/broll-gen/gen5-shop-empty.mp4"
+   ]
+  },
+  {
+   "generation_id": "655f4e44-02ab-4990-9f6b-52ba85076f82",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-11",
+   "bytes": 3937731,
+   "prompt": "The barber continues the haircut: clippers move steadily through the hair, his other hand adjusts the head slightly. Camera almost still with a faint handheld drift. Faces stay turned away. Documentary, intimate, no shake, no zoom. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "reference/reaction-one-person-ai/broll-gen/gen4-barber-working.mp4"
+   ]
+  },
+  {
+   "generation_id": "0dfc6897-16a5-4d19-b486-de709131c825",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7755215,
+   "prompt": "The client's throwing arm completes its follow-through and drops, and the SPRAY BOTTLE BODY and its DETACHED TRIGGER HEAD both fly on across the room and OUT of the frame, tumbling as they go, their dashed arc trailing behind them. The bottle stays a smooth straight-sided spray bottle body with an open neck and NEVER turns into a ribbed drinking water bottle or gains a cap. Droplets shake off the client's soaked hair with the force of the throw. He stays SOAKING WET throughout \u2014 hair plastered flat, water running off his face and chin, the puddle still on the tile. His face stays furious. The barber stands still and turns his head slightly to follow them out of frame, eyebrows raised, mouth a small confused circle, arms at his sides. No question marks and no floating symbols appear. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/15-throw.mp4"
+   ]
+  },
+  {
+   "generation_id": "525c41be-8f40-4edc-ae99-6ef546076ca2",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 8089244,
+   "prompt": "THE FULL REACH, in three clear stages. FIRST the barber lowers the useless empty bottle down to his side. THEN he turns slightly away and EXTENDS HIS ARM OUT SIDEWAYS, away from his body, reaching further and further until his hand passes OFF THE EDGE OF THE FRAME \u2014 we never see what he is reaching toward and no shelf, counter or row of bottles ever appears. FINALLY he draws the arm back in and it returns into frame holding a NEW FULL SPRAY BOTTLE, which he lifts and looks at with calm satisfaction. His arm stays a NORMAL HUMAN ARM throughout and must never stretch, elongate or rubber-band across the frame. The CLIENT stays SEATED IN THE BARBER CHAIR the whole time and never stands up \u2014 he watches, soaked, hair plastered flat, water dripping, and his face falls from exhaustion into wide-eyed dread as the new bottle appears. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/10-reach.mp4"
+   ]
+  },
+  {
+   "generation_id": "e66dc66a-316b-4dc1-b151-e582e3f7d6b3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6942385,
+   "prompt": "The CLIENT stays SEATED IN THE BARBER CHAIR for the entire shot. He never stands up, never leaves the chair, and his body stays low in the seat with the cape over him. The BARBER stays standing beside the chair with NORMAL HUMAN PROPORTIONS \u2014 his arm must NOT stretch, elongate, extend or reach unnaturally far, and it must never cross the frame like rubber. The motion is small: the barber draws his outstretched arm back in toward his body, and as it comes back into frame he is now holding a NEW FULL spray bottle that we never saw him pick up. He turns his head back toward the client with a calm, matter-of-fact expression. No shelf, no counter and no row of bottles ever appears. Meanwhile the seated client's face collapses: his eyes stretch wider and wider and his mouth falls open in dawning horror as he sees the new bottle. He stays soaked, hair plastered flat, water dripping, the puddle still on the tile. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/10-bottle2.mp4"
+   ]
+  },
+  {
+   "generation_id": "4b0bbd66-b425-4502-9547-efc02de41ff3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6998014,
+   "prompt": "Slow and deliberate, the opposite of a flail. The client's upper hand keeps TWISTING the nozzle top round and round while his lower hand holds the bottle steady, and the top rises higher off the neck turn by turn until it comes FREE in his hand and the bottle neck is left open. He never rushes. His eyes stay locked on the bottle and his jaw stays set \u2014 he has decided to do something. Water keeps running off his plastered hair. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/13b-unscrew.mp4"
+   ]
+  },
+  {
+   "generation_id": "e8023041-4840-49fa-91b0-bb0846a04df8",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 8560188,
+   "prompt": "The client sits and BREATHES. His chest and shoulders rise and fall heavily twice, and two visible puffs of breath push out of his flared nostrils and fade. His hard brows and grim flat mouth do not change and he keeps glaring straight forward. He does not speak and does not move his arms. Water still runs off his plastered hair onto the cape. He is spent, furious and ready. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/16-huff.mp4"
+   ]
+  },
+  {
+   "generation_id": "1a6b0857-c5ac-40c9-b6bf-1f5c4797f65c",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7354849,
+   "prompt": "The client's throwing arm completes its follow-through and drops, and the empty bottle flies on across the room and OUT of the frame, its dashed arc trailing after it. Droplets shake off his soaked hair with the force of the throw. He stays SOAKING WET throughout \u2014 hair plastered flat, water running off his face and chin, the puddle still on the tile beneath him. The barber turns his head slightly to follow the bottle out of frame, eyebrows raised, mouth a small confused circle. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": ".cache/broll-hf/hf-1a6b0857-c5ac-40c9-b6bf-1f5c4797f65c.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "155a9912-460a-4a31-bbdf-88d7d178154d",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 8021018,
+   "prompt": "The water keeps pouring in one thick unbroken stream out of the OPEN NECK of the bottle, straight down over the client's head and face, sheeting down his hair and forehead and splashing off his shoulders and cape onto the floor. The bottle stays a plain open-necked bottle with NO nozzle and NO trigger head on it at any point. He tips it steeper as it empties. His eyes stay squeezed shut and his teeth stay bared in furious defiance the whole time. The barber watches, head tilted, baffled. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/14-pour.mp4"
+   ]
+  },
+  {
+   "generation_id": "cd5b0de0-de01-4228-bff7-094bace327e3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6354125,
+   "prompt": "The barber gives ONE more small polite squeeze and a neat little fan of spray dots lands on the client's head, then he lowers the bottle and looks mildly pleased, as though nothing has happened. As the spray lands, the client's face COLLAPSES from anger back into sadness: his hard brows go slack and their inner ends lift, his grim mouth falls into a small downturned curve, and his eyes go wide, glossy and defeated, staring straight ahead. He does not react otherwise. He has lost. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/17-final.mp4"
+   ]
+  },
+  {
+   "generation_id": "61d3d42a-e36f-4d44-b2ee-02dc4ea0442a",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 8381148,
+   "prompt": "A fast, sudden snatch. The client's arm whips up and across and RIPS the spray bottle out of the barber's grip in one sharp movement, pulling it down and in to his chest. The bottle leaves the barber's hand completely. The barber's hand is left frozen in mid-air still curled around nothing, and his eyebrows jump up and his mouth opens in a small surprised circle. This is the quickest movement in the film \u2014 sharp and abrupt, not slow. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/13-grab.mp4"
+   ]
+  },
+  {
+   "generation_id": "36ec0ed3-f57c-45f0-b623-4c0dda892583",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7819348,
+   "prompt": "The barber, seen in side profile, stretches his arm further out past the edge of the frame, feels for something we cannot see, and begins to draw his arm back holding a NEW FULL spray bottle. We never see where it came from and no shelf or row of bottles ever enters the frame. Meanwhile the client's face collapses: his relieved expression drains away, his eyes stretch wider and wider and his mouth falls open in dawning horror as he watches. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": ".cache/broll-hf/hf-36ec0ed3-f57c-45f0-b623-4c0dda892583.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "ea8dd513-c0e7-4b4c-a230-7526e7529ea4",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6402489,
+   "prompt": "The bottle is empty and NO spray ever comes out. The barber squeezes the trigger hard \u2014 nothing. He squeezes again \u2014 only two or three sad droplets fall straight down from the nozzle. There must be NO fan of spray, NO mist and NO burst of dots at any point in this shot; the air around the nozzle stays completely empty. He then SHAKES the bottle twice and tilts it to peer at the nozzle with a puzzled frown. The soaked client beneath him does not move, water still dripping off his face and cape. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/08-empty.mp4"
+   ]
+  },
+  {
+   "generation_id": "2af6fb81-2f30-4213-9e9d-9153a1f39dea",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 8330602,
+   "prompt": "The barber squeezes the new full bottle steadily, fresh bursts of spray dots landing on the client's already soaked head. The client does not fight it. His face sags further into misery: his eyebrows push up and together at the inner ends, his mouth curves further down, and his shoulders sink lower. Water pours off his flattened hair. He is completely defeated. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/11-sad.mp4"
+   ]
+  },
+  {
+   "generation_id": "dcddf66e-e809-4226-9700-02c6af54fcc4",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7591178,
+   "prompt": "Almost nothing moves. The client is frozen in soaked resignation and does NOT move his head or change expression \u2014 he only blinks once, slowly. The motion in this shot is WATER: streams keep running down his forehead and off his nose and chin, fat drops keep falling from the hem of the cape, and the puddle on the tile spreads a little wider with new ripple rings. The barber keeps squeezing the bottle steadily, cheerful and unbothered, spray dots still hitting. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/07-drenched.mp4"
+   ]
+  },
+  {
+   "generation_id": "90f430aa-ab9c-42af-a995-0d4e0571b712",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7948097,
+   "prompt": "A held close-up with very little movement. The client's rage builds and holds: his eyebrows press down harder into their V, his eyes narrow further to burning slits, his gritted teeth clench tighter and his whole head gives a small contained TREMBLE of fury, twice. He does NOT turn his head, does NOT stand and does NOT lunge in this shot \u2014 he stays seated and simmering. Water keeps running off his plastered hair. At the frame edge the barber's hand keeps spraying, oblivious. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/12-anger.mp4"
+   ]
+  },
+  {
+   "generation_id": "63b90702-9f77-4c70-9937-f6baaae127c2",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6699402,
+   "prompt": "A held moment of relief with very little motion. The client's shoulders sink and drop as he lets out one long slow breath, the small puff of air leaving his mouth and fading. His closed eyes stay closed in two soft curves and his small grateful smile grows very slightly. Water still trickles off his nose and chin. He does NOT open his eyes and does NOT move his head. No spray anywhere. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. His cape stays the same sage tone with ink outlines only, never white and never dark. Character designs and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/09-relief.mp4"
+   ]
+  },
+  {
+   "generation_id": "a31bd10e-5e7e-4cf7-8a0b-e2ab2b51331b",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7061041,
+   "prompt": "The client lowers himself the last few inches into the barber chair and settles back, hands coming to rest on the armrests, shoulders relaxing. The barber gives the folded cape a small shake to loosen it, ready to spread it. Calm and ordinary. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/02-sits.mp4"
+   ]
+  },
+  {
+   "generation_id": "7c73d3ee-1e52-4624-82be-e011e097e7a6",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6911805,
+   "prompt": "The client takes two unhurried steps in through the doorway, letting the door swing behind him, and looks toward the chair. The barber lifts a hand in a small welcoming gesture and gives a brief pleasant nod. Everything is calm and ordinary. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/01-arrives.mp4"
+   ]
+  },
+  {
+   "generation_id": "13b6cfa5-30f7-4e38-854d-169f89a6672b",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 6722455,
+   "prompt": "The barber gives the spray bottle ONE polite squeeze and a small light fan of fine spray dots lands on the client's hair, then a second smaller one. The client's hair goes only slightly damp. His face stays calm and pleasant. This is completely normal barbering. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/05-spray1.mp4"
+   ]
+  },
+  {
+   "generation_id": "b2dadd11-6132-40ed-932d-e30780ec780e",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 7028465,
+   "prompt": "The barber draws the comb through the top of the client's hair in two or three smooth unhurried strokes, lifting it away and starting again. His other hand rests lightly on the client's head. The client's hair stays DRY and the client's face stays calm and content. Nothing is wrong yet. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/04-comb.mp4"
+   ]
+  },
+  {
+   "generation_id": "2a100b35-2ef7-4217-85af-e5aa58b56fd3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 9074900,
+   "prompt": "The barber squeezes the trigger over and over and OVER without stopping, pumping it rapidly, burst after burst of spray dots hitting the client's head continuously for the whole shot. He never pauses and never stops. The client's hair gets progressively wetter and flatter, plastering down against his skull, and drops begin running down his temple. The client's eyes narrow further and further and his mouth flattens as it goes on far too long. The barber stays cheerfully absorbed and never looks at the client's face. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. No garment is filled solid black. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/06-spray-more.mp4"
+   ]
+  },
+  {
+   "generation_id": "b7b580e4-fbe5-4f39-a873-d42b9e2e27a4",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-08",
+   "bytes": 9316371,
+   "prompt": "The billowing cape floats down and settles onto the client's shoulders and lap, the fabric rippling once and then going still. The barber's hands lower with it and smooth it down at the collar. The client sits patiently, hair still DRY, blinking once. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. The barber's apron and clothes stay the SAME light sage tone with ink outlines only and are never filled solid black. Character designs and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/spray-clips/03-cape.mp4"
+   ]
+  },
+  {
+   "generation_id": "2eb17589-9da4-4ef3-8aa9-f8c5cd1a2742",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 4824973,
+   "prompt": "The shot opens with no insect in frame. A SMALL simple cartoon mosquito flies in from the left edge on a looping dashed flight path and comes down to LAND ON THE SHOULDER OF THE TALL STANDING MAN \u2014 the barber, the one wearing the backwards cap and the dark apron, standing on the LEFT side of the frame. It lands on the fabric of his shoulder, low down near his collar, and stays perched there for the rest of the shot. It must NOT land on the seated boy's head. It must NOT land on the bald patch. It must NOT touch the client at all, and it must NOT go near the barber's face or mouth. It stays a small simple mosquito and does not grow larger or turn into a housefly. Once perched it only flutters its wings and tilts its own head slightly toward the client's hair. The barber is frozen the whole time: eyes stretched wide open, never blinking, mouth open in the same shape, head never turning, still staring down at the bald patch, and he never notices the insect land on him. The client keeps looking at his phone. The ragged bald patch stays exactly the same shape and nothing lands on it. Locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": ".cache/broll-hf/hf-2eb17589-9da4-4ef3-8aa9-f8c5cd1a2742.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "0806dea9-296c-4bb5-ba6d-85bdce9b2e18",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 8804932,
+   "prompt": "A big cartoon SMOOCH, in three clear stages. FIRST the mosquito presses its puckered lips harder into the barber's cheek, and the cheek surface dents inward into a deeper dimple around the contact point. THEN the kiss POPS off: the mosquito's lips release with a snap, the cheek springs back out and wobbles, and the radiating impact lines around the contact point burst outward and expand in a quick pop, leaving a small puckered kiss mark behind. FINALLY the mosquito pulls back with its eyes still closed in two happy curves, gives one contented little wiggle, and darts away out of the frame. Its wings blur throughout. The barber's enormous eye at the top of the frame stays wide open and does not blink, and his mouth at the frame edge stays open in the same shape \u2014 he never reacts. Extreme close-up macro framing, locked-off camera, no zoom, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-10.mp4"
+   ]
+  },
+  {
+   "generation_id": "aa2d9974-ccd9-4c95-98a0-f8a21b59958c",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5323013,
+   "prompt": "The shot opens with no insect in frame. A small cartoon mosquito FLIES IN from the left edge of the frame on a looping dashed flight path, circles once, and comes down to LAND on the barber's near shoulder, where it settles and stays. Once landed it stops moving except for a wing flutter, and it TILTS ITS HEAD toward the ragged bald patch in the client's hair, so that by the end of the shot the mosquito and the barber are both looking at the damage together. The mosquito never touches the barber's face or mouth. The barber is frozen the whole time: eyes stretched wide open, never blinking, never narrowing, mouth open in the same shape, head never turning, still staring down at the bald patch. He never notices the mosquito land on him. The client keeps looking at his phone. The ragged bald patch stays exactly the same shape. Locked-off camera, no zoom, no pan, no push in. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/11a-notices.mp4"
+   ]
+  },
+  {
+   "generation_id": "1e3c5b9b-abe8-4cc5-bee9-e0f105fc76fb",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 6294579,
+   "prompt": "Almost nothing moves in this shot. The mosquito STAYS PERCHED ON THE BARBER'S SHOULDER for the entire five seconds and never leaves that exact spot. It does NOT crawl, does NOT walk, does NOT fly, does NOT approach the barber's face or mouth, and does NOT move anywhere else on his body. It is anchored to the shoulder. Its only movement is a small flutter of its wings and a slight tilt of its own head. The barber is frozen: his eyes stay STRETCHED WIDE OPEN the whole time and never narrow, never half-close and never blink; his mouth stays open in the same shape; his head never turns. He does not look at the mosquito. The client keeps looking at his phone. The ragged bald patch in the client's hair stays exactly the same shape. Locked-off camera, no zoom, no pan, no push in. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-08.mp4"
+   ]
+  },
+  {
+   "generation_id": "2b778f6f-05c7-48ff-ba33-b675e677e385",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5686310,
+   "prompt": "There is only ONE mosquito and no second insect ever appears. It leans in and presses a kiss against the barber's cheek, holds it for a beat, pulls back, then turns and flies UP and OUT of the top of the frame along its dashed flight path, leaving the shot completely empty of insects by the end. The barber stays completely frozen the whole time \u2014 he does NOT flinch, does NOT blink, does NOT turn his head and does not change expression at all. His eyes stay stretched wide and locked on the bald patch. He never reacts to being kissed. The client keeps looking at his phone. The ragged bald patch stays EXACTLY the same shape and does not move, grow or change. Locked-off camera, no zoom, no push in, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-09.mp4"
+   ]
+  },
+  {
+   "generation_id": "8ae71c90-e345-4664-8770-b60f938765f0",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 4967677,
+   "prompt": "The barber stays completely frozen in horror \u2014 he does NOT move, does NOT blink, does NOT look at the mosquito, and does not change expression. His eyes stay locked on the bald patch. He never notices the insect on him. The mosquito perched on his shoulder settles in: its wings flick once or twice, it shifts its footing, and it slowly TILTS ITS HEAD further toward the client's bald patch, calmly inspecting the damage. The client keeps looking at his phone. The ragged bald patch stays EXACTLY the same shape and does not move, grow or change. Locked-off camera, no zoom, no push in, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. No text appears.",
+   "cached_copy": ".cache/broll-hf/hf-8ae71c90-e345-4664-8770-b60f938765f0.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "efbd0b88-a594-4a9e-86bf-1aa7d13f69d3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 6478245,
+   "prompt": "The barber is frozen in horror and stays frozen. He does NOT move his head, does NOT blink, does NOT change expression \u2014 his eyes stay stretched wide and locked on the bald patch the entire time. The only motion in him is the bead of sweat sliding slowly down his temple, one small tightening of his grip on the lowered clippers, and the faintest tremble in his shoulders. The client keeps looking down at his phone and his thumb scrolls once. The ragged bald patch in the client's hair stays EXACTLY the same shape and does not move, grow or change. Locked-off camera, absolutely no zoom, no push in, no pan. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Character designs, clothing and background unchanged. Almost no motion at all. No text appears.",
+   "cached_copy": ".cache/broll-hf/hf-efbd0b88-a594-4a9e-86bf-1aa7d13f69d3.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "46c669b2-9281-4f02-84d3-05169d946bb0",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 8286697,
+   "prompt": "The barber's raised far arm swipes through the air at the mosquito, which loops away on its dashed flight path. His head stays turned up and away from the haircut. His other lowered arm keeps the clippers pressed against the side of the client's head, still moving, still cutting while he is not looking. The two arms stay separate and keep doing two different things. The client keeps scrolling, oblivious. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-06.mp4"
+   ]
+  },
+  {
+   "generation_id": "b73536de-f763-4a17-becf-85cae1a11c90",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 6046146,
+   "prompt": "The barber stares down at the guard on the floor, shoulders sinking a little further, his mouth turning down more. The mosquito loops lazily around his head on its dashed flight path, right past his ear, tormenting him. He does not swat at it and does not look at it \u2014 he is too defeated to react, and only his eyes flick sideways once. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and character unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-11.mp4"
+   ]
+  },
+  {
+   "generation_id": "291ae92d-c064-4ab2-b437-b04f1d7195c0",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5669228,
+   "prompt": "Hold on the back of the client's head. The ragged bald patch gouged into his hair stays EXACTLY as drawn and does not grow, shrink, move or change shape. Only the faintest breathing motion in his shoulders and a small movement of his thumb on the phone. Locked-off camera, no zoom, no push in. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style unchanged. Almost no motion at all. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-07.mp4"
+   ]
+  },
+  {
+   "generation_id": "c3a0a6e2-5f6e-4e94-983d-4a32fbe112af",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5976507,
+   "prompt": "The client lowers the phone the rest of the way into his lap and lifts his head further, his eyes rising and his expression sliding from uneasy toward alarm. Behind him the barber stays frozen, eyes wide. The bald stripe in the client's hair does not change shape. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/11-lifts.mp4"
+   ]
+  },
+  {
+   "generation_id": "6e55030a-2478-4bda-b427-e105a0ccde7f",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 10689008,
+   "prompt": "The mirror is held steady. In the reflection the client's eyes stretch wider and his mouth opens further into a horrified oval as it sinks in. Hold on the reflected face. The bald stripe in the reflection does not change shape. Locked-off camera, no zoom. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/12-mirror.mp4"
+   ]
+  },
+  {
+   "generation_id": "8e167dca-a354-4242-9f0a-903af409a5a2",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 10255433,
+   "prompt": "Close on the side of the client's head. The bald stripe carved through his hair stays exactly as drawn and does not grow, shrink or move. Only the faintest breathing motion in the shoulders. Locked-off camera, no zoom. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style unchanged. Almost no motion. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/10-stripe.mp4"
+   ]
+  },
+  {
+   "generation_id": "f75aa949-c089-4890-99bf-5e84168bd88a",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 16202588,
+   "prompt": "Extreme macro on the clipper blade. The loose plastic guard attachment wobbles and slips a little further off the blade, hanging at a steeper angle, right on the edge of falling. Tiny vibration in the clipper body. Locked-off camera, no zoom. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-04.mp4"
+   ]
+  },
+  {
+   "generation_id": "7085c14f-1f05-4021-834e-8c40dbe54f57",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 7957936,
+   "prompt": "The barber holds his clapped hands together a moment longer, then opens them slightly, still grinning with his eyes squeezed shut, pleased with himself. The seated client keeps scrolling his phone and does not move. The bald stripe in the client's hair does not change shape. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/08-clap.mp4"
+   ]
+  },
+  {
+   "generation_id": "1d1d9999-db5f-44be-8e3c-6d4a798debd5",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 7260388,
+   "prompt": "The barber keeps running the clippers along the side of the client's head with a calm pleasant expression, completely unaware. The client stays bored and oblivious, eyes down on his phone. The bald stripe already carved in his hair does not change shape or move. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/07-cutting.mp4"
+   ]
+  },
+  {
+   "generation_id": "65901c64-8587-421f-bc43-1c0ee6dbead2",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 7594680,
+   "prompt": "The barber swipes his free hand through the air at the mosquito, his head turned away from the haircut, eyes tracking the insect. His other hand keeps the clippers pressed against the client's head, still moving, still cutting while he is not looking. The client keeps scrolling, oblivious. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/03-swat.mp4"
+   ]
+  },
+  {
+   "generation_id": "6816835b-25ba-461f-a5a2-b15d9870d450",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 6940564,
+   "prompt": "The barber's hand moves the clippers slowly along the side of the seated client's head. The client's thumb scrolls once on his phone. Both are calm and relaxed. Locked-off camera, no zoom. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. The drawing style and both characters stay exactly as drawn. Subtle motion only. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-01.mp4"
+   ]
+  },
+  {
+   "generation_id": "affb8561-21d2-4866-ba11-f8b3d9d5facb",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 7366646,
+   "prompt": "The small mosquito loops through the air on its dashed flight path. The barber's eyes flick sideways to track it and his brows lower slightly in annoyance, but his hands keep working. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and characters unchanged. Subtle motion only. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-02.mp4"
+   ]
+  },
+  {
+   "generation_id": "f6774299-a153-45cb-8271-cd7c52d97cdb",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 7457252,
+   "prompt": "The plastic clipper guard falls the last short distance and hits the tiled floor, bouncing once and settling still. Small motion lines trail behind it as it drops. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style unchanged. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/scene-05.mp4"
+   ]
+  },
+  {
+   "generation_id": "71f78445-1f4e-4eeb-9f16-bafc5c5b5350",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5980264,
+   "prompt": "The barber's eyes travel slowly down to the plastic guard lying on the floor. His eyebrows lift toward the middle and his mouth tightens as it registers. His body goes still. Locked-off camera. Flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink. Style and character unchanged. Subtle motion only. No text appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/09-sees.mp4"
+   ]
+  },
+  {
+   "generation_id": "9a9e3dee-bccd-4ef5-9291-d8efb8509f3c",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 4843498,
+   "prompt": "The mosquito on the tip of his nose twitches and flicks its wings slightly. His crossed eyes stay locked on it and narrow a little further in annoyance, one eyebrow lowering. A tiny impatient twitch at the corner of his mouth. The camera is completely locked off and does not move or zoom. The drawing style must not change: flat hand-drawn cartoon, monochrome sage-olive, no skin colour, loose scratchy black ink outlines. The head shape, the backwards cap and the huge round eyes stay exactly as drawn. Very subtle motion only. No text appears at any point.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/guard-clips/nose.mp4",
+    "experiments/guard-clips/scene-03.mp4"
+   ]
+  },
+  {
+   "generation_id": "040078a1-c087-450b-b63a-bcc7b8fa1f2b",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5816808,
+   "prompt": "The mannequin head turns very slowly and smoothly a few degrees, revealing the shaved hard part line carved above the temple. Locked-off camera, no zoom, no cuts. The grey studio backdrop stays completely still. Photographic, subtle, minimal motion. The shaved part line stays sharp and does not change shape. No text of any kind appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-fades/clips/rank-4.mp4"
+   ]
+  },
+  {
+   "generation_id": "16c8b404-1943-4823-853b-1617b90cd2c9",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 6684681,
+   "prompt": "The mannequin head turns very slowly and smoothly a few degrees, revealing the low taper fade along the ear and neckline. Locked-off camera, no zoom, no cuts. The grey studio backdrop stays completely still. Photographic, subtle, minimal motion. The haircut shape does not change. No text of any kind appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-fades/clips/rank-6.mp4"
+   ]
+  },
+  {
+   "generation_id": "960bf4d1-0f51-4f08-a0d0-9d1e2fe0fac3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5656551,
+   "prompt": "The mannequin head turns very slowly and smoothly a few degrees, revealing the mid fade blending up the side of the head. Locked-off camera, no zoom, no cuts. The grey studio backdrop stays completely still. Photographic, subtle, minimal motion. The haircut shape does not change. No text of any kind appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-fades/clips/rank-5.mp4"
+   ]
+  },
+  {
+   "generation_id": "b013d42b-fdef-4ab4-8547-494a5ce11394",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5753075,
+   "prompt": "The mannequin head turns very slowly and smoothly a few degrees, revealing the high skin fade and the sharp block of hair on top. Locked-off camera, no zoom, no cuts. The grey studio backdrop stays completely still. Photographic, subtle, minimal motion. The haircut shape does not change. No text of any kind appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-fades/clips/rank-2.mp4"
+   ]
+  },
+  {
+   "generation_id": "d936df90-fab1-45bf-9c33-efc02a2079b5",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 10509416,
+   "prompt": "The mannequin head turns very slowly and smoothly a few degrees, revealing the drop fade arcing down behind the ear. Locked-off camera, no zoom, no cuts. The grey studio backdrop stays completely still. Photographic, subtle, minimal motion. The haircut shape does not change. No text of any kind appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-fades/clips/rank-3.mp4"
+   ]
+  },
+  {
+   "generation_id": "e85cfca0-00f6-4217-8c07-1dc7371198a8",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-07",
+   "bytes": 5819139,
+   "prompt": "The mannequin head turns very slowly and smoothly a few degrees, revealing the burst fade around the ear. Locked-off camera, no zoom, no cuts. The grey studio backdrop stays completely still. Photographic, subtle, minimal motion. No text of any kind appears.",
+   "cached_copy": null,
+   "used_in": [
+    "experiments/ranking-fades/clips/rank-1.mp4"
+   ]
+  },
+  {
+   "generation_id": "8fccd76c-2970-433f-a72d-a7b46b42b8b9",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-03",
+   "bytes": 7760621,
+   "prompt": "A barber wearing thick black-framed glasses working with both hands on a client's fade, fully occupied, concentrating, warm barbershop light, documentary realism, shallow depth of field, generic unbranded eyewear, no logos",
+   "cached_copy": ".cache/broll-hf/hf-8fccd76c-2970-433f-a72d-a7b46b42b8b9.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "4894a6c0-cd12-417f-886d-bab1bd66873a",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-03",
+   "bytes": 4994332,
+   "prompt": "Close-up of a pair of modern thick black-framed smart glasses resting on a barbershop counter beside clippers, a tiny lens visible in the corner of one frame, warm shop light, shallow depth of field, cinematic, generic unbranded eyewear, no logos, no legible text",
+   "cached_copy": ".cache/broll-hf/4894a6c0-cd12-417f-886d-bab1bd66873a.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "6457bb8d-cb9b-41b0-b048-dfae2f95c455",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 5796375,
+   "prompt": "A robotics research workspace at night, motion capture cameras on stands pointed at an empty rig, monitors glowing softly out of focus in the background, cool blue light, cinematic, no people, no legible text",
+   "cached_copy": ".cache/broll-hf/6457bb8d-cb9b-41b0-b048-dfae2f95c455.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "3c359716-5869-4515-90e1-4d695d9234f2",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 7419169,
+   "prompt": "Extreme close-up of a barber's hand holding clippers, fingers adjusting the lever with practised precision, warm shop light, very shallow depth of field, cinematic, human hands only",
+   "cached_copy": ".cache/broll-hf/3c359716-5869-4515-90e1-4d695d9234f2.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "3de59840-7ab4-45e6-8957-edfa1088ec9f",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 4943035,
+   "prompt": "A precise industrial robotic arm moving slowly and deliberately in a clean bright laboratory, articulated joints, soft studio lighting, shallow depth of field, cinematic, no people, no legible text",
+   "cached_copy": ".cache/broll-hf/hf-3de59840-7ab4-45e6-8957-edfa1088ec9f.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "51eacc50-eae9-483c-ab0c-59913bb5fc16",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 7857932,
+   "prompt": "An empty waiting bench along the wall of a busy barbershop, nobody sitting on it, barbers working out of focus in the background, warm afternoon light, documentary realism, shallow depth of field, no legible text",
+   "cached_copy": ".cache/broll-hf/51eacc50-eae9-483c-ab0c-59913bb5fc16.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "40349ba6-28ee-41d4-826a-6473c0115d50",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 4357703,
+   "prompt": "Close-up of an old telephone handset ringing on a cluttered barbershop counter next to clippers and combs, nobody answering it, warm shop light, shallow depth of field, cinematic, no legible text",
+   "cached_copy": ".cache/broll-hf/40349ba6-28ee-41d4-826a-6473c0115d50.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "11b5647e-be71-4089-9624-8b3019655009",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 9401263,
+   "prompt": "A barber pausing mid-cut to look up and glance around a busy barbershop with a puzzled expression, other barbers working behind him, warm light, documentary style, shallow depth of field",
+   "cached_copy": ".cache/broll-hf/11b5647e-be71-4089-9624-8b3019655009.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "c4039919-cb6a-46e3-85e1-b9eb8b48b9c3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 6824115,
+   "prompt": "A row of training mannequin heads with different hair textures lined up on a shelf in an empty beauty school classroom at the end of the day, quiet, soft light, slow gentle dolly, cinematic",
+   "cached_copy": ".cache/broll-hf/c4039919-cb6a-46e3-85e1-b9eb8b48b9c3.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "9cf82ee9-9dc7-4a66-889b-7c2d6170d74b",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 9006310,
+   "prompt": "Close-up of hands sectioning tight coily textured hair on a training mannequin head with a wide tooth comb, beauty school workbench, soft window light, cinematic shallow depth of field",
+   "cached_copy": ".cache/broll-hf/hf-9cf82ee9-9dc7-4a66-889b-7c2d6170d74b.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "cf8a5b0e-227e-4291-add3-f5e71b3597c4",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 8411280,
+   "prompt": "A cosmetology instructor demonstrating a styling technique to a small group of attentive students gathered around a training station in a beauty school, warm daylight, documentary style, no legible text",
+   "cached_copy": ".cache/broll-hf/cf8a5b0e-227e-4291-add3-f5e71b3597c4.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "482e9d1c-8e1a-42f7-b2c5-47da72065c6b",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 8274398,
+   "prompt": "Cosmetology students in a bright beauty school classroom practicing on mannequin heads clamped to training stations, several students working in a row, natural daylight, documentary realism, shallow depth of field, no legible text or signage",
+   "cached_copy": ".cache/broll-hf/482e9d1c-8e1a-42f7-b2c5-47da72065c6b.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "09b20350-f2b4-4b63-9746-d9c5a2ba90b8",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 6756317,
+   "prompt": "Close-up over-the-shoulder of hands typing on a laptop keyboard in a bright salon back office, shallow depth of field, natural daylight, documentary realism, screen out of focus and unreadable",
+   "cached_copy": ".cache/broll-hf/09b20350-f2b4-4b63-9746-d9c5a2ba90b8.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "f87101f5-869e-4ceb-b302-d1b8b78baeef",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 5712789,
+   "prompt": "A classic red and white barber pole spinning slowly outside a shop at dusk, warm street light, shallow depth of field, cinematic, no text or signage",
+   "cached_copy": ".cache/broll-hf/f87101f5-869e-4ceb-b302-d1b8b78baeef.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "f2af81bd-6e1c-4a23-8e95-650a28817e9f",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 7630390,
+   "prompt": "A hair stylist standing at her station looking down at her phone between clients, salon mirrors and product shelves behind her, soft natural light, candid documentary style",
+   "cached_copy": ".cache/broll-hf/f2af81bd-6e1c-4a23-8e95-650a28817e9f.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "5d075478-1c2a-4f61-8fea-68eb00c41fa0",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 7249138,
+   "prompt": "Wide interior of a busy modern salon, several stylists working at their chairs, warm afternoon daylight through big windows, slow gentle camera drift, cinematic documentary",
+   "cached_copy": ".cache/broll-hf/5d075478-1c2a-4f61-8fea-68eb00c41fa0.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "c17d03ac-d201-4588-b255-895d618ee926",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 6835626,
+   "prompt": "Intimate close-up of a hand writing with a pen in a small notebook on a wooden counter, warm desk lamp light, shallow depth of field, handwriting not legible, quiet and personal",
+   "cached_copy": ".cache/broll-hf/c17d03ac-d201-4588-b255-895d618ee926.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "bf2fc877-4743-40b9-84b2-c604ffc98ab5",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 8176420,
+   "prompt": "Over-the-shoulder view of a barber talking and laughing with an adult client in the chair, genuine conversation, warm shop light, documentary style, shallow depth of field",
+   "cached_copy": ".cache/broll-hf/hf-bf2fc877-4743-40b9-84b2-c604ffc98ab5.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "f06ee053-b1a2-4544-be86-437197bf30c3",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 6333469,
+   "prompt": "An empty barber chair in a closed shop at dusk, slats of light through window blinds, dust drifting in the air, very slow dolly move, quiet and melancholic, cinematic",
+   "cached_copy": ".cache/broll-hf/hf-f06ee053-b1a2-4544-be86-437197bf30c3.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "0e0d842f-ce41-451b-936c-44ce71c8f04d",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 8060148,
+   "prompt": "A barber carefully cutting a young boy's hair in a busy barbershop, the boy grinning at himself in the mirror, warm golden light, documentary style, shallow depth of field, genuine warm moment",
+   "cached_copy": ".cache/broll-hf/0e0d842f-ce41-451b-936c-44ce71c8f04d.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "30665d3a-d33f-426e-94a0-cc3f2339b979",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 6738015,
+   "prompt": "A barber in his shop between clients, leaning against his station looking down at his phone, quiet moment, soft window light, cinematic shallow depth of field, documentary realism, no legible text on screen",
+   "cached_copy": ".cache/broll-hf/30665d3a-d33f-426e-94a0-cc3f2339b979.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "cd85883a-68e5-405d-8efb-ad012ee7e2fe",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 6059939,
+   "prompt": "Extreme close-up of hands typing on a smartphone keyboard, cool screen glow lighting the fingers, dark room, slow subtle camera drift, cinematic, screen text out of focus and unreadable",
+   "cached_copy": ".cache/broll-hf/hf-cd85883a-68e5-405d-8efb-ad012ee7e2fe.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "09f6815c-6032-424a-8683-9b9daa9ab262",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 8100405,
+   "prompt": "Vertical close-up of a young woman's hands holding a phone, her thumb scrolling quickly through a social media feed of near-identical salon and barbershop photos, warm indoor light, shallow depth of field, realistic documentary style, screen content blurred and unreadable, no legible text",
+   "cached_copy": ".cache/broll-hf/hf-09f6815c-6032-424a-8683-9b9daa9ab262.mp4",
+   "used_in": []
+  },
+  {
+   "generation_id": "5d0c1b06-ff49-4ff6-bdc8-87c7da6ea9ae",
+   "model": "kling3_0_turbo",
+   "created": "2026-09-02",
+   "bytes": 4306552,
+   "prompt": "Slow push in on a laptop screen glowing in a dim salon back room late at night, empty styling chairs out of focus behind it, moody low light, cinematic, screen content blurred and unreadable",
+   "cached_copy": ".cache/broll-hf/hf-5d0c1b06-ff49-4ff6-bdc8-87c7da6ea9ae.mp4",
+   "used_in": []
+  }
+ ]
+}
