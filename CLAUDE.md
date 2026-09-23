@@ -294,6 +294,24 @@ entirely in the read path.
 - **`credits` and `use_count` are the point.** Cost makes reuse an argument
   rather than a preference; use_count is the only evidence the library is being
   pulled from rather than just filled.
+- **DRAWN FOOTAGE IS EXCLUDED FROM SEARCH BY DEFAULT.** The library holds 89
+  clips and 40 of them are hand-drawn cartoon line art from the two short films
+  (the spray-bottle story and the clipper-guard story). Every one is honestly
+  tagged `barbershop`, `barber`, `chair`, `cape` — so a News Desk asking for
+  "barbershop chair" scored 2 on a pencil sketch and would have put it in a
+  video about a real news story. Nothing errors; the render just has the wrong
+  picture in it.
+
+  `STYLIZED_TAGS` in `lib/broll-library.js` is the guard: any clip tagged
+  `cartoon`, `sketch`, `line-art` or `animation` is filtered out unless you ask
+  for it, and naming one of those tags in the search IS asking. Pinned by
+  `lib/broll-library.test.ts`.
+- **Provenance lives in `docs/broll-higgsfield-manifest.json`**, which maps all
+  89 Higgsfield generations to the local files holding them, by exact byte size.
+  It exists because nothing on disk recorded which generation produced it — no
+  id in the filename, no sidecar — so an audit first read as "65 of 89
+  generations are lost" when the real number was 5. Regenerate it after a batch
+  of generations rather than trusting filenames to carry provenance.
 
 ### Generating new clips
 
