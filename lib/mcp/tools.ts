@@ -895,7 +895,15 @@ const myProfileAudit: McpTool = {
     }
 
     const { business, report, performance, keywords, generatedAt } = result.bundle;
-    const hoursOld = Math.floor((Date.now() - new Date(generatedAt).getTime()) / 3_600_000);
+    /**
+     * MINUTES, BECAUSE HOURS LIED.
+     *
+     * This counted whole hours, so anything under sixty minutes printed "just
+     * fetched from Google" — including a bundle cached fifty-five minutes
+     * earlier by a previous deployment. It was reporting freshness it had not
+     * checked, right next to figures that were not fresh.
+     */
+    const minutesOld = Math.max(0, Math.round((Date.now() - new Date(generatedAt).getTime()) / 60_000));
 
     const line = (c: (typeof report.checks)[number]) =>
       `- [${c.status.toUpperCase()}] ${c.label} (${c.area})\n    ${c.detail}${c.fix ? `\n    FIX: ${c.fix}` : ""}`;
@@ -956,9 +964,11 @@ const myProfileAudit: McpTool = {
     }
 
     out.push(
-      hoursOld >= 1
-        ? `These figures were fetched from Google about ${hoursOld} hour${hoursOld === 1 ? "" : "s"} ago and are cached for six hours, so a change made since then will not show yet.`
-        : "These figures were just fetched from Google.",
+      minutesOld < 2
+        ? "These figures were fetched from Google moments ago."
+        : minutesOld < 60
+          ? `These figures were fetched from Google ${minutesOld} minutes ago and are cached for six hours, so a change made since then will not show yet.`
+          : `These figures were fetched from Google about ${Math.round(minutesOld / 60)} hour${Math.round(minutesOld / 60) === 1 ? "" : "s"} ago and are cached for six hours, so a change made since then will not show yet.`,
       // The third place the "you can queue changes" claim lived. Same registry
       // check as the account block, for the same reason: a footer nobody
       // regenerates is a claim that outlives its tool.
