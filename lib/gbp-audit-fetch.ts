@@ -2,7 +2,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
-import { buildGbpAudit, splitKeywords, type AuditReport, type SearchKeyword } from "@/lib/gbp-audit";
+import { buildGbpAudit, splitKeywords, type AuditReport, type GbpAuditInput, type SearchKeyword } from "@/lib/gbp-audit";
 
 /**
  * Gathering half of the full Google Business Profile audit.
@@ -26,6 +26,29 @@ const PERFORMANCE_METRICS = [
   "BUSINESS_IMPRESSIONS_DESKTOP_SEARCH", "BUSINESS_IMPRESSIONS_MOBILE_SEARCH",
   "BUSINESS_IMPRESSIONS_DESKTOP_MAPS", "BUSINESS_IMPRESSIONS_MOBILE_MAPS",
 ];
+
+/**
+ * WHAT IS WORTH CACHING: the Google calls, and only those.
+ *
+ * The cache used to hold the finished bundle, REPORT INCLUDED — and the report
+ * is pure scoring over data we already had. That meant a deploy which changed
+ * the wording or the scoring changed nothing an owner could see for up to six
+ * hours, because the rendered text was already sitting in the cache under a key
+ * with no code version in it. It shipped exactly that way: new footer, old
+ * findings, and a phone line that a test had supposedly made impossible.
+ *
+ * So the raw material is cached and the report is built on every read. Scoring
+ * changes now take effect the moment they deploy, and the ten API calls are
+ * still paid once every six hours.
+ */
+export interface GbpAuditRaw {
+  business: GbpAuditBundle["business"];
+  auditInput: GbpAuditInput;
+  performance: GbpAuditBundle["performance"];
+  keywords: SearchKeyword[];
+  /** When the GOOGLE DATA was fetched — not when the report was rendered. */
+  fetchedAt: string;
+}
 
 export interface GbpAuditBundle {
   business: {
@@ -112,11 +135,11 @@ function diffFieldValues(ours: any, theirs: any): Array<{ field: string; ours: s
   return out;
 }
 
-export async function fetchGbpAudit(
+export async function fetchGbpAuditRaw(
   accessToken: string,
   locationName: string,
   accountName: string | null
-): Promise<GbpAuditBundle | null> {
+): Promise<GbpAuditRaw | null> {
   const location = await get(
     `https://mybusinessbusinessinformation.googleapis.com/v1/${locationName}?readMask=${encodeURIComponent(READ_MASK)}`,
     accessToken
@@ -191,7 +214,7 @@ export async function fetchGbpAudit(
   }));
 
   const reviewList = reviews?.reviews || [];
-  const report = buildGbpAudit({
+  const auditInput: GbpAuditInput = {
     location,
     attributesSet: attrsSet?.attributes || [],
     attributesAvailable: attrsAvail?.attributeMetadata || [],
@@ -254,7 +277,7 @@ export async function fetchGbpAudit(
       hasBusinessAuthority: verification.hasBusinessAuthority,
     } : null,
     placeActions: placeActions?.placeActionLinks || [],
-  });
+  };
 
   return {
     business: {
@@ -263,7 +286,7 @@ export async function fetchGbpAudit(
       category: location.categories?.primaryCategory?.displayName || null,
       city: location.storefrontAddress?.locality || null,
     },
-    report,
+    auditInput,
     performance: perfRaw ? {
       impressions,
       calls: sumMetric("CALL_CLICKS"),
@@ -271,9 +294,33 @@ export async function fetchGbpAudit(
       directions: sumMetric("BUSINESS_DIRECTION_REQUESTS"),
     } : null,
     keywords,
-    keywordSplit: splitKeywords(keywords, location.title || ""),
-    generatedAt: new Date().toISOString(),
+    fetchedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Score the raw material. Pure, cheap, and run on EVERY read so that a change
+ * to the wording or the weights is visible immediately.
+ */
+export function buildBundle(raw: GbpAuditRaw): GbpAuditBundle {
+  return {
+    business: raw.business,
+    report: buildGbpAudit(raw.auditInput),
+    performance: raw.performance,
+    keywords: raw.keywords,
+    keywordSplit: splitKeywords(raw.keywords, raw.business.name || ""),
+    generatedAt: raw.fetchedAt,
+  };
+}
+
+/** The whole thing, uncached — what the page and the CLI have always called. */
+export async function fetchGbpAudit(
+  accessToken: string,
+  locationName: string,
+  accountName: string | null
+): Promise<GbpAuditBundle | null> {
+  const raw = await fetchGbpAuditRaw(accessToken, locationName, accountName);
+  return raw ? buildBundle(raw) : null;
 }
 
 /**
@@ -303,19 +350,34 @@ export async function getMemberGbpAudit(memberId: string): Promise<
   if (!locationName) return { status: "no-location" };
 
   try {
-    const bundle = await unstable_cache(
+    /**
+     * THE DEPLOY IS PART OF THE KEY.
+     *
+     * Belt and braces next to caching only the raw data: if anything that
+     * shapes the cached value ever creeps back into the cached function, a new
+     * deployment starts from a cold key instead of serving what the last one
+     * computed. The cost is one extra round of Google calls per deploy.
+     *
+     * VERCEL_DEPLOYMENT_ID is set on every Vercel runtime; the fallback keeps
+     * local development on a stable key so a dev server is not refetching on
+     * every reload.
+     */
+    const build = process.env.VERCEL_DEPLOYMENT_ID || "local";
+
+    const raw = await unstable_cache(
       async () => {
         const token = await gbpAccessToken(conn.refresh_token);
         const accounts = await get("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", token);
         const accountName = accounts?.accounts?.[0]?.name ?? null;
-        return await fetchGbpAudit(token, locationName, accountName);
+        return await fetchGbpAuditRaw(token, locationName, accountName);
       },
-      ["gbp-audit", memberId, locationName],
+      ["gbp-audit", build, memberId, locationName],
       { revalidate: 21600, tags: ["gbp-audit"] }
     )();
 
-    if (!bundle) return { status: "error", message: "Google didn't return this location. It may have been disconnected." };
-    return { status: "ok", bundle };
+    if (!raw) return { status: "error", message: "Google didn't return this location. It may have been disconnected." };
+    // Scored OUTSIDE the cache, so wording and weights take effect on deploy.
+    return { status: "ok", bundle: buildBundle(raw) };
   } catch (e: any) {
     // Marked out here rather than inside the unstable_cache callback above: a
     // cached function must stay a pure read, and its body may not run at all on
