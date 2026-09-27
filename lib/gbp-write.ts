@@ -676,3 +676,73 @@ export async function writeLocalPost(args: {
 
   return { ok: true, snapshotId: snap.id, before, after: res.body, postName: res.body?.name };
 }
+
+
+/**
+ * Undo a review reply from its snapshot.
+ *
+ * The snapshot records whether a reply existed before, as null when there was
+ * none, which is what makes this a real undo: no prior reply means the reply is
+ * deleted, and a prior reply means that exact text is put back.
+ */
+export async function revertReviewReply(args: { token: string; snapshotId: string }): Promise<WriteResult> {
+  const { token, snapshotId } = args;
+  const admin = createAdminClient();
+
+  const { data: snap } = await (admin.from("gbp_write_snapshots") as any)
+    .select("id, surface, before_state, status")
+    .eq("id", snapshotId)
+    .maybeSingle();
+
+  if (!snap) return { ok: false, error: "snapshot not found" };
+  if (snap.surface !== "reviews") return { ok: false, error: `not a review snapshot ("${snap.surface}")` };
+  if (snap.status === "reverted") return { ok: false, error: "already undone" };
+
+  const reviewName = String(snap.before_state?.reviewName || "");
+  if (!reviewName.includes("/reviews/")) return { ok: false, error: "snapshot has no review name" };
+
+  const previous: string | null = snap.before_state?.reviewReply?.comment ?? null;
+  const res = previous
+    ? await gbpFetch(`${V4}/${reviewName}/reply`, token, { method: "PUT", body: JSON.stringify({ comment: previous }) })
+    : await gbpFetch(`${V4}/${reviewName}/reply`, token, { method: "DELETE" });
+
+  if (!res.ok) return { ok: false, error: `undo failed (${res.status}): ${res.body?.error?.message || ""}` };
+
+  await (admin.from("gbp_write_snapshots") as any)
+    .update({ status: "reverted", reverted_at: new Date().toISOString(), after_state: { reviewName, reviewReply: previous ? res.body : null } })
+    .eq("id", snapshotId);
+
+  return { ok: true, snapshotId };
+}
+
+/**
+ * Take down a post we published.
+ *
+ * Deleting is the only undo a post has. It cannot be un-seen by anyone who
+ * already saw it, which is why approval, not this, is the real safeguard.
+ */
+export async function deleteLocalPost(args: { token: string; snapshotId: string }): Promise<WriteResult> {
+  const { token, snapshotId } = args;
+  const admin = createAdminClient();
+
+  const { data: snap } = await (admin.from("gbp_write_snapshots") as any)
+    .select("id, surface, after_state, status")
+    .eq("id", snapshotId)
+    .maybeSingle();
+
+  if (!snap) return { ok: false, error: "snapshot not found" };
+  if (snap.surface !== "localPosts") return { ok: false, error: `not a post snapshot ("${snap.surface}")` };
+  if (snap.status === "reverted") return { ok: false, error: "already undone" };
+
+  const postName = String(snap.after_state?.postName || "");
+  if (!postName.includes("/localPosts/")) return { ok: false, error: "snapshot does not record which post was published" };
+
+  const res = await gbpFetch(`${V4}/${postName}`, token, { method: "DELETE" });
+  if (!res.ok) return { ok: false, error: `delete failed (${res.status}): ${res.body?.error?.message || ""}` };
+
+  await (admin.from("gbp_write_snapshots") as any)
+    .update({ status: "reverted", reverted_at: new Date().toISOString() })
+    .eq("id", snapshotId);
+
+  return { ok: true, snapshotId };
+}

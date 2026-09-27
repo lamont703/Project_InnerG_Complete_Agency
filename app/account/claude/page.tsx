@@ -22,9 +22,11 @@ import { createBrowserClient } from "@/lib/supabase/browser"
  *    shouldn't have" is the likely reason anyone reads this page twice
  *
  * The second thing is expectation setting: a connected Claude can READ this
- * owner's listing and DRAFT changes to it. It cannot publish. That sentence is
- * on the page in the owner's language, not only in the model's instructions,
- * because the owner is the one who will wonder why Google hasn't changed yet.
+ * owner's listing and DRAFT changes to it, and — only on a connection created
+ * with publishing switched on — publish a draft after the owner says yes in
+ * Claude. Approval happens in Claude by the product owner's decision of
+ * 2026-09-27 (see lib/gbp-changes.ts). The switch is per connection so an
+ * owner can keep a read-and-draft link somewhere less trusted.
  */
 
 interface KeyRow {
@@ -46,6 +48,8 @@ export default function ConnectClaudePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [keys, setKeys] = useState<KeyRow[]>([])
   const [label, setLabel] = useState("")
+  const [allowPublish, setAllowPublish] = useState(true)
+  const [freshCanPublish, setFreshCanPublish] = useState(false)
   const [isMinting, setIsMinting] = useState(false)
   // Held in memory only, and only until the page is left. There is no way to
   // fetch it back, which is the point.
@@ -87,7 +91,7 @@ export default function ConnectClaudePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ label }),
+        body: JSON.stringify({ label, allowPublish }),
       })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
@@ -102,6 +106,7 @@ export default function ConnectClaudePage() {
       const isCanonical = data.url?.startsWith(localOrigin)
       setFreshUrl(isCanonical ? data.url : `${localOrigin}/mcp/k/${data.key}`)
       setFreshKey(data.key)
+      setFreshCanPublish(Array.isArray(data.row?.scopes) && data.row.scopes.includes("publish"))
       setMcpBase(isCanonical ? `${new URL(data.url).origin}/mcp` : `${localOrigin}/mcp`)
       setLabel("")
       setCopied(null)
@@ -174,8 +179,9 @@ export default function ConnectClaudePage() {
             <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Use your Claude on your own shop</h1>
             <p className="mt-4 text-base leading-relaxed text-slate-600">
               Add one link to Claude and it can look at your own listing — your audit score, your
-              reviews, what Google is missing — and write the fixes for you. You approve every change
-              here before anything reaches Google.
+              reviews, what Google is missing — and fix it for you: hours, description, services,
+              categories, review replies, posts and photos. Claude shows you each change first and
+              nothing reaches Google until you say yes.
             </p>
           </header>
 
@@ -273,8 +279,9 @@ export default function ConnectClaudePage() {
               <p className="mt-4 flex items-start gap-2 text-xs leading-relaxed text-emerald-900">
                 <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 Either way, treat it like a password. Anyone who has it can see your listing data and
-                queue drafts on your account. It cannot publish to Google, and you can revoke it below
-                at any time.
+                draft changes{freshCanPublish ? " — and, because publishing is on, publish them to your Google profile" : ""}.
+                {freshCanPublish ? " We email you every change it publishes, so you will know if it is ever used without you." : " It cannot publish to Google."}{" "}
+                You can revoke it below at any time.
               </p>
             </section>
           )}
@@ -302,6 +309,20 @@ export default function ConnectClaudePage() {
                 Create link
               </button>
             </div>
+            <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
+              <input
+                type="checkbox"
+                checked={allowPublish}
+                onChange={(e) => setAllowPublish(e.target.checked)}
+                className="mt-1 h-4 w-4 shrink-0 accent-slate-900"
+              />
+              <span>
+                <strong className="font-black">Let Claude publish changes to my Google profile.</strong>{" "}
+                Claude shows you each change and asks before publishing it, and we email you every
+                change it makes. Most can be undone by asking Claude. Untick this for a connection that
+                can only look and draft.
+              </span>
+            </label>
             {live.length >= 5 && (
               <p className="mt-3 text-xs font-semibold text-amber-700">
                 You have five active connections, which is the limit. Revoke one you don&apos;t use.
@@ -325,7 +346,12 @@ export default function ConnectClaudePage() {
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-black">{k.label || "Unnamed connection"}</p>
-                      <p className="mt-0.5 font-mono text-xs text-slate-500">{k.keyPrefix}…</p>
+                      <p className="mt-0.5 font-mono text-xs text-slate-500">
+                        {k.keyPrefix}…{" "}
+                        <span className="font-sans font-black">
+                          · {k.scopes.includes("publish") ? "can publish" : "read and draft only"}
+                        </span>
+                      </p>
                       <p className="mt-1 text-xs text-slate-500">
                         Added {when(k.createdAt)} · Last used {when(k.lastUsedAt)}
                         {k.revokedAt ? ` · Revoked ${when(k.revokedAt)}` : ""}
@@ -373,8 +399,9 @@ export default function ConnectClaudePage() {
             </ol>
             <p className="mt-3 text-xs leading-relaxed text-slate-500">
               Claude warns that without sign-in anyone holding the URL can use the connector. That is
-              true and it is why the key exists: it identifies your account, and it can never publish
-              to Google. Revoke it here the moment you think it has been seen.
+              true, and it is why the key is treated as a password: it identifies your account and, if
+              publishing is on, can change your Google profile. Revoke it here the moment you think it
+              has been seen.
             </p>
 
             <h3 className="mt-6 text-sm font-black uppercase tracking-wide text-slate-500">Claude Code</h3>
@@ -383,35 +410,31 @@ export default function ConnectClaudePage() {
   --header "Authorization: Bearer <your key>"`}
             </pre>
 
-            {/* The step that used to be missing. Claude asks per tool, and the
-                answer is uniform today because every tool only reads. */}
+            {/* Claude asks per tool. The markers we send make the safe answer obvious,
+                but the owner is the one choosing, so say what each group does. */}
             <h3 className="mt-6 text-sm font-black uppercase tracking-wide text-slate-500">
               Then it asks about each tool
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-slate-700">
-              Claude shows a permission screen listing every tool and asks whether to allow it or
-              ask you each time. <strong className="font-black">Allow all of them.</strong> Every
-              tool ShearQuery offers today only <em>looks things up</em> — none of them changes
-              anything, spends anything, or touches your Google profile. We mark them read-only in
-              the connection itself, so a client that reads those markers can work that out without
-              asking you.
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-slate-700">
-              That will change, and this is the line to watch for. Tools whose names begin with{" "}
-              <code className="rounded bg-slate-100 px-1 font-mono text-[12px]">propose_</code> are
-              coming — they write a draft change to your listing. Set those to{" "}
-              <strong className="font-black">ask each time</strong>. They still cannot publish
-              anything; you approve every change here. But a tool that writes is worth seeing
-              happen.
-            </p>
+            <ul className="mt-2 space-y-2 text-sm leading-relaxed text-slate-700">
+              <li>
+                <strong className="font-black">Tools starting with my_ or find_</strong> only look
+                things up. Allow them.
+              </li>
+              <li>
+                <strong className="font-black">Tools starting with propose_</strong> save a draft.
+                Nothing on Google changes. Allowing them is safe.
+              </li>
+              <li>
+                <strong className="font-black">publish_change and undo_change</strong> change your live
+                Google profile. Set these to <strong className="font-black">ask each time</strong>, so
+                Claude checks with you before every change goes out.
+              </li>
+            </ul>
 
             <p className="mt-6 text-sm leading-relaxed text-slate-600">
               Once it&apos;s connected, ask it something like{" "}
-              <em>&quot;audit my Google profile and fix what you can&quot;</em>. Drafts land in{" "}
-              <Link href="/account/my-requests" className="font-bold text-blue-700 underline">
-                your requests
-              </Link>{" "}
-              for you to approve.
+              <em>&quot;audit my Google profile and fix what you can&quot;</em>. It will show you each
+              change as a draft and publish only the ones you approve.
             </p>
           </section>
 
@@ -421,20 +444,21 @@ export default function ConnectClaudePage() {
             </h2>
             <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-700">
               <li>
-                <strong>Can</strong> read your claimed listing, your audit, your reviews and your photo
-                coverage.
+                <strong>Can</strong> read your claimed listing, your audit, and your whole Google profile:
+                hours, description, categories, services, reviews, posts and photos.
               </li>
               <li>
-                <strong>Can</strong> write drafts — a post, a reply, a description — and queue them for
+                <strong>Can</strong> draft changes — a post, a reply, new hours — and show them to you
+                first.
+              </li>
+              <li>
+                <strong>Can</strong> publish a draft to Google only if publishing is on for that
+                connection, and only after you say yes in Claude. Every published change is emailed to
                 you.
               </li>
               <li>
-                <strong>Cannot</strong> publish anything to Google. Approval happens on this site, by
-                you.
-              </li>
-              <li>
-                <strong>Cannot</strong> see other people&apos;s private listings, your password, or your
-                payment details.
+                <strong>Cannot</strong> change your business name, address or main category, or see
+                other people&apos;s private listings, your password, or your payment details.
               </li>
             </ul>
             <p className="mt-4 text-xs leading-relaxed text-slate-500">

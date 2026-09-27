@@ -30,7 +30,12 @@ beforeAll(async () => {
   capabilityLines = mod.capabilityLines as any;
 });
 
-const OWNER_TOOLS = ["my_shearquery_account", "my_google_profile_audit", "my_photo_coverage"];
+const OWNER_TOOLS = [
+  "my_shearquery_account", "my_google_profile_audit", "my_photo_coverage",
+  "my_google_profile", "my_reviews", "my_posts", "my_photos", "my_changes",
+];
+
+const owner = (scopes: string[]) => ({ identity: { memberId: "m", keyId: "k", scopes, keyPrefix: "sq_x" } });
 
 describe("the MCP tool registry", () => {
   it("registers every owner tool, so none can be defined but unreachable", () => {
@@ -49,9 +54,8 @@ describe("the MCP tool registry", () => {
     const anon = toolDescriptors().map((t: any) => t.name);
     for (const n of OWNER_TOOLS) expect(anon).not.toContain(n);
 
-    const owner = toolDescriptors({ identity: { memberId: "m", keyId: "k", scopes: ["read"], keyPrefix: "sq_x" } })
-      .map((t: any) => t.name);
-    for (const n of OWNER_TOOLS) expect(owner).toContain(n);
+    const listed = toolDescriptors(owner(["read"])).map((t: any) => t.name);
+    for (const n of OWNER_TOOLS) expect(listed).toContain(n);
   });
 
   it("gives every tool annotations, since the protocol defaults are hostile", () => {
@@ -64,13 +68,59 @@ describe("the MCP tool registry", () => {
     }
   });
 
-  it("keeps every tool read-only until a propose_ tool is deliberately added", () => {
-    // The day this fails is the day something writes. It should fail loudly and
-    // be updated on purpose, not drift.
-    for (const t of MCP_TOOLS) {
-      expect(t.annotations.readOnlyHint, `${t.name} is not read-only`).toBe(true);
+  /**
+   * THIS REPLACED "every tool is read-only". Writing arrived on purpose on
+   * 2026-09-27 — drafts, then publishing approved inside Claude — so the rule
+   * became: anything that is not read-only must be behind an identity AND a
+   * scope, and the only tools that may touch the live profile are the two that
+   * say so. A new writing tool fails here until it declares which it is.
+   */
+  it("puts every tool that writes behind an identity and a scope", () => {
+    for (const t of MCP_TOOLS.filter((x) => !x.annotations.readOnlyHint)) {
+      expect(t.requiresIdentity, `${t.name} writes but does not require identity`).toBe(true);
+      expect(t.requiresScope, `${t.name} writes but declares no scope`).toBeTruthy();
     }
-    expect(MCP_TOOLS.filter((t) => t.name.startsWith("propose_"))).toHaveLength(0);
+  });
+
+  it("lets only publish_change and undo_change change the live profile", () => {
+    const destructive = MCP_TOOLS.filter((t) => t.annotations.readOnlyHint === false && t.annotations.destructiveHint !== false);
+    expect(destructive.map((t) => t.name).sort()).toEqual(["publish_change", "undo_change"]);
+    for (const t of destructive) expect(t.requiresScope).toBe("publish");
+  });
+
+  it("marks every propose_ tool as a non-destructive draft behind the propose scope", () => {
+    const propose = MCP_TOOLS.filter((t) => t.name.startsWith("propose_"));
+    expect(propose.length).toBeGreaterThan(8);
+    for (const t of propose) {
+      expect(t.requiresScope, t.name).toBe("propose");
+      expect(t.annotations.readOnlyHint, t.name).toBe(false);
+      expect(t.annotations.destructiveHint, t.name).toBe(false);
+    }
+  });
+
+  it("hides publishing from a key without the publish scope", () => {
+    const draftOnly = toolDescriptors(owner(["read", "propose"])).map((t: any) => t.name);
+    expect(draftOnly).toContain("propose_description");
+    expect(draftOnly).not.toContain("publish_change");
+    expect(draftOnly).not.toContain("undo_change");
+
+    const readOnly = toolDescriptors(owner(["read"])).map((t: any) => t.name);
+    expect(readOnly.some((n: string) => n.startsWith("propose_"))).toBe(false);
+
+    const full = toolDescriptors(owner(["read", "propose", "publish"])).map((t: any) => t.name);
+    expect(full).toContain("publish_change");
+  });
+
+  /**
+   * Found while adding these tools: lib/tool-access.ts turns a tool off on the
+   * connector unless it has a registry row, and my_photo_coverage had none — so
+   * it was defined, listed in MCP_TOOLS, and invisible to every client.
+   */
+  it("gives every MCP tool a tool-access row, or the connector silently hides it", async () => {
+    const { TOOL_REGISTRY } = await import("@/lib/tool-access");
+    const registered = new Set(TOOL_REGISTRY.filter((t) => t.implemented.includes("mcp")).map((t) => t.id));
+    const missing = MCP_TOOLS.map((t) => t.name).filter((n) => !registered.has(n));
+    expect(missing, `no tool-access row: ${missing.join(", ")}`).toEqual([]);
   });
 
   it("gives each tool a unique name and a non-empty description", () => {
@@ -96,7 +146,7 @@ describe("the MCP tool registry", () => {
 describe("capabilityLines — no claim without a tool behind it", () => {
   it("names only what registered owner tools actually return", () => {
     const [read] = capabilityLines(["read", "propose"]);
-    const provided = MCP_TOOLS.filter((t) => t.requiresIdentity).map((t) => t.provides);
+    const provided = MCP_TOOLS.filter((t) => t.requiresIdentity && t.annotations.readOnlyHint).map((t) => t.provides);
     for (const p of provided) expect(read).toContain(p);
   });
 
@@ -117,16 +167,16 @@ describe("capabilityLines — no claim without a tool behind it", () => {
     expect(unbacked, `claimed without a tool: ${unbacked.join(", ")}`).toEqual([]);
   });
 
-  it("says NOT YET for propose while no propose_ tool exists", () => {
-    const [, propose] = capabilityLines(["read", "propose"]);
-    const has = MCP_TOOLS.some((t) => t.name.startsWith("propose_"));
-    expect(propose.includes("NOT YET")).toBe(!has);
+  it("offers drafting only to a key with the propose scope", () => {
+    expect(capabilityLines(["read", "propose"])[1]).toContain("propose — yes");
+    expect(capabilityLines(["read"])[1]).toContain("propose — no");
   });
 
-  it("always refuses publish, whatever the scopes say", () => {
+  it("says publish NO unless the key carries the publish scope", () => {
     for (const scopes of [["read"], ["read", "propose"], []]) {
       expect(capabilityLines(scopes as string[]).at(-1)).toContain("publish — NO");
     }
+    expect(capabilityLines(["read", "propose", "publish"]).at(-1)).toContain("publish — yes");
   });
 
   it("reports read as no when the key lacks the scope", () => {

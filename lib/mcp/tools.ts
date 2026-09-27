@@ -5,7 +5,7 @@ import { queryVenues, getRentBenchmarks, getVenueIndex } from "@/lib/compare-sho
 import { SITE_URL } from "../site";
 import { PUBLIC_ENTITY_TYPES } from "@/lib/gbp-audit-public";
 import { auditPublicEntity } from "@/lib/gbp-audit-public-fetch";
-import type { McpIdentity } from "@/lib/mcp/connection";
+import type { McpIdentity, McpScope } from "@/lib/mcp/connection";
 // Owner-scoped tools read tables with RLS on and no policies (gbp_connections,
 // community_member_entity_links), which the module-level client above cannot
 // reach when only the anon key is present.
@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getMemberGbpAudit } from "@/lib/gbp-audit-fetch";
 import { analysePhotoCoverage } from "@/lib/gbp-photos";
 import { gbpAccessToken, isGbpReconnectRequired } from "@/lib/google-business";
+import { GBP_TOOLS } from "@/lib/mcp/gbp-tools";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -91,6 +92,15 @@ export interface McpTool {
    */
   requiresIdentity?: boolean;
   /**
+   * The key scope the tool needs beyond identity: "propose" for drafting,
+   * "publish" for anything that changes the live Google profile.
+   *
+   * Enforced in the handler before dispatch, like requiresIdentity, and used to
+   * leave the tool out of tools/list for a key without it. A draft-only key
+   * that is shown publish_change will keep trying it.
+   */
+  requiresScope?: McpScope;
+  /**
    * For an owner-scoped tool: the short noun phrase for what it RETURNS.
    *
    * my_shearquery_account builds its "what this connection can do" section out
@@ -112,21 +122,25 @@ export interface McpTool {
  * point is that this text cannot drift from the tools that back it.
  */
 export function capabilityLines(scopes: string[]): string[] {
-  const ownerTools = MCP_TOOLS.filter((t) => t.requiresIdentity);
-  const proposeTools = MCP_TOOLS.filter((t) => t.name.startsWith("propose_"));
-  const canRead = scopes.includes("read") && ownerTools.length > 0;
+  const readTools = MCP_TOOLS.filter((t) => t.requiresIdentity && t.annotations.readOnlyHint);
+  const proposeTools = MCP_TOOLS.filter((t) => t.requiresScope === "propose" && t.name.startsWith("propose_"));
+  const publishTools = MCP_TOOLS.filter((t) => t.requiresScope === "publish");
+  const canRead = scopes.includes("read") && readTools.length > 0;
   const canPropose = scopes.includes("propose") && proposeTools.length > 0;
+  const canPublish = scopes.includes("publish") && publishTools.length > 0;
 
-  const reads = ownerTools.map((t) => t.provides).filter(Boolean) as string[];
+  const reads = readTools.map((t) => t.provides).filter(Boolean) as string[];
 
   return [
     canRead
       ? `  read    — yes, and ONLY these: ${reads.join("; ")}. Nothing else about this owner is reachable from here.`
       : "  read    — no.",
     canPropose
-      ? `  propose — yes: ${proposeTools.map((t) => t.name).join(", ")} queue a change for the owner to approve.`
-      : "  propose — NOT YET. The key permits it, but no drafting tool exists in this connection yet, so do not offer to queue a change. Point the owner at their account page instead.",
-    "  publish — NO. No connection key can publish to Google.",
+      ? `  propose — yes: ${proposeTools.map((t) => t.name).join(", ")} save a DRAFT. A draft changes nothing on Google.`
+      : "  propose — no. Do not offer to draft changes; point the owner at their account page instead.",
+    canPublish
+      ? `  publish — yes, with the owner's say-so: ${publishTools.map((t) => t.name).join(", ")}. Publish only a draft the owner has seen and approved in this conversation.`
+      : `  publish — NO. This connection was created without publishing, so drafts cannot go live from Claude. The owner can create a connection with publishing turned on at ${SITE_URL}/account/claude.`,
   ];
 }
 
@@ -824,9 +838,11 @@ const myAccount: McpTool = {
       "WHAT THIS CONNECTION CAN DO",
       ...capabilityLines(identity.scopes),
       "",
-      MCP_TOOLS.some((t) => t.name.startsWith("propose_"))
-        ? `Anything drafted here becomes a pending change the owner approves at ${SITE}/account/my-requests. Until they do, nothing has reached Google — say so rather than reporting a change as live.`
-        : `Changes are made by the owner at ${SITE}/account/gbp-audit and the pages linked from it.`
+      identity.scopes.includes("publish")
+        ? "Anything drafted here is a pending change until the owner approves it in this conversation and publish_change runs. Until then nothing has reached Google — say so rather than reporting a draft as live."
+        : identity.scopes.includes("propose")
+          ? `Drafts made here cannot be published from Claude on this connection. The owner can create one with publishing turned on at ${SITE}/account/claude, or make changes at ${SITE}/account/gbp-audit.`
+          : `Changes are made by the owner at ${SITE}/account/gbp-audit and the pages linked from it.`
     );
 
     return lines.filter((l) => l !== null).join("\n");
@@ -972,8 +988,8 @@ const myProfileAudit: McpTool = {
       // The third place the "you can queue changes" claim lived. Same registry
       // check as the account block, for the same reason: a footer nobody
       // regenerates is a claim that outlives its tool.
-      MCP_TOOLS.some((t) => t.name.startsWith("propose_"))
-        ? `Fixes that change the live profile go through approval: draft one and the owner approves it at ${SITE}/account/my-requests. Nothing reaches Google until they do.`
+      identity.scopes.includes("propose")
+        ? "Most of these fixes can be drafted from here with the propose_ tools. Show the owner each draft; nothing reaches Google until they approve it and publish_change runs."
         : `Nothing here can change the live profile. The owner makes these changes themselves at ${SITE}/account/gbp-audit and the pages linked from it.`
     );
 
@@ -1130,6 +1146,7 @@ export const MCP_TOOLS: McpTool[] = [
   myAccount,
   myProfileAudit,
   myPhotoCoverage,
+  ...GBP_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
@@ -1143,7 +1160,12 @@ export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
  * then explain our product to the user incorrectly.
  */
 export const toolDescriptors = (ctx?: McpToolContext, enabled?: Set<string>) =>
-  MCP_TOOLS.filter((t) => (!t.requiresIdentity || ctx?.identity) && (!enabled || enabled.has(t.name))).map(
+  MCP_TOOLS.filter(
+    (t) =>
+      (!t.requiresIdentity || ctx?.identity) &&
+      (!t.requiresScope || ctx?.identity?.scopes.includes(t.requiresScope)) &&
+      (!enabled || enabled.has(t.name))
+  ).map(
     ({ name, title, description, annotations, inputSchema }) => ({
       name,
       title,
