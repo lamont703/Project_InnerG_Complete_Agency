@@ -326,10 +326,33 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
    * it — not that Google holds nothing.
    */
   const show = (v: string | null) => (v ? `"${v}"` : null);
+  /**
+   * GRADUATED BY FIELD, NOT BY COUNT.
+   *
+   * All-or-nothing meant a stale description cost exactly as much as a wrong
+   * phone number, which is the wrong shape: some of these send a customer to
+   * the wrong place and some are cosmetic. Counting fields instead would be no
+   * better — three cosmetic differences are not worse than one wrong address.
+   *
+   * SENDS-THEM-WRONG fields take the whole check on their own. Name, phone,
+   * address, hours and website are how someone reaches the shop; if any of
+   * those disagrees with Google, the profile is actively misdirecting people
+   * and no amount of correct description offsets it.
+   *
+   * The rest cost a point each. A description or a category that has drifted is
+   * worth flagging and is not worth the whole Trust budget.
+   */
+  const CRITICAL_DRIFT = new Set(["phoneNumbers", "storefrontAddress", "regularHours", "title", "websiteUri"]);
+  const critical = diffs.filter((d) => CRITICAL_DRIFT.has(d.field));
+  const minor = diffs.filter((d) => !CRITICAL_DRIFT.has(d.field));
+  const driftEarned = critical.length ? 0 : Math.max(0, 4 - minor.length);
+
   add({
     id: "google-drift", area: "Trust", label: "Agreement with Google's own data", weight: 4,
-    earned: diffs.length === 0 ? 4 : 0,
-    status: diffs.length === 0 ? "pass" : "warn",
+    earned: diffs.length === 0 ? 4 : driftEarned,
+    // A critical field is a fail, not a warning: the profile is sending people
+    // somewhere wrong right now.
+    status: diffs.length === 0 ? "pass" : critical.length ? "fail" : "warn",
     detail: diffs.length === 0
       ? "Google's record matches the profile."
       : `Google shows something different on ${diffs.length} field(s) an owner can change: ` +
