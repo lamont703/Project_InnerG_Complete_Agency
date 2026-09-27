@@ -11,6 +11,8 @@ import type { McpIdentity } from "@/lib/mcp/connection";
 // reach when only the anon key is present.
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMemberGbpAudit } from "@/lib/gbp-audit-fetch";
+import { analysePhotoCoverage } from "@/lib/gbp-photos";
+import { gbpAccessToken, isGbpReconnectRequired } from "@/lib/google-business";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -769,15 +771,35 @@ const myAccount: McpTool = {
       );
     }
 
-    // ── what this connection may do ──
+    /**
+     * WHAT THIS CONNECTION CAN DO — and it must describe the TOOLS, not the
+     * scopes on the key.
+     *
+     * This line used to read "propose — yes" straight off the key's scope
+     * array, while no propose_* tool existed. A real session hit exactly the
+     * dead end that creates: the model told the owner their account allows
+     * drafted changes, was asked for one, and had to answer that the tool is
+     * not in this connection. We advertised a capability we had not shipped.
+     *
+     * So the propose line is computed from the tool registry. It starts
+     * truthfully as "not yet" and starts saying yes the moment the first
+     * propose_* tool is added — without anyone remembering to edit this string.
+     */
+    const proposeTools = MCP_TOOLS.filter((t) => t.name.startsWith("propose_"));
+    const canPropose = identity.scopes.includes("propose") && proposeTools.length > 0;
+
     lines.push(
       "",
       "WHAT THIS CONNECTION CAN DO",
       `  read    — ${identity.scopes.includes("read") ? "yes" : "no"}: this owner's audit, reviews, photos and change history.`,
-      `  propose — ${identity.scopes.includes("propose") ? "yes" : "no"}: queue a change for the owner to approve.`,
+      canPropose
+        ? `  propose — yes: ${proposeTools.map((t) => t.name).join(", ")} queue a change for the owner to approve.`
+        : "  propose — NOT YET. The key permits it, but no drafting tool exists in this connection yet, so do not offer to queue a change. Point the owner at their account page instead.",
       "  publish — NO. No connection key can publish to Google.",
       "",
-      `Anything drafted here becomes a pending change the owner approves at ${SITE}/account/my-requests. Until they do, nothing has reached Google — say so rather than reporting a change as live.`
+      canPropose
+        ? `Anything drafted here becomes a pending change the owner approves at ${SITE}/account/my-requests. Until they do, nothing has reached Google — say so rather than reporting a change as live.`
+        : `Changes are made by the owner at ${SITE}/account/gbp-audit and the pages linked from it.`
     );
 
     return lines.filter((l) => l !== null).join("\n");
@@ -916,6 +938,121 @@ const myProfileAudit: McpTool = {
   },
 };
 
+// ── 9. This owner's photo coverage ──────────────────────────────────────────
+
+/**
+ * WHICH photos are missing, not how many exist.
+ *
+ * The audit says "90 photos, covering 1 of the 5 kinds customers look for",
+ * and a real session showed that is not actionable: asked what to add, the
+ * model could only say "some photos of the outside, inside, your work, the
+ * team" — the generic list, because the count is all the audit carries.
+ * analysePhotoCoverage already knows exactly which categories are empty and in
+ * what order they are worth filling; it was just not reachable from here.
+ *
+ * COUNTING PHOTOS WAS THE WRONG MEASURE, and this tool exists because of that
+ * finding: a listing with ninety uncategorised shots passes a count check while
+ * having no picture of the room, the front, or the people. Ninety photos in one
+ * category is the failure, not the success.
+ *
+ * FIVE PAGES OF MEDIA, NOT ONE. Google returns fifty per page and this listing
+ * has ninety — a single page would report coverage that is simply wrong. Same
+ * pagination as app/api/account/gbp-photos/route.ts, for the same reason.
+ */
+const myPhotoCoverage: McpTool = {
+  name: "my_photo_coverage",
+  title: "Which photo categories this owner's Google listing is missing",
+  description:
+    "Break down the owner's Google Business Profile photos by category and name exactly which ones are missing or thin — cover photo, outside, inside, work you've done, the team — in the order they are worth filling, with specific guidance on what to shoot for each. Use this when the audit flags photos, because the audit gives only a count while this gives the gaps. Requires a connected Google Business Profile.",
+  requiresIdentity: true,
+  annotations: { readOnlyHint: true, openWorldHint: true },
+  inputSchema: { type: "object", properties: {} },
+  handler: async (_args, ctx) => {
+    const identity = ctx.identity;
+    if (!identity) return "This tool needs an owner connection and this connection has none.";
+
+    const admin = createAdminClient();
+    const { data: conn } = await (admin.from("gbp_connections") as any)
+      .select("refresh_token, selected_location, locations, status")
+      .eq("community_member_id", identity.memberId)
+      .maybeSingle();
+
+    if (!conn?.refresh_token) {
+      return `This owner has not connected their Google Business Profile, so their photos cannot be read. They connect it at ${SITE}/account/gbp-audit.`;
+    }
+    if (String(conn.status) === "revoked") {
+      return `The Google connection has expired and must be reconnected at ${SITE}/account/gbp-audit. Retrying will not fix it.`;
+    }
+    const locationName: string | null =
+      conn.selected_location ||
+      (Array.isArray(conn.locations) && conn.locations.length === 1 ? conn.locations[0]?.name : null);
+    if (!locationName) {
+      return `Google is connected but no location has been chosen, so there is nothing to read. The owner picks one at ${SITE}/account/gbp-audit.`;
+    }
+
+    let token: string;
+    try {
+      token = await gbpAccessToken(conn.refresh_token);
+    } catch (e: any) {
+      return isGbpReconnectRequired(e)
+        ? `The Google connection has expired. It must be reconnected at ${SITE}/account/gbp-audit — retrying will not fix it.`
+        : `Could not reach Google: ${safeEcho(e?.message, 160)}`;
+    }
+
+    const accRes = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
+      headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+    });
+    const accountName = accRes.ok ? (await accRes.json())?.accounts?.[0]?.name ?? null : null;
+    if (!accountName) return "Google did not return an account for this connection. It may need reconnecting.";
+
+    const items: any[] = [];
+    let pageToken: string | undefined;
+    for (let page = 0; page < 5; page++) {
+      const url = new URL(`https://mybusiness.googleapis.com/v4/${accountName}/${locationName}/media`);
+      url.searchParams.set("pageSize", "100");
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      if (!r.ok) break;
+      const body = await r.json();
+      items.push(...(body.mediaItems || []));
+      pageToken = body.nextPageToken;
+      if (!pageToken) break;
+    }
+
+    const cov = analysePhotoCoverage(items as any);
+    const out: (string | null)[] = [
+      `PHOTO COVERAGE — ${cov.total} photo(s) on the listing.`,
+      cov.uncategorised
+        ? `${cov.uncategorised} of them are uncategorised, which means Google does not show them where customers look.`
+        : null,
+      "",
+    ];
+
+    const missing = cov.items.filter((i) => i.missing);
+    const thin = cov.items.filter((i) => i.thin);
+    const done = cov.items.filter((i) => !i.missing && !i.thin);
+
+    if (missing.length) {
+      out.push(`MISSING ENTIRELY — ${missing.length}, worth filling in this order:`);
+      for (const g of cov.gaps) out.push(`- ${g.label} (0 of ${g.target})\n    ${g.guidance}`);
+      out.push("");
+    }
+    if (thin.length) {
+      out.push(`THIN — has some, short of what reads as covered:`);
+      for (const t of thin) out.push(`- ${t.label}: ${t.count} of ${t.target}\n    ${t.guidance}`);
+      out.push("");
+    }
+    if (done.length) out.push(`COVERED: ${done.map((d) => `${d.label} (${d.count})`).join(", ")}.`, "");
+
+    out.push(
+      missing.length
+        ? `The first one on that list is the one to shoot first. Photos are uploaded by the owner at ${SITE}/account/gbp-photos — they cannot be added from here.`
+        : `Every category customers look for has something in it. Photos are managed at ${SITE}/account/gbp-photos.`
+    );
+    return out.filter((l) => l !== null).join("\n");
+  },
+};
+
 export const MCP_TOOLS: McpTool[] = [
   compareSchools,
   compareShops,
@@ -925,6 +1062,7 @@ export const MCP_TOOLS: McpTool[] = [
   boothRentForCity,
   myAccount,
   myProfileAudit,
+  myPhotoCoverage,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
@@ -937,8 +1075,8 @@ export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
  * advertising one that always fails invites the model to keep trying it and
  * then explain our product to the user incorrectly.
  */
-export const toolDescriptors = (ctx?: McpToolContext) =>
-  MCP_TOOLS.filter((t) => !t.requiresIdentity || ctx?.identity).map(
+export const toolDescriptors = (ctx?: McpToolContext, enabled?: Set<string>) =>
+  MCP_TOOLS.filter((t) => (!t.requiresIdentity || ctx?.identity) && (!enabled || enabled.has(t.name))).map(
     ({ name, title, description, annotations, inputSchema }) => ({
       name,
       title,
