@@ -85,11 +85,31 @@ describe("buildGbpAudit", () => {
     expect(check.fix).toMatch(/before anything else/);
   });
 
-  it("reports Google's disagreement field by field", () => {
-    const r = buildGbpAudit({ ...COMPLETE, googleUpdated: { diffMask: "categories,websiteUri" } });
+  it("names BOTH values when Google disagrees, not just the field", () => {
+    // An owner asked which number Google had and the check could not say —
+    // it kept the diffMask and discarded the values. The fix carries both.
+    const r = buildGbpAudit({
+      ...COMPLETE,
+      googleUpdated: {
+        diffMask: "phoneNumbers",
+        diffs: [{ field: "phoneNumbers", ours: "(404) 555-0101", google: "(404) 555-0199" }],
+      },
+    });
     const check = r.checks.find((c) => c.id === "google-drift")!;
     expect(check.status).toBe("warn");
-    expect(check.detail).toContain("categories, websiteUri");
+    expect(check.detail).toContain("phone number");
+    expect(check.detail).toContain("(404) 555-0101");
+    expect(check.detail).toContain("(404) 555-0199");
+  });
+
+  it("ignores a diffMask that contains nothing an owner can change", () => {
+    // `metadata` is Google's own bookkeeping and differs on nearly every
+    // listing. Scoring it reported "2 fields differ" for one real problem and
+    // took the whole four points for something nobody can act on.
+    const r = buildGbpAudit({ ...COMPLETE, googleUpdated: { diffMask: "metadata", diffs: [] } });
+    const check = r.checks.find((c) => c.id === "google-drift")!;
+    expect(check.status).toBe("pass");
+    expect(check.earned).toBe(check.weight);
   });
 
   it("does not penalise a listing for reviews it has no sample of", () => {
