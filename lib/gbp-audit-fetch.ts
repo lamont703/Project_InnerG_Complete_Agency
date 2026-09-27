@@ -196,7 +196,15 @@ export async function fetchGbpAudit(
     attributesSet: attrsSet?.attributes || [],
     attributesAvailable: attrsAvail?.attributeMetadata || [],
     photos: {
-      count: media?.totalMediaItemCount ?? (media?.mediaItems || []).length,
+      /**
+       * PHOTOS, NOT MEDIA ITEMS. totalMediaItemCount counts videos too, so this
+       * reported "90 photo(s)" on a listing with 80 photos and 10 videos — and
+       * disagreed with my_photo_coverage, which counts what byCategory below
+       * already filters to. Two tools giving two numbers for the same listing
+       * is how an owner stops believing either.
+       */
+      count: (media?.mediaItems || []).filter((m: any) => (m.mediaFormat ?? "PHOTO") === "PHOTO").length
+        || (media?.totalMediaItemCount ?? 0),
       byCategory: (media?.mediaItems || []).reduce((acc: Record<string, number>, m: any) => {
         if ((m.mediaFormat ?? "PHOTO") !== "PHOTO") return acc;
         const c = m.locationAssociation?.category || "ADDITIONAL";
