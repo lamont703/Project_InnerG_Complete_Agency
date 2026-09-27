@@ -102,6 +102,34 @@ describe("buildGbpAudit", () => {
     expect(check.detail).toContain("(404) 555-0199");
   });
 
+  it("says the value could not be read rather than claiming Google shows nothing", () => {
+    // It printed `Google shows nothing`, the owner checked their live profile,
+    // found a number there, and had cause to distrust the whole audit. An
+    // unreadable value is not an empty one.
+    const r = buildGbpAudit({
+      ...COMPLETE,
+      googleUpdated: {
+        diffMask: "phoneNumbers",
+        diffs: [{ field: "phoneNumbers", ours: "(844) 699-1191", google: null }],
+      },
+    });
+    const check = r.checks.find((c) => c.id === "google-drift")!;
+    expect(check.detail).toContain("(844) 699-1191");
+    expect(check.detail).not.toContain("Google shows nothing");
+    expect(check.detail).toMatch(/could not be read/);
+  });
+
+  it("names the photo categories that ARE covered, not only the gaps", () => {
+    // "1 of 5" left an owner unable to tell which one they already had.
+    const r = buildGbpAudit({
+      ...COMPLETE,
+      photos: { count: 80, byCategory: { COVER: 2, ADDITIONAL: 78 } },
+    });
+    const check = r.checks.find((c) => c.id === "photos")!;
+    expect(check.detail).toContain("has cover");
+    expect(check.detail).toContain("nothing showing outside");
+  });
+
   it("ignores a diffMask that contains nothing an owner can change", () => {
     // `metadata` is Google's own bookkeeping and differs on nearly every
     // listing. Scoring it reported "2 fields differ" for one real problem and

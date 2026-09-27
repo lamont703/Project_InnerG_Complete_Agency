@@ -959,7 +959,12 @@ const myProfileAudit: McpTool = {
       hoursOld >= 1
         ? `These figures were fetched from Google about ${hoursOld} hour${hoursOld === 1 ? "" : "s"} ago and are cached for six hours, so a change made since then will not show yet.`
         : "These figures were just fetched from Google.",
-      `Fixes that change the live profile go through approval: draft one and the owner approves it at ${SITE}/account/my-requests. Nothing reaches Google until they do.`
+      // The third place the "you can queue changes" claim lived. Same registry
+      // check as the account block, for the same reason: a footer nobody
+      // regenerates is a claim that outlives its tool.
+      MCP_TOOLS.some((t) => t.name.startsWith("propose_"))
+        ? `Fixes that change the live profile go through approval: draft one and the owner approves it at ${SITE}/account/my-requests. Nothing reaches Google until they do.`
+        : `Nothing here can change the live profile. The owner makes these changes themselves at ${SITE}/account/gbp-audit and the pages linked from it.`
     );
 
     return out.filter((l) => l !== null).join("\n");
@@ -1051,8 +1056,16 @@ const myPhotoCoverage: McpTool = {
     const cov = analysePhotoCoverage(items as any);
     const out: (string | null)[] = [
       `PHOTO COVERAGE — ${cov.total} photo(s) on the listing.`,
+      /**
+       * NARROWER THAN THE FIRST VERSION, WHICH WAS WRONG.
+       *
+       * It said uncategorised photos are not shown "where customers look".
+       * They are — they appear in the main gallery. What they miss is the
+       * category tabs. An owner who checked the gallery, saw their photos and
+       * caught the overstatement would be right to distrust the rest.
+       */
       cov.uncategorised
-        ? `${cov.uncategorised} of them are uncategorised, which means Google does not show them where customers look.`
+        ? `${cov.uncategorised} of them are uncategorised. They still appear in the main photo gallery, but not under the category tabs (Outside, Inside, Team) that customers browse — and sorting existing photos into categories may be worth more here than shooting new ones.`
         : null,
       "",
     ];

@@ -122,6 +122,9 @@ function photoCheck(photos: { count: number; byCategory?: Record<string, number>
     status: (covered.length === 0 ? "fail" : covered.length < PHOTO_TARGET_CATEGORIES ? "warn" : "pass") as AuditStatus,
     detail:
       `${count} photo(s), covering ${covered.length} of the ${PHOTO_PRIORITY.length} kinds customers look for` +
+      // Name what IS covered, not only what is missing: "1 of 5" left an owner
+      // unable to tell which one they already had.
+      (covered.length ? ` (has ${covered.map(label).join(", ")})` : "") +
       (missing.length ? ` — nothing showing ${missing.map(label).join(", ")}.` : "."),
     // No fix on a pass, even when one category is still empty — the invariant
     // elsewhere in this file is that a passing check has nothing outstanding,
@@ -313,7 +316,16 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
     categories: "primary category", regularHours: "opening hours",
     storefrontAddress: "address", profile: "description",
   };
-  const show = (v: string | null) => (v ? `"${v}"` : "nothing");
+  /**
+   * AN UNREADABLE VALUE IS NOT AN EMPTY ONE.
+   *
+   * The first version printed `Google shows nothing` whenever their side came
+   * back without a value, and an owner checked their live profile, found a
+   * phone number there, and had a reason to distrust the whole audit. The mask
+   * saying a field differs while the value is absent means we could not read
+   * it — not that Google holds nothing.
+   */
+  const show = (v: string | null) => (v ? `"${v}"` : null);
   add({
     id: "google-drift", area: "Trust", label: "Agreement with Google's own data", weight: 4,
     earned: diffs.length === 0 ? 4 : 0,
@@ -321,7 +333,14 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
     detail: diffs.length === 0
       ? "Google's record matches the profile."
       : `Google shows something different on ${diffs.length} field(s) an owner can change: ` +
-        diffs.map((d) => `${LABELS[d.field] || d.field} — you set ${show(d.ours)}, Google shows ${show(d.google)}`).join("; ") + ".",
+        diffs.map((d) => {
+          const mine = show(d.ours), theirs = show(d.google);
+          const name = LABELS[d.field] || d.field;
+          if (mine && theirs) return `${name} — you set ${mine}, Google shows ${theirs}`;
+          if (mine && !theirs) return `${name} — you set ${mine}; Google's own copy of this field could not be read, so compare it on the live profile`;
+          if (!mine && theirs) return `${name} — you have not set one, Google shows ${theirs}`;
+          return `${name} — neither value could be read; compare it on the live profile`;
+        }).join("; ") + ".",
     fix: diffs.length === 0 ? undefined
       : "Open the live profile and compare each field. Divergence usually means a customer-suggested edit Google accepted, or Google's own crawl overriding what was set — rejecting the suggested edit is what makes it stick.",
   });
