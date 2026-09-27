@@ -1086,10 +1086,25 @@ const myPhotoCoverage: McpTool = {
     }
     if (done.length) out.push(`COVERED: ${done.map((d) => `${d.label} (${d.count})`).join(", ")}.`, "");
 
+    /**
+     * ONE FIRST STEP, NOT TWO.
+     *
+     * The summary said sorting existing photos may beat shooting new ones and
+     * the footer then said to shoot the first gap — two different instructions
+     * in one answer. A gap is filled either way, so the footer says that.
+     *
+     * AND IT NO LONGER SENDS SORTING TO A PAGE THAT CANNOT SORT.
+     * /account/gbp-photos uploads; it has no recategorise path. Google's API
+     * does allow a photo's category to be changed (media.patch — "This can only
+     * be used to update the Category of a media item, with the exception that
+     * the new category cannot be COVER or PROFILE"), so the advice is sound,
+     * but it has to happen on Google's side until we build it.
+     */
     out.push(
       missing.length
-        ? `The first one on that list is the one to shoot first. Photos are uploaded by the owner at ${SITE}/account/gbp-photos — they cannot be added from here.`
-        : `Every category customers look for has something in it. Photos are managed at ${SITE}/account/gbp-photos.`
+        ? `The first gap on that list is the one to fill first — either by moving an existing photo into that category or by shooting a new one. ` +
+          `New photos are uploaded at ${SITE}/account/gbp-photos; changing the category of a photo that is already up has to be done on Google's own profile, and Google does not allow anything to be moved INTO cover or profile.`
+        : `Every category customers look for has something in it. Photos are uploaded at ${SITE}/account/gbp-photos.`
     );
     return out.filter((l) => l !== null).join("\n");
   },

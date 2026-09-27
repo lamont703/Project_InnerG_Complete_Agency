@@ -96,10 +96,58 @@ describe("buildGbpAudit", () => {
       },
     });
     const check = r.checks.find((c) => c.id === "google-drift")!;
-    expect(check.status).toBe("warn");
+    // A phone mismatch is a fail rather than a warning since graduated scoring
+    // landed — it is actively misdirecting callers.
+    expect(check.status).toBe("fail");
     expect(check.detail).toContain("phone number");
     expect(check.detail).toContain("(404) 555-0101");
     expect(check.detail).toContain("(404) 555-0199");
+  });
+
+  it("scores drift by which field disagrees, not by how many", () => {
+    // A wrong phone number sends customers to the wrong place; a stale
+    // description does not. All-or-nothing priced them the same.
+    const withPhone = buildGbpAudit({
+      ...COMPLETE,
+      googleUpdated: { diffMask: "phoneNumbers", diffs: [{ field: "phoneNumbers", ours: "a", google: "b" }] },
+    }).checks.find((c) => c.id === "google-drift")!;
+    expect(withPhone.status).toBe("fail");
+    expect(withPhone.earned).toBe(0);
+
+    const withDescription = buildGbpAudit({
+      ...COMPLETE,
+      googleUpdated: { diffMask: "profile", diffs: [{ field: "profile", ours: "a", google: "b" }] },
+    }).checks.find((c) => c.id === "google-drift")!;
+    expect(withDescription.status).toBe("warn");
+    expect(withDescription.earned).toBe(3);
+
+    const twoMinor = buildGbpAudit({
+      ...COMPLETE,
+      googleUpdated: {
+        diffMask: "profile,categories",
+        diffs: [
+          { field: "profile", ours: "a", google: "b" },
+          { field: "categories", ours: "c", google: "d" },
+        ],
+      },
+    }).checks.find((c) => c.id === "google-drift")!;
+    expect(twoMinor.earned).toBe(2);
+  });
+
+  it("lets one critical field outweigh any number of cosmetic ones", () => {
+    const check = buildGbpAudit({
+      ...COMPLETE,
+      googleUpdated: {
+        diffMask: "storefrontAddress,profile,categories",
+        diffs: [
+          { field: "profile", ours: "a", google: "b" },
+          { field: "categories", ours: "c", google: "d" },
+          { field: "storefrontAddress", ours: "e", google: "f" },
+        ],
+      },
+    }).checks.find((c) => c.id === "google-drift")!;
+    expect(check.earned).toBe(0);
+    expect(check.status).toBe("fail");
   });
 
   it("says the value could not be read rather than claiming Google shows nothing", () => {
