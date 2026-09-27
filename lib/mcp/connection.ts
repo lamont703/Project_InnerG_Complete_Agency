@@ -53,7 +53,14 @@ const KEY_PATTERN = new RegExp(`^${KEY_PREFIX}[A-Za-z0-9_-]{${KEY_BODY_LENGTH}}$
 /** How much of the key is shown back to its owner so they can tell two apart. */
 const DISPLAY_PREFIX_LENGTH = 10;
 
-export type McpScope = "read" | "propose";
+/**
+ * read    — this owner's own listing data
+ * propose — draft a change; stored pending, touches nothing on Google
+ * publish — send an owner-confirmed draft to Google. Only on keys minted with
+ *           publishing switched on; see lib/gbp-changes.ts for why and for the
+ *           protections that come with it.
+ */
+export type McpScope = "read" | "propose" | "publish";
 
 /** Who a request is acting for. Absent on the public endpoint. */
 export interface McpIdentity {
@@ -129,7 +136,7 @@ export function keyFromRequest(args: { pathKey?: string | null; authorization?: 
 }
 
 function toScopes(raw: unknown): McpScope[] {
-  const allowed: McpScope[] = ["read", "propose"];
+  const allowed: McpScope[] = ["read", "propose", "publish"];
   const list = Array.isArray(raw) ? raw.map(String) : [];
   // Filtered rather than trusted: a scope string that arrived in the row by any
   // route other than this module's own writes has no meaning here, and silently
@@ -147,6 +154,12 @@ function toScopes(raw: unknown): McpScope[] {
 export async function mintConnectionKey(args: {
   memberId: string;
   label?: string | null;
+  /**
+   * The owner's explicit choice, made on the page where they create the key.
+   * Never defaulted on here: a caller that forgets to pass it gets a key that
+   * can only draft, which fails safe.
+   */
+  allowPublish?: boolean;
 }): Promise<{ key: string; url: string; row: ConnectionKeyRow }> {
   const key = newConnectionKey();
   const admin = createAdminClient();
@@ -157,7 +170,7 @@ export async function mintConnectionKey(args: {
       key_hash: hashConnectionKey(key),
       key_prefix: displayPrefix(key),
       label: (args.label || "").trim() || null,
-      scopes: ["read", "propose"],
+      scopes: args.allowPublish ? ["read", "propose", "publish"] : ["read", "propose"],
     })
     .select("id, key_prefix, label, scopes, created_at, last_used_at, revoked_at")
     .single();

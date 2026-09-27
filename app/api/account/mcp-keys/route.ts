@@ -48,6 +48,9 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => ({}));
   const label = String(body?.label ?? "").slice(0, LABEL_MAX);
+  // Strictly true, not truthy: publishing is the owner's explicit choice, and a
+  // stray "false" string or a missing field must mint a draft-only key.
+  const allowPublish = body?.allowPublish === true;
 
   /**
    * A cap, because each key is a live credential and a page with an "add"
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { key, url, row } = await mintConnectionKey({ memberId: ctx.memberId, label });
+    const { key, url, row } = await mintConnectionKey({ memberId: ctx.memberId, label, allowPublish });
     // `key` and `url` appear in this response and nowhere else, ever. There is
     // no endpoint that can return them again — see lib/mcp/connection.ts.
     return NextResponse.json({ key, url, row }, { headers: { "Cache-Control": "no-store" } });
