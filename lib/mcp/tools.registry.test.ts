@@ -19,6 +19,7 @@ import { describe, it, expect, beforeAll, vi } from "vitest";
 
 let MCP_TOOLS: any[];
 let toolDescriptors: (ctx?: any) => any[];
+let capabilityLines: (scopes: string[]) => string[];
 
 beforeAll(async () => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
@@ -26,6 +27,7 @@ beforeAll(async () => {
   const mod = await import("./tools");
   MCP_TOOLS = mod.MCP_TOOLS as any[];
   toolDescriptors = mod.toolDescriptors as any;
+  capabilityLines = mod.capabilityLines as any;
 });
 
 const OWNER_TOOLS = ["my_shearquery_account", "my_google_profile_audit", "my_photo_coverage"];
@@ -78,5 +80,56 @@ describe("the MCP tool registry", () => {
       expect(t.description.length, `${t.name} needs a description`).toBeGreaterThan(40);
       expect(t.inputSchema).toBeTruthy();
     }
+  });
+});
+
+/**
+ * THE CLAIMS HAVE TO MATCH THE TOOLS.
+ *
+ * Reported from a live session: the account tool said "read — yes: this owner's
+ * audit, reviews, photos and change history" when no tool returned reviews or
+ * change history, so the model offered to show photos it could not fetch. The
+ * propose line had failed the same way a day earlier. Both were sentences
+ * somebody typed; the fix was to generate them, and this is what keeps them
+ * generated.
+ */
+describe("capabilityLines — no claim without a tool behind it", () => {
+  it("names only what registered owner tools actually return", () => {
+    const [read] = capabilityLines(["read", "propose"]);
+    const provided = MCP_TOOLS.filter((t) => t.requiresIdentity).map((t) => t.provides);
+    for (const p of provided) expect(read).toContain(p);
+  });
+
+  it("gives every owner tool a `provides`, or it cannot be honestly advertised", () => {
+    for (const t of MCP_TOOLS.filter((x) => x.requiresIdentity)) {
+      expect(t.provides, `${t.name} needs a provides`).toBeTruthy();
+      expect((t.provides as string).length).toBeGreaterThan(10);
+    }
+  });
+
+  it("never claims capabilities we have retired the tools for", () => {
+    // The specific words that were wrong. If a tool returning reviews or change
+    // history is added later, it brings its own `provides` and this relaxes.
+    const [read] = capabilityLines(["read", "propose"]);
+    const unbacked = ["reviews", "change history"].filter(
+      (word) => read.includes(word) && !MCP_TOOLS.some((t) => (t.provides || "").includes(word))
+    );
+    expect(unbacked, `claimed without a tool: ${unbacked.join(", ")}`).toEqual([]);
+  });
+
+  it("says NOT YET for propose while no propose_ tool exists", () => {
+    const [, propose] = capabilityLines(["read", "propose"]);
+    const has = MCP_TOOLS.some((t) => t.name.startsWith("propose_"));
+    expect(propose.includes("NOT YET")).toBe(!has);
+  });
+
+  it("always refuses publish, whatever the scopes say", () => {
+    for (const scopes of [["read"], ["read", "propose"], []]) {
+      expect(capabilityLines(scopes as string[]).at(-1)).toContain("publish — NO");
+    }
+  });
+
+  it("reports read as no when the key lacks the scope", () => {
+    expect(capabilityLines(["propose"])[0]).toContain("read    — no");
   });
 });

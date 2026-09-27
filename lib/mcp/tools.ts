@@ -90,7 +90,44 @@ export interface McpTool {
    * anonymous tools/list entirely.
    */
   requiresIdentity?: boolean;
+  /**
+   * For an owner-scoped tool: the short noun phrase for what it RETURNS.
+   *
+   * my_shearquery_account builds its "what this connection can do" section out
+   * of these rather than out of a sentence someone typed. The sentence was
+   * wrong twice: it promised drafting when no propose_ tool existed, and it
+   * promised "reviews, photos and change history" when the only owner tool was
+   * the audit — which is how a model came to tell an owner it could show them
+   * their photos. A capability the registry cannot name is a capability we do
+   * not have.
+   */
+  provides?: string;
   handler: (args: Record<string, any>, ctx: McpToolContext) => Promise<string>;
+}
+
+/**
+ * The "what this connection can do" block, built from the registry.
+ *
+ * Exported and pure so the claims can be tested without a database — the whole
+ * point is that this text cannot drift from the tools that back it.
+ */
+export function capabilityLines(scopes: string[]): string[] {
+  const ownerTools = MCP_TOOLS.filter((t) => t.requiresIdentity);
+  const proposeTools = MCP_TOOLS.filter((t) => t.name.startsWith("propose_"));
+  const canRead = scopes.includes("read") && ownerTools.length > 0;
+  const canPropose = scopes.includes("propose") && proposeTools.length > 0;
+
+  const reads = ownerTools.map((t) => t.provides).filter(Boolean) as string[];
+
+  return [
+    canRead
+      ? `  read    — yes, and ONLY these: ${reads.join("; ")}. Nothing else about this owner is reachable from here.`
+      : "  read    — no.",
+    canPropose
+      ? `  propose — yes: ${proposeTools.map((t) => t.name).join(", ")} queue a change for the owner to approve.`
+      : "  propose — NOT YET. The key permits it, but no drafting tool exists in this connection yet, so do not offer to queue a change. Point the owner at their account page instead.",
+    "  publish — NO. No connection key can publish to Google.",
+  ];
 }
 
 const pct = (v: number | null | undefined) => (v == null ? "—" : `${Math.round(v * 100)}%`);
@@ -671,6 +708,7 @@ const boothRentForCity: McpTool = {
 const myAccount: McpTool = {
   name: "my_shearquery_account",
   title: "What this ShearQuery connection can see",
+  provides: "which business this account claimed and whether Google is connected",
   description:
     "Report which business this authenticated ShearQuery connection is for: the claimed directory listing, whether the owner's Google Business Profile is connected, which Google location is selected, and what this connection is allowed to do. Call this first before any other my_* or propose_* tool — those need a claimed listing and, for anything Google-side, a live Google connection.",
   requiresIdentity: true,
@@ -772,32 +810,21 @@ const myAccount: McpTool = {
     }
 
     /**
-     * WHAT THIS CONNECTION CAN DO — and it must describe the TOOLS, not the
-     * scopes on the key.
+     * WHAT THIS CONNECTION CAN DO — generated from the registry, never typed.
      *
-     * This line used to read "propose — yes" straight off the key's scope
-     * array, while no propose_* tool existed. A real session hit exactly the
-     * dead end that creates: the model told the owner their account allows
-     * drafted changes, was asked for one, and had to answer that the tool is
-     * not in this connection. We advertised a capability we had not shipped.
-     *
-     * So the propose line is computed from the tool registry. It starts
-     * truthfully as "not yet" and starts saying yes the moment the first
-     * propose_* tool is added — without anyone remembering to edit this string.
+     * Both halves of this block have been wrong in production. It promised
+     * drafting while no propose_ tool existed, and it promised "reviews,
+     * photos and change history" when the only owner tool was the audit —
+     * which is how a model came to offer an owner a look at their photos it
+     * could not produce. capabilityLines() builds the text from the tools that
+     * are actually registered, so a claim cannot outlive its tool.
      */
-    const proposeTools = MCP_TOOLS.filter((t) => t.name.startsWith("propose_"));
-    const canPropose = identity.scopes.includes("propose") && proposeTools.length > 0;
-
     lines.push(
       "",
       "WHAT THIS CONNECTION CAN DO",
-      `  read    — ${identity.scopes.includes("read") ? "yes" : "no"}: this owner's audit, reviews, photos and change history.`,
-      canPropose
-        ? `  propose — yes: ${proposeTools.map((t) => t.name).join(", ")} queue a change for the owner to approve.`
-        : "  propose — NOT YET. The key permits it, but no drafting tool exists in this connection yet, so do not offer to queue a change. Point the owner at their account page instead.",
-      "  publish — NO. No connection key can publish to Google.",
+      ...capabilityLines(identity.scopes),
       "",
-      canPropose
+      MCP_TOOLS.some((t) => t.name.startsWith("propose_"))
         ? `Anything drafted here becomes a pending change the owner approves at ${SITE}/account/my-requests. Until they do, nothing has reached Google — say so rather than reporting a change as live.`
         : `Changes are made by the owner at ${SITE}/account/gbp-audit and the pages linked from it.`
     );
@@ -832,6 +859,7 @@ const myAccount: McpTool = {
 const myProfileAudit: McpTool = {
   name: "my_google_profile_audit",
   title: "The full Google Business Profile audit for this owner's listing",
+  provides: "the full authenticated profile audit, its score, the 30-day performance figures and the search terms people used",
   description:
     "Run the complete authenticated Google Business Profile audit for the owner this connection belongs to: every check, the score, what is failing, and the specific fix for each one. This sees what only the profile owner can see — attributes, secondary categories, services, the business description, the search terms people used to find the business, review replies, Google's pending edits and verification status — which the public audit_google_business_profile tool cannot. Requires the owner to have connected Google; call my_shearquery_account first if unsure. Results are cached for up to six hours.",
   requiresIdentity: true,
@@ -962,6 +990,7 @@ const myProfileAudit: McpTool = {
 const myPhotoCoverage: McpTool = {
   name: "my_photo_coverage",
   title: "Which photo categories this owner's Google listing is missing",
+  provides: "which photo categories are missing or thin, and what to shoot for each",
   description:
     "Break down the owner's Google Business Profile photos by category and name exactly which ones are missing or thin — cover photo, outside, inside, work you've done, the team — in the order they are worth filling, with specific guidance on what to shoot for each. Use this when the audit flags photos, because the audit gives only a count while this gives the gaps. Requires a connected Google Business Profile.",
   requiresIdentity: true,

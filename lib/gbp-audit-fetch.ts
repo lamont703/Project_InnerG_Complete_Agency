@@ -60,6 +60,58 @@ async function get(url: string, token: string): Promise<any | null> {
 
 const ymd = (d: Date) => ({ y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() });
 
+
+/** Fields an owner can actually see and change. Anything else is noise. */
+const ACTIONABLE_DIFF_FIELDS = new Set([
+  "title", "phoneNumbers", "websiteUri", "categories", "regularHours",
+  "storefrontAddress", "profile",
+]);
+
+/** Human-readable value for one field of a location, on either side. */
+function fieldValue(src: any, field: string): string | null {
+  if (!src) return null;
+  switch (field) {
+    case "phoneNumbers":
+      return src.phoneNumbers?.primaryPhone || null;
+    case "websiteUri":
+      return src.websiteUri || null;
+    case "title":
+      return src.title || null;
+    case "profile":
+      return src.profile?.description ? `${String(src.profile.description).slice(0, 80)}…` : null;
+    case "categories":
+      return src.categories?.primaryCategory?.displayName || null;
+    case "storefrontAddress":
+      return (src.storefrontAddress?.addressLines || []).join(", ") || null;
+    case "regularHours":
+      return src.regularHours?.periods ? `${src.regularHours.periods.length} opening period(s)` : null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * The differing fields, with OUR value and GOOGLE's side by side.
+ *
+ * Returns only fields the owner can act on, and only those where the two sides
+ * actually render differently — a mask entry whose values read the same is not
+ * something to report to a human.
+ */
+function diffFieldValues(ours: any, theirs: any): Array<{ field: string; ours: string | null; google: string | null }> {
+  const mask: string[] = (theirs?.diffMask || "").split(",").map((f: string) => f.trim()).filter(Boolean);
+  const out: Array<{ field: string; ours: string | null; google: string | null }> = [];
+  for (const field of mask) {
+    const root = field.split(".")[0];
+    if (!ACTIONABLE_DIFF_FIELDS.has(root)) continue;
+    const a = fieldValue(ours, root);
+    const b = fieldValue(theirs, root);
+    if (a === b) continue;
+    if (out.some((d) => d.field === root)) continue;
+    out.push({ field: root, ours: a, google: b });
+  }
+  return out;
+}
+
 export async function fetchGbpAudit(
   accessToken: string,
   locationName: string,
@@ -170,7 +222,25 @@ export async function fetchGbpAudit(
       days: 30,
     } : null,
     searchKeywords: keywords,
-    googleUpdated: { diffMask: googleUpdated?.diffMask || null },
+    googleUpdated: {
+      diffMask: googleUpdated?.diffMask || null,
+      /**
+       * BOTH VALUES, NOT JUST THE FIELD NAME.
+       *
+       * :getGoogleUpdated returns Google's whole version of the location next
+       * to the diffMask, and we were keeping the mask and throwing the values
+       * away. So the audit could say "your phone differs from Google's" and
+       * nothing more — a real owner asked which number Google had and there
+       * was no answer to give, only an instruction to go and look.
+       *
+       * METADATA IS DROPPED ON PURPOSE. It is Google's own bookkeeping
+       * (canDelete, canOperateLocalPost and friends), it differs on virtually
+       * every listing, and an owner cannot act on it. Counting it turned one
+       * real discrepancy into "2 fields differ", which overstates the problem
+       * and buries the field that matters.
+       */
+      diffs: diffFieldValues(location, googleUpdated),
+    },
     verification: verification ? {
       hasVoiceOfMerchant: verification.hasVoiceOfMerchant,
       hasBusinessAuthority: verification.hasBusinessAuthority,

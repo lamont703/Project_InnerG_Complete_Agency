@@ -65,7 +65,11 @@ export interface GbpAuditInput {
     | { impressions: number; callClicks: number; websiteClicks: number; directionRequests: number; days: number }
     | null;
   searchKeywords: SearchKeyword[];
-  googleUpdated: { diffMask: string | null };
+  googleUpdated: {
+    diffMask: string | null;
+    /** The differing fields with both sides' values — see gbp-audit-fetch.ts. */
+    diffs?: Array<{ field: string; ours: string | null; google: string | null }>;
+  };
   verification: { hasVoiceOfMerchant?: boolean; hasBusinessAuthority?: boolean } | null;
   placeActions: any[];
   /** For "posted recently?" — injected so the report is reproducible. */
@@ -293,17 +297,33 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
     fix: vom === false ? "Complete verification before investing in optimisation — an unverified profile's edits may not take effect." : undefined,
   });
 
-  const diff = input.googleUpdated.diffMask;
-  const diffFields = diff ? diff.split(",").filter(Boolean) : [];
+  /**
+   * SCORED ON ACTIONABLE DIFFERENCES, AND IT NAMES BOTH VALUES.
+   *
+   * This used to score the raw diffMask, which includes `metadata` — Google's
+   * own bookkeeping, present on virtually every listing and impossible for an
+   * owner to change. A listing whose only real discrepancy was a phone number
+   * was therefore reported as "2 field(s)" and scored zero, and the owner was
+   * told to go and compare the fields themselves because the check had kept
+   * only the names.
+   */
+  const diffs = input.googleUpdated.diffs ?? [];
+  const LABELS: Record<string, string> = {
+    phoneNumbers: "phone number", websiteUri: "website", title: "business name",
+    categories: "primary category", regularHours: "opening hours",
+    storefrontAddress: "address", profile: "description",
+  };
+  const show = (v: string | null) => (v ? `"${v}"` : "nothing");
   add({
     id: "google-drift", area: "Trust", label: "Agreement with Google's own data", weight: 4,
-    earned: diffFields.length === 0 ? 4 : 0,
-    status: diffFields.length === 0 ? "pass" : "warn",
-    detail: diffFields.length === 0
+    earned: diffs.length === 0 ? 4 : 0,
+    status: diffs.length === 0 ? "pass" : "warn",
+    detail: diffs.length === 0
       ? "Google's record matches the profile."
-      : `Google's record differs on ${diffFields.length} field(s): ${diffFields.join(", ")}.`,
-    fix: diffFields.length === 0 ? undefined
-      : "Review Google's version of these fields. Divergence usually means user-suggested edits or Google's own crawl overriding what the owner set.",
+      : `Google shows something different on ${diffs.length} field(s) an owner can change: ` +
+        diffs.map((d) => `${LABELS[d.field] || d.field} — you set ${show(d.ours)}, Google shows ${show(d.google)}`).join("; ") + ".",
+    fix: diffs.length === 0 ? undefined
+      : "Open the live profile and compare each field. Divergence usually means a customer-suggested edit Google accepted, or Google's own crawl overriding what was set — rejecting the suggested edit is what makes it stick.",
   });
 
   // ── Score ─────────────────────────────────────────────────────────────────
