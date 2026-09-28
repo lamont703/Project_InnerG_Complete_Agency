@@ -1,0 +1,23 @@
+-- APPLY ONLY AFTER the account-type code (lib/audiences.ts, 2026-09-28) is
+-- deployed to production. Rename to .sql to activate.
+--
+-- Removes the retired names that 20261004120000_account_types.sql kept
+-- allowed during the transition, after moving any row written by the old
+-- code in the meantime.
+
+update public.community_members set audience = 'barber'     where audience = 'professional';
+update public.community_members set audience = 'barbershop' where audience = 'owner';
+update public.community_members set audience = 'client'     where audience = 'service_customer';
+update public.account_conversion_invites set audience = 'barber'     where audience = 'professional';
+update public.account_conversion_invites set audience = 'barbershop' where audience = 'owner';
+update public.account_conversion_invites set audience = 'client'     where audience = 'service_customer';
+
+alter table public.community_members
+  drop constraint if exists community_members_audience_check;
+
+alter table public.community_members
+  add constraint community_members_audience_check
+  check (audience is null or audience in (
+    'student', 'barber', 'cosmetologist', 'barbershop', 'salon',
+    'school', 'supply_store', 'agency', 'client'
+  ));

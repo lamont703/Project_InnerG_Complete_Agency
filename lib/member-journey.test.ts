@@ -257,10 +257,29 @@ describe("audiences", () => {
   });
 
   it("falls back to the existing default for junk and for planned audiences", () => {
-    expect(audienceFromParam("nonsense")).toBe("professional");
-    expect(audienceFromParam(null)).toBe("professional");
-    // school is declared but not launched — a query string must not render it.
-    expect(audienceFromParam("school")).toBe("professional");
+    expect(audienceFromParam("nonsense")).toBe("barber");
+    expect(audienceFromParam(null)).toBe("barber");
+    // school and agency are declared but not launched — a query string must not render them.
+    expect(audienceFromParam("school")).toBe("barber");
+    expect(audienceFromParam("agency")).toBe("barber");
+  });
+
+  /**
+   * The account types were redrawn on 2026-09-28. Every old link (?for=owner)
+   * and any stored old value must land on its successor, not on the default.
+   */
+  it("resolves the retired account types to their successors", () => {
+    expect(audienceFromParam("owner")).toBe("barbershop");
+    expect(audienceFromParam("professional")).toBe("barber");
+    expect(storedAudience("service_customer")).toBe("client");
+    expect(storedAudience("owner")).toBe("barbershop");
+  });
+
+  it("has exactly the account types the product defines", () => {
+    expect(Object.keys(AUDIENCES).sort()).toEqual(
+      ["agency", "barber", "barbershop", "client", "cosmetologist", "salon", "school", "student", "supply_store"]
+    );
+    for (const [id, a] of Object.entries(AUDIENCES)) expect(a.id).toBe(id);
   });
 
   it("does let a stored value be a planned audience, and keeps unknown null", () => {

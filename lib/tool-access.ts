@@ -67,6 +67,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: "verify_texas_license", label: "Verify a Texas licence", group: "Licensing", implemented: ["mcp"], defaultMcp: true, defaultChat: false,
     note: "Returns licensee names from the TDLR public record. Public by law, and the query deliberately omits phone and street address." },
   { id: "audit_google_business_profile", label: "Audit a public Google profile", group: "Google Business Profile", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
+  { id: "which_shearquery_account", label: "Which account to sign up for", group: "Getting started", implemented: ["mcp"], defaultMcp: true, defaultChat: false,
+    note: "Built from lib/audiences.ts; asks before recommending, and gives no link for planned types." },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

@@ -67,7 +67,7 @@ export interface CommunityMembershipFormProps {
    * beats a page's default.
    *
    * Without this, every signup from a page with no `?for=` in the URL resolved
-   * to DEFAULT_AUDIENCE ("professional") and was routed to /search. Someone
+   * to DEFAULT_AUDIENCE (then "professional", now "barber") and was routed to /search. Someone
    * three questions into a state-board practice exam is a student, and the
    * student route is /account/journey — the setup that turns the account on.
    */

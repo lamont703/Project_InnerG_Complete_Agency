@@ -40,7 +40,7 @@ describe("owner connect — the pages the assistant may link", () => {
 });
 
 describe("owner brief", () => {
-  const brief = AUDIENCES.owner.agentBrief;
+  const brief = AUDIENCES.barbershop.agentBrief;
 
   it("tells the assistant the Google connection is something it can help with", () => {
     // The original failure: an owner asked, and the assistant said it couldn't.

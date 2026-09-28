@@ -58,7 +58,7 @@ export const INVITE_SOURCES: Record<InviteSource, InviteConfig> = {
     // Not a student, not an owner, not in the trade at all. This audience
     // exists precisely so a haircut customer is never answered with pass rates
     // or asked to claim a listing — see the agentBrief in lib/audiences.ts.
-    audience: "service_customer",
+    audience: "client",
     headline: "Track this request",
     opensWith: "your request, and whether the business has confirmed it",
   },
@@ -84,7 +84,7 @@ export const INVITE_SOURCES: Record<InviteSource, InviteConfig> = {
     // Comparing shops to pick one is the same person as the one who books,
     // a step earlier. Owners use /compare-shops too, but they arrive claimed
     // and an already-set audience is never overwritten by the callback.
-    audience: "service_customer",
+    audience: "client",
     headline: "Keep your shortlist",
     opensWith: "your saved list, on any device",
   },
@@ -92,7 +92,7 @@ export const INVITE_SOURCES: Record<InviteSource, InviteConfig> = {
     table: "shearquery_reviews",
     emailColumn: "email",
     // You review a place you went to as a customer.
-    audience: "service_customer",
+    audience: "client",
     headline: "Keep track of your reviews",
     opensWith: "the reviews you've written",
   },
@@ -101,7 +101,9 @@ export const INVITE_SOURCES: Record<InviteSource, InviteConfig> = {
     emailColumn: "email",
     // Running a diagnostic on a listing is the strongest ownership signal on
     // the site — stronger than clicking "claim", which costs nothing.
-    audience: "owner",
+    // Barbershop by default: this config cannot see whether the audited
+    // listing is a shop or a salon, and the member can change their type.
+    audience: "barbershop",
     headline: "Claim this listing",
     opensWith: "your audit, your booking requests and your listing insights",
   },

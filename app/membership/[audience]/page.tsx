@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { CommunityMembershipForm } from "@/components/forms/CommunityMembershipForm";
@@ -11,7 +11,7 @@ import {
   AudienceFaqs,
   AudienceNextLinks,
 } from "@/components/membership/audience-content";
-import { landingAudiences, type Audience } from "@/lib/audiences";
+import { landingAudiences, LEGACY_LANDING_PATHS, type Audience } from "@/lib/audiences";
 import { SITE_URL } from "@/lib/site";
 
 /**
@@ -88,6 +88,10 @@ export default async function AudienceMembershipPage(props: {
   params: Promise<{ audience: string }>;
 }) {
   const { audience } = await props.params;
+  // Retired paths (2026-09-28: professionals -> barbers, owners -> barbershops)
+  // redirect permanently, so links and any ranking they earned carry over.
+  const successor = LEGACY_LANDING_PATHS[audience];
+  if (successor) permanentRedirect(`/membership/${successor}`);
   const a = findAudience(audience);
   // An unknown segment is a 404, not a silent fallback to the default
   // audience. A wrong URL that renders a plausible page is how a broken link

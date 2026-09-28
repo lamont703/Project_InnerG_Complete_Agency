@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/site";
+import { storedAudience } from "@/lib/audiences";
 
 /**
  * Where a magic link lands. This is where an account actually becomes real.
@@ -116,7 +117,10 @@ export async function GET(req: NextRequest) {
           // string here would be worse than null for anything that renders it.
           first_name: null,
           last_name: null,
-          audience: invite?.audience ?? null,
+          // Normalised: an invite written before the 2026-09-28 redraw can
+          // still say "service_customer" or "owner", which the column no
+          // longer accepts. storedAudience maps it to its successor.
+          audience: storedAudience(invite?.audience),
         })
         .select("id")
         .maybeSingle();
@@ -126,7 +130,7 @@ export async function GET(req: NextRequest) {
       // Never OVERWRITES an audience already set — a stated identity beats an
       // inferred one, and this is the inference.
       await (admin.from("community_members") as any)
-        .update({ audience: invite.audience })
+        .update({ audience: storedAudience(invite.audience) })
         .eq("id", memberId);
     }
 

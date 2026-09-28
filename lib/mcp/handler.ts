@@ -237,7 +237,8 @@ const PUBLIC_INSTRUCTIONS =
   "barbershop and salon booth rent with chair availability, Texas licensee counts, and a " +
   "public Google Business Profile audit for any listed business. Figures come from state " +
   "licensing records and owner-reported listings, and each response states its own coverage — " +
-  "quote those caveats when citing a number.";
+  "quote those caveats when citing a number. When someone wants to sign up or isn't sure which " +
+  "ShearQuery account fits them, call which_shearquery_account and ask its questions before giving a link.";
 
 /**
  * On the sign-in endpoint, before sign-in. The owner tools are listed so
