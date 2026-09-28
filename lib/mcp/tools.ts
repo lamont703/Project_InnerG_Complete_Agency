@@ -44,7 +44,21 @@ const SITE = SITE_URL;
  */
 export interface McpToolContext {
   identity: McpIdentity | null;
+  /**
+   * The origin this request reached (https://shearquery.com in production).
+   * Tools that hand the owner a link use it, so a preview or local run links
+   * to itself rather than to production, where its data does not exist.
+   */
+  origin?: string;
 }
+
+/**
+ * A tool's result. Most tools return a string. A tool with an MCP App view
+ * also returns structuredContent — data for the view that the spec keeps out
+ * of the model's context — so a one-time upload URL reaches the box without
+ * being something the model repeats.
+ */
+export type McpToolResult = string | { text: string; structuredContent?: Record<string, unknown> };
 
 /**
  * What a tool does to the world, in the protocol's own vocabulary.
@@ -112,7 +126,14 @@ export interface McpTool {
    * not have.
    */
   provides?: string;
-  handler: (args: Record<string, any>, ctx: McpToolContext) => Promise<string>;
+  /**
+   * Sent as the tool's `_meta`. For an MCP App this is
+   * { ui: { resourceUri: "ui://…" } }, which tells the host to render that
+   * view when the tool runs. Hosts without MCP Apps ignore it and show the
+   * text result.
+   */
+  meta?: Record<string, unknown>;
+  handler: (args: Record<string, any>, ctx: McpToolContext) => Promise<McpToolResult>;
 }
 
 /**
@@ -1176,10 +1197,11 @@ export const toolDescriptors = (
       (opts?.advertiseAll || !t.requiresScope || ctx?.identity?.scopes.includes(t.requiresScope)) &&
       (!enabled || enabled.has(t.name))
   ).map(
-    ({ name, title, description, annotations, inputSchema }) => ({
+    ({ name, title, description, annotations, inputSchema, meta }) => ({
       name,
       title,
       description,
+      ...(meta ? { _meta: meta } : {}),
       // Sent so a client can tell a query from a change without asking the
       // person to guess. Clients treat annotations from an untrusted server as
       // hints, which is correct — ours are accurate either way.

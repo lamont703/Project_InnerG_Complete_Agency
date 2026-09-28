@@ -5,6 +5,8 @@ import { SITE_URL } from "@/lib/site";
 import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import type { McpIdentity } from "@/lib/mcp/connection";
 import { wwwAuthenticate, scopesForTool, CHALLENGE_SCOPES } from "@/lib/mcp/oauth-rules";
+import { originOf } from "@/lib/mcp/oauth-metadata";
+import { APP_RESOURCES, readAppResource } from "@/lib/mcp/apps/registry";
 import {
   negotiateProtocol,
   negotiatedInitializeVersion,
@@ -147,6 +149,19 @@ function rateLimited(request: NextRequest, identity: McpIdentity | null): boolea
   }
   return recent.length > RATE_LIMIT_MAX;
 }
+
+/**
+ * What the server offers, in both protocol eras.
+ *
+ * `resources` exists only to serve MCP App views (ui:// resources); there are
+ * no other resources. The io.modelcontextprotocol/ui extension entry says we
+ * speak MCP Apps, per the extension's capability negotiation.
+ */
+const SERVER_CAPABILITIES = {
+  tools: {},
+  resources: {},
+  extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } },
+};
 
 const JSONRPC_PARSE_ERROR = -32700;
 const JSONRPC_INVALID_REQUEST = -32600;
@@ -415,8 +430,13 @@ async function callTool(
   }
 
   try {
-    const text = await tool.handler(params?.arguments ?? {}, toolContext);
-    return rpcResult(id, wrap({ content: [{ type: "text", text }], isError: false }));
+    const out = await tool.handler(params?.arguments ?? {}, toolContext);
+    const text = typeof out === "string" ? out : out.text;
+    const structuredContent = typeof out === "string" ? undefined : out.structuredContent;
+    return rpcResult(
+      id,
+      wrap({ content: [{ type: "text", text }], ...(structuredContent ? { structuredContent } : {}), isError: false })
+    );
   } catch (err) {
     // Execution failure is reported in the result so the model can see it and
     // adapt, rather than as a transport-level error it cannot read.
@@ -453,7 +473,8 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
   const startedAt = Date.now();
   const userAgent = request.headers.get("user-agent");
   const clientIp = clientIpFrom(request.headers);
-  const toolContext: McpToolContext = { identity: ctx.identity };
+  const origin = originOf(request);
+  const toolContext: McpToolContext = { identity: ctx.identity, origin };
 
   const log = (fields: {
     mcpMethod?: string | null;
@@ -580,7 +601,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
             id,
             wrap({
               supportedVersions: SUPPORTED_PROTOCOL_VERSIONS,
-              capabilities: { tools: {} },
+              capabilities: SERVER_CAPABILITIES,
               instructions: ctx.identity ? ownerInstructions(ctx.identity) : ctx.oauth ? SIGN_IN_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
               _meta: { [META_SERVER_INFO_KEY]: SERVER_INFO },
             })
@@ -594,6 +615,14 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
 
         case "tools/call":
           return callTool(id, params, ctx, toolContext, log, wrap);
+
+        case "resources/list":
+          return rpcResult(id, wrap({ resources: APP_RESOURCES }));
+
+        case "resources/read": {
+          const read = readAppResource(params?.uri, origin);
+          return read ? rpcResult(id, wrap(read)) : rpcError(id, JSONRPC_INVALID_PARAMS, `Unknown resource: ${String(params?.uri)}`);
+        }
 
         default:
           log({ mcpMethod: typeof method === "string" ? method : null, statusCode: 404, isError: true });
@@ -613,7 +642,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
           // listChanged: false — the tool list is compiled in, so there is
           // nothing to notify about, and claiming otherwise would promise a
           // notification channel this stateless server cannot open.
-          capabilities: { tools: { listChanged: false } },
+          capabilities: { ...SERVER_CAPABILITIES, tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
           instructions: ctx.identity ? ownerInstructions(ctx.identity) : ctx.oauth ? SIGN_IN_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
         });
@@ -627,6 +656,14 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
 
       case "tools/call":
         return callTool(id, params, ctx, toolContext, log, wrap);
+
+      case "resources/list":
+        return rpcResult(id, { resources: APP_RESOURCES });
+
+      case "resources/read": {
+        const read = readAppResource(params?.uri, origin);
+        return read ? rpcResult(id, read) : rpcError(id, JSONRPC_INVALID_PARAMS, `Unknown resource: ${String(params?.uri)}`);
+      }
 
       default:
         return rpcError(id, JSONRPC_METHOD_NOT_FOUND, `Method not found: ${method}`);

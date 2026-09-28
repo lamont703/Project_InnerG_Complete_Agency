@@ -843,6 +843,8 @@ async function planAttributes(input: Record<string, any>, g: OwnerGbp) {
 export interface DraftResult {
   ok: boolean;
   text: string;
+  /** The gbp_change_requests id, when a draft was created. */
+  id?: string;
 }
 
 /**
@@ -881,6 +883,7 @@ export async function draftChange(args: {
   const warnings = (prepared.warnings || []).filter(Boolean);
   return {
     ok: true,
+    id: row.id,
     text: [
       `DRAFT ${row.id} — ${KIND_LABEL[args.kind]}. NOT published; nothing on Google has changed.`,
       "",

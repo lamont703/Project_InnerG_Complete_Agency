@@ -22,6 +22,8 @@ import {
   listChanges,
   type ChangeKind,
 } from "@/lib/gbp-changes";
+import { createUploadSession, UPLOAD_SESSION_MINUTES } from "@/lib/mcp/photo-upload";
+import { PHOTO_UPLOAD_URI } from "@/lib/mcp/apps/photo-upload-view";
 
 /**
  * Google Business Profile management over MCP — the whole profile, per owner.
@@ -559,8 +561,7 @@ const PROPOSE_TOOLS: McpTool[] = [
     kind: "photo_add",
     title: "Draft adding a photo from a link",
     description:
-      "Draft adding a photo to a category (COVER, EXTERIOR, INTERIOR, AT_WORK, TEAMS, PROFILE, LOGO) from a public https link to a JPEG, PNG or WebP. Photos pasted into this chat have no link Google can fetch — for those, the owner uploads at " +
-      `${SITE}/account/gbp-photos.`,
+      "Draft adding a photo to a category (COVER, EXTERIOR, INTERIOR, AT_WORK, TEAMS, PROFILE, LOGO) from a public https link to a JPEG, PNG or WebP. For a photo on the owner's phone or computer, use upload_photo instead.",
     properties: {
       image_url: { type: "string" },
       category: { type: "string", enum: ["COVER", "EXTERIOR", "INTERIOR", "AT_WORK", "TEAMS", "PROFILE", "LOGO"] },
@@ -576,6 +577,66 @@ const PROPOSE_TOOLS: McpTool[] = [
     required: ["photo_id"],
   }),
 ];
+
+// ── photo upload (MCP App) ──────────────────────────────────────────────────
+
+/**
+ * Open the upload box.
+ *
+ * Exists because a photo the owner drops into the chat never reaches a tool —
+ * MCP cannot carry a file from their device. The box (lib/mcp/apps) is
+ * rendered by hosts that support MCP Apps; everywhere else, and whenever the
+ * box cannot reach us, the text result carries a link to the same upload on
+ * shearquery.com. Either way the photo becomes a DRAFT, and publishing it is
+ * still publish_change after the owner says yes.
+ *
+ * The upload URL goes in structuredContent (for the box) AND in the text (for
+ * the fallback). The spec keeps structuredContent out of the model's context;
+ * the text copy is deliberate, because the fallback only works if the model
+ * can hand the link to the owner.
+ */
+const uploadPhotoTool: McpTool = {
+  name: "upload_photo",
+  title: "Open a box for the owner to upload a photo to their listing",
+  provides: "an upload box (or link) for adding a photo from the owner's phone or computer",
+  description:
+    "Open an upload box in the conversation so the owner can add a photo from their phone or computer to their Google listing. Use this whenever the owner wants to add a photo — a photo they paste into the chat cannot be sent to Google directly. The upload becomes a DRAFT; after it arrives, show the owner the draft and publish it with publish_change only when they say yes. If no box appears, give the owner the link in this tool's result.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: DRAFTS,
+  meta: { ui: { resourceUri: PHOTO_UPLOAD_URI } },
+  inputSchema: {
+    type: "object",
+    properties: {
+      category: {
+        type: "string",
+        enum: ["COVER", "EXTERIOR", "INTERIOR", "AT_WORK", "TEAMS", "PROFILE", "LOGO"],
+        description: "Where the photo goes, if known — the owner can change it in the box. Use my_photo_coverage to suggest the biggest gap.",
+      },
+    },
+  },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return NO_IDENTITY;
+    const g = await resolveOwnerGbp(ctx.identity.memberId);
+    if (!g.ok) return g.message;
+
+    const origin = ctx.origin || SITE;
+    const { token, expiresAt } = await createUploadSession({ identity: ctx.identity, category: args.category ?? null });
+    const uploadUrl = `${origin}/api/mcp-upload/${token}`;
+    const fallbackUrl = `${origin}/upload/${token}`;
+
+    return {
+      text: [
+        "An upload box is open in the conversation for the owner to choose a photo.",
+        `If they can't see it, or it says it can't reach ShearQuery, give them this link — it does the same thing: ${fallbackUrl}`,
+        `The link and box work once, for one photo, for ${UPLOAD_SESSION_MINUTES} minutes.`,
+        "",
+        "When the upload finishes, the box tells you the draft id. If the owner used the link instead and says they are done, call my_changes and take the newest pending photo draft. Show them the draft, and publish it with publish_change only after they say yes.",
+      ].join("\n"),
+      structuredContent: { uploadUrl, fallbackUrl, category: args.category ?? null, expiresAt },
+    };
+  },
+};
 
 // ── publish, discard, undo ──────────────────────────────────────────────────
 
@@ -634,6 +695,7 @@ export const GBP_TOOLS: McpTool[] = [
   myAttributeOptions,
   myChanges,
   ...PROPOSE_TOOLS,
+  uploadPhotoTool,
   discardTool,
   publishTool,
   undoTool,
