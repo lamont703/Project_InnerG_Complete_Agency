@@ -24,7 +24,7 @@ describe("youtube audience links", () => {
   });
 
   it("uses audience ids the rest of the app already knows", () => {
-    // A link that says "shops" while the app says "owner" is a second
+    // A link that says "shops" while the app says "barbershop" is a second
     // vocabulary, and two vocabularies for one thing always drift.
     const known = new Set(Object.keys(AUDIENCES));
     for (const l of YOUTUBE_LINKS) {

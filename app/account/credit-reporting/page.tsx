@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CreditReportingPage() {
   const member = await currentMember();
-  if (!member) redirect(membershipPath("owner"));
+  if (!member) redirect(membershipPath("barbershop"));
 
   const enrollment = await enrollmentForMember(member.id);
 

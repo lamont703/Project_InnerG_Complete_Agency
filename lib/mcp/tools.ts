@@ -17,6 +17,7 @@ import { GBP_TOOLS } from "@/lib/mcp/gbp-tools";
 import { INSTAGRAM_TOOLS } from "@/lib/mcp/instagram-tools";
 import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
+import { accountGuideTool } from "@/lib/mcp/account-guide-tool";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -1167,6 +1168,7 @@ export const MCP_TOOLS: McpTool[] = [
   auditGoogleProfile,
   verifyLicense,
   boothRentForCity,
+  accountGuideTool,
   myAccount,
   myProfileAudit,
   myPhotoCoverage,

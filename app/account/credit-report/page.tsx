@@ -113,7 +113,7 @@ export default async function MyCreditReportPage(props: {
     );
   }
 
-  if (!member) redirect(membershipPath("professional"));
+  if (!member) redirect(membershipPath("barber"));
 
   const [tradelines, shares] = await Promise.all([
     tradelinesForMember(member.id),

@@ -4,7 +4,7 @@ import { CalendarDays, Lock } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canUseCalendar } from "@/lib/calendar/access";
+import { hasCalendarAccess } from "@/lib/feature-access";
 import { getProvider, getHours, listServices, listAppointments } from "@/lib/calendar/store";
 import { formatLocal, minuteToClock, localDateKey } from "@/lib/calendar/time";
 
@@ -31,7 +31,7 @@ export default async function CalendarPage() {
   }
   const { data: member } = await (createAdminClient().from("community_members") as any)
     .select("email").eq("id", ctx.memberId).maybeSingle();
-  const allowed = canUseCalendar(member?.email);
+  const allowed = await hasCalendarAccess(member?.email);
   const provider = allowed ? await getProvider(ctx.memberId) : null;
 
   let body: React.ReactNode;

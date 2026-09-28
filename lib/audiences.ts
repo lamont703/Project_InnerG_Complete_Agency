@@ -26,29 +26,59 @@
 
 export type AudienceId =
   | "student"
-  | "professional"
-  | "owner"
+  | "barber"
+  | "cosmetologist"
+  | "barbershop"
+  | "salon"
   | "school"
+  | "supply_store"
+  | "agency"
   /**
    * Someone who books a haircut or a salon service. NOT in the trade.
    *
-   * The first audience here that arrives without ever visiting /membership:
-   * they are inferred from a completed booking request, server-side, and the
-   * account is offered afterwards. That is why the agent brief below spends
-   * its words on what NOT to say — without it, someone who booked a beard trim
-   * gets answered with TDLR pass rates and asked to claim a listing.
+   * They never visit /membership: they arrive by booking — a request, a real
+   * appointment on a ShearQuery calendar, or from their own Claude — and the
+   * account follows. That is why the agent brief below spends its words on
+   * what NOT to say: without it, someone who booked a beard trim gets
+   * answered with TDLR pass rates and asked to claim a listing.
    */
-  | "service_customer";
+  | "client";
+
+/**
+ * THE ACCOUNT TYPES WERE REDRAWN on 2026-09-28, by the owner of the product:
+ * student, barber, cosmetologist, barbershop, salon, school, supply store,
+ * agency, and client. The old types split or were renamed —
+ *   professional     -> barber (or cosmetologist)
+ *   owner            -> barbershop (or salon)
+ *   service_customer -> client
+ * These aliases keep every old link (?for=owner) and any stored value working.
+ * They resolve forward only; nothing new is written with an old name.
+ *
+ * One type per account, and the business type wins: a barber who owns the
+ * shop is a barbershop account. One type keeps plans, billing and agency
+ * commission simple (decided 2026-09-28).
+ */
+export const LEGACY_AUDIENCE_IDS: Record<string, AudienceId> = {
+  professional: "barber",
+  owner: "barbershop",
+  service_customer: "client",
+};
+
+/** Old landing paths, permanently redirected to their successors. */
+export const LEGACY_LANDING_PATHS: Record<string, string> = {
+  professionals: "barbers",
+  owners: "barbershops",
+};
 
 /**
  * The audience assumed when nobody said otherwise.
  *
- * Deliberately `professional` rather than `student`: an un-parameterised visit
- * to /membership is the pre-existing behaviour, and the copy that behaviour
- * has always shown is the claim-your-listing copy. Changing the default would
- * silently repoint every existing link, ad and email at student framing.
+ * `barber` — the successor of `professional`, which was chosen because an
+ * un-parameterised visit to /membership has always shown claim-your-listing
+ * copy. Changing it to `student` would silently repoint every existing link,
+ * ad and email at student framing.
  */
-export const DEFAULT_AUDIENCE: AudienceId = "professional";
+export const DEFAULT_AUDIENCE: AudienceId = "barber";
 
 export interface AudienceBenefit {
   /** Lucide icon name, resolved by the page — this module stays React-free. */
@@ -111,7 +141,11 @@ export interface Audience {
    * grounding rules there matter more than persona.
    */
   agentBrief: string;
-  /** Which lifecycle email sequence this audience belongs to, if any. */
+  /**
+   * Which lifecycle email sequence this audience belongs to, if any. "owner"
+   * is the track NAME for business accounts (barbershop, salon, supply store),
+   * not an account type.
+   */
   lifecycleTrack: "student" | "owner" | null;
   /** Does signup collect a journey (see lib/member-journey.ts)? */
   collectsJourney: boolean;
@@ -123,10 +157,10 @@ export interface Audience {
 }
 
 export const AUDIENCES: Record<AudienceId, Audience> = {
-  service_customer: {
-    id: "service_customer",
+  client: {
+    id: "client",
     status: "live",
-    label: "Service customer",
+    label: "Client",
     who: "I'm looking for a barber or salon",
     eyebrow: "Free — for customers",
     headline: "Know where your appointment actually stands",
@@ -156,7 +190,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     ],
     ctaLabel: "Create my free account",
     agentBrief:
-      "You are talking to a CUSTOMER looking to book a barber or salon service — they are not in the trade. They are not a student, not a licensee and not a shop owner. Never pitch listing claims, verified badges, Google Business Profile, exam prep, kit lists or pass rates; all of those are for people in the industry and are noise to this person. Help them find somewhere good near them, understand what a service involves, and know where their booking request stands.",
+      "You are talking to a CLIENT looking to book a barber or salon service — they are not in the trade. They are not a student, not a licensee and not a shop owner. Never pitch listing claims, verified badges, Google Business Profile, exam prep, kit lists or pass rates; all of those are for people in the industry and are noise to this person. Help them find somewhere good near them, understand what a service involves, and know where their booking stands.",
     // No sequence exists for this audience. A track name here would enroll them
     // in student or owner emails, which is worse than sending nothing.
     lifecycleTrack: null,
@@ -242,14 +276,14 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     }
   },
 
-  professional: {
-    id: "professional",
+  barber: {
+    id: "barber",
     status: "live",
-    // Unchanged from what /membership has always said. This entry exists so
-    // the default path renders from the registry like every other audience —
-    // not because the copy needed revisiting.
-    label: "Licensed professional",
-    who: "I'm a licensed barber, stylist or beauty pro",
+    // The successor of "professional" (split into barber and cosmetologist on
+    // 2026-09-28). The copy is what /membership has always said, narrowed to
+    // barbers.
+    label: "Barber",
+    who: "I'm a licensed barber",
     eyebrow: "Free Community Tier",
     headline: "Join the ShearQuery Community",
     subhead:
@@ -263,7 +297,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       {
         icon: "users",
         title: "Join a Real Industry Community",
-        body: "You're joining a growing directory of barbers and beauty professionals across Texas, not a mailing list.",
+        body: "You're joining a growing directory of barbers across Texas, not a mailing list.",
       },
       {
         icon: "check-circle",
@@ -273,14 +307,14 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     ],
     ctaLabel: "Create my free account",
     agentBrief:
-      "You are talking to a licensed barber, stylist or beauty professional. Their questions are usually about where to work — booth rent, commission, which shops are hiring, what a chair costs in a given ZIP — and about keeping their licence current (renewal, continuing education).",
+      "You are talking to a licensed BARBER. Their questions are usually about where to work — booth rent, commission, which shops are hiring, what a chair costs in a given ZIP — and about keeping their licence current (renewal, continuing education).",
     lifecycleTrack: null,
     collectsJourney: false,
     landing: {
-      path: "professionals",
-      metaTitle: "Free Membership for Licensed Barbers & Stylists — Verified Badge",
+      path: "barbers",
+      metaTitle: "Free Membership for Licensed Barbers — Verified Badge",
       metaDescription:
-        "A free ShearQuery membership for licensed barbers, stylists and beauty professionals. Claim your profile, earn the verified badge and be findable by shops that are hiring.",
+        "A free ShearQuery membership for licensed barbers. Claim your profile, earn the verified badge and be findable by the shops that are hiring near you.",
       faqs: [
         {
           q: "What does the verified badge actually do?",
@@ -310,11 +344,81 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     }
   },
 
-  owner: {
-    id: "owner",
+  cosmetologist: {
+    id: "cosmetologist",
     status: "live",
-    label: "Shop or salon owner",
-    who: "I own or manage a shop or salon",
+    // Split out of "professional" on 2026-09-28. Same offer as a barber's,
+    // in the words a cosmetologist uses about their own work.
+    label: "Cosmetologist",
+    who: "I'm a licensed cosmetologist, stylist or esthetician",
+    eyebrow: "Free Community Tier",
+    headline: "Join the ShearQuery Community",
+    subhead:
+      "Claim your profile, earn the verified badge, and be findable by the shops and clients already searching here.",
+    benefits: [
+      {
+        icon: "badge-check",
+        title: "Get the Verified Badge on Your Listing",
+        body: "Claim your profile and earn the verified badge shown on your page — a clear signal to clients, salon owners and hiring managers that it's owner-verified and up to date.",
+      },
+      {
+        icon: "users",
+        title: "Join a Real Industry Community",
+        body: "You're joining a growing directory of stylists and beauty professionals across Texas, not a mailing list.",
+      },
+      {
+        icon: "check-circle",
+        title: "Free, Always",
+        body: "No credit card, no trial period, no upsell. Community membership stays free.",
+      },
+    ],
+    ctaLabel: "Create my free account",
+    agentBrief:
+      "You are talking to a licensed COSMETOLOGIST — a stylist, colorist, nail tech or esthetician. Their questions are usually about where to work — booth rent, commission, which salons are hiring, what a chair costs in a given ZIP — and about keeping their licence current (renewal, continuing education).",
+    lifecycleTrack: null,
+    collectsJourney: false,
+    landing: {
+      path: "cosmetologists",
+      metaTitle: "Free Membership for Cosmetologists & Stylists — Verified Badge",
+      metaDescription:
+        "A free ShearQuery membership for licensed cosmetologists, stylists and estheticians. Claim your profile, earn the verified badge and be findable by the salons that are hiring.",
+      faqs: [
+        {
+          q: "What does the verified badge actually do?",
+          a: "It shows on your page as a signal that the profile is owner-verified rather than scraped — for clients deciding where to go, and for salon owners deciding who to call.",
+        },
+        {
+          q: "I already have a profile here I did not create. Is that a problem?",
+          a: "No, that is the normal case. The directory is built from public records, so most profiles exist before their owner arrives. Claiming one takes it over rather than creating a duplicate.",
+        },
+        {
+          q: "Will you contact me about work?",
+          a: "We do not broker jobs. The account makes you findable and lets you see booth rent and hiring activity yourself; who reaches out is between you and them.",
+        },
+      ],
+      nextLinks: [
+        {
+          href: "/search",
+          label: "Search the directory",
+          body: "Find your own listing, or look at the salons near you.",
+        },
+        {
+          href: "/compare-shops",
+          label: "Compare salons and shops",
+          body: "Side by side on the things that decide where you rent a chair or a suite.",
+        },
+      ],
+    }
+  },
+
+  barbershop: {
+    id: "barbershop",
+    status: "live",
+    // The successor of "owner" (split into barbershop and salon on 2026-09-28).
+    // A barber who owns the shop is a barbershop account: one type per
+    // account, and the business type wins.
+    label: "Barbershop",
+    who: "I own or manage a barbershop",
     eyebrow: "Free — for owners",
     headline: "Own your listing, and see your market",
     subhead:
@@ -363,16 +467,16 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
      * unprompted.
      */
     agentBrief:
-      "You are talking to a shop or salon OWNER about their own business — hiring, booth rent, competition and their local market. " +
+      "You are talking to a BARBERSHOP owner or manager about their own business — hiring, booth rent, competition and their local market. " +
       "They can also do three things on here that other visitors cannot, and you should help with them when asked: claim their listing to get the verified badge and control what it says; connect their Google Business Profile for a profile audit, post scheduling, review replies and hours or category fixes; and receive appointment requests from their listing as a text with the customer's name and number. " +
       "Connecting Google takes the owner about a minute and is a link you give them — you cannot approve it for them, because Google requires them to sign in and consent on Google's own site. See the OWNER_CONNECT_CONTEXT RULE for what is true about this specific person.",
     lifecycleTrack: "owner",
     collectsJourney: false,
     landing: {
-      path: "owners",
-      metaTitle: "Free Membership for Barbershop & Salon Owners — Claim Your Listing",
+      path: "barbershops",
+      metaTitle: "Free Membership for Barbershop Owners — Claim Your Listing",
       metaDescription:
-        "A free ShearQuery membership for barbershop and salon owners. Claim your listing, take appointment requests, and see the talent pipeline and competition around your address.",
+        "A free ShearQuery membership for barbershop owners. Claim your listing, take appointment requests, and see the talent pipeline and competition around your address.",
       faqs: [
         {
           q: "How do appointment requests reach me?",
@@ -392,6 +496,99 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
           href: "/compare-shops",
           label: "Compare shops",
           body: "See how the shops around you present themselves.",
+        },
+        {
+          href: "/texas-school-leaderboard",
+          label: "Texas school pass rates",
+          body: "Where the licensed talent near you is actually coming from.",
+        },
+      ],
+    }
+  },
+
+  salon: {
+    id: "salon",
+    status: "live",
+    // Split out of "owner" on 2026-09-28. Same tools as a barbershop's.
+    label: "Salon",
+    who: "I own or manage a salon, suite or spa",
+    eyebrow: "Free — for owners",
+    headline: "Own your listing, and see your market",
+    subhead:
+      "Claim the listing, connect Google, and get the market report for your own address — talent pipeline, competition, and what rent looks like around you.",
+    benefits: [
+      {
+        // FIRST, deliberately. Additive — nothing below was removed — but a
+        // booking request is a named person waiting on a phone call, and the
+        // owner arriving from that text needs to see it before the badge and
+        // the market report. Everything described here already ships:
+        // /account/booking-requests, the SMS reply handler, and the escalation
+        // job that chases on their behalf.
+        icon: "calendar",
+        title: "Appointment requests, in one place",
+        body: "Clients can request an appointment straight from your listing. You get a text with their name and number, and this is where you see every request, mark what you booked, and answer with a single Y or N. We chase the ones you miss and tell the client either way.",
+      },
+      {
+        icon: "badge-check",
+        title: "Claim and verify your listing",
+        body: "The verified badge, plus control of what the listing says about your salon.",
+      },
+      {
+        icon: "map-pin",
+        title: "Your own market report",
+        body: "Talent pipeline, labor supply, competition and booth rent computed within a fixed radius of your address — not a national average.",
+      },
+      {
+        icon: "bar-chart",
+        title: "Google Business Profile tools",
+        body: "Connect your profile for an audit, post scheduling, review replies and category checks.",
+      },
+    ],
+    ctaLabel: "Claim my listing",
+    /*
+     * THIS USED TO BE ONE SENTENCE, and its silence was a bug. Asked whether it
+     * could connect an owner's Google Business Profile, the assistant said no —
+     * because nothing here told it the feature exists. It has shipped for
+     * months and is described in `benefits` above, but benefit copy renders on
+     * /membership and never reaches the model. The brief is the only thing it
+     * reads about who it is talking to.
+     *
+     * What it may claim is bounded by owner_connect_context, which carries this
+     * person's real listing and connection state. Everything named below is a
+     * page that exists today — the same rule the benefit copy keeps, and it
+     * matters more here because the assistant says these things to a customer
+     * unprompted.
+     */
+    agentBrief:
+      "You are talking to a SALON owner or manager (hair, nails, suites or spa) about their own business — hiring, booth rent, competition and their local market. " +
+      "They can also do three things on here that other visitors cannot, and you should help with them when asked: claim their listing to get the verified badge and control what it says; connect their Google Business Profile for a profile audit, post scheduling, review replies and hours or category fixes; and receive appointment requests from their listing as a text with the customer's name and number. " +
+      "Connecting Google takes the owner about a minute and is a link you give them — you cannot approve it for them, because Google requires them to sign in and consent on Google's own site. See the OWNER_CONNECT_CONTEXT RULE for what is true about this specific person.",
+    lifecycleTrack: "owner",
+    collectsJourney: false,
+    landing: {
+      path: "salons",
+      metaTitle: "Free Membership for Salon Owners — Claim Your Listing",
+      metaDescription:
+        "A free ShearQuery membership for salon and suite owners. Claim your listing, take appointment requests, and see the talent pipeline and competition around your address.",
+      faqs: [
+        {
+          q: "How do appointment requests reach me?",
+          a: "A customer requests one from your listing and you get a text with their name and number. You answer with a single Y or N. Requests you miss get chased on your behalf, and the customer is told either way.",
+        },
+        {
+          q: "Do I have to connect Google?",
+          a: "No. Connecting a Google Business Profile is read-only and optional — it is what makes the market report specific to your address. The listing, the badge and appointment requests all work without it.",
+        },
+        {
+          q: "What does it cost?",
+          a: "Nothing. No card and no trial. Advertising is a separate, optional product and is never a condition of claiming your listing.",
+        },
+      ],
+      nextLinks: [
+        {
+          href: "/compare-shops",
+          label: "Compare salons and shops",
+          body: "See how the salons around you present themselves.",
         },
         {
           href: "/texas-school-leaderboard",
@@ -422,6 +619,57 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     lifecycleTrack: null,
     collectsJourney: false,
   },
+
+  supply_store: {
+    id: "supply_store",
+    // Live without its own landing page: the offer is real (claiming works on
+    // store listings, and Google tools work for any business), but it does not
+    // yet have enough of its own to say to earn a separate URL.
+    status: "live",
+    label: "Supply store",
+    who: "I own or run a barber or beauty supply store",
+    eyebrow: "Free — for supply stores",
+    headline: "Own your store's listing",
+    subhead:
+      "Claim the listing barbers and stylists already find you by, and connect Google to keep your hours, photos and reviews in order.",
+    benefits: [
+      {
+        icon: "badge-check",
+        title: "Claim and verify your listing",
+        body: "The verified badge, plus control of what your store's listing says.",
+      },
+      {
+        icon: "bar-chart",
+        title: "Google Business Profile tools",
+        body: "Connect your profile for an audit, review replies, posts and hours fixes.",
+      },
+    ],
+    ctaLabel: "Claim my listing",
+    agentBrief:
+      "You are talking to someone who owns or runs a barber or beauty SUPPLY STORE. Their customers are barbers and stylists. They can claim their store's listing for the verified badge, and connect their Google Business Profile for the audit, review replies, posts and hours fixes — help with those when asked. Do not pitch booth rent, chairs or exam prep; those are for the people who shop with them.",
+    lifecycleTrack: "owner",
+    collectsJourney: false,
+  },
+
+  agency: {
+    id: "agency",
+    // PLANNED. The partner program — agency accounts, managing clients'
+    // businesses with their permission, referral commission — is designed but
+    // not built. The agent can recognise an agency and say something true;
+    // nothing public promises terms that do not exist yet.
+    status: "planned",
+    label: "Agency partner",
+    who: "I run an agency that builds AI agents or marketing for barbers and stylists",
+    eyebrow: "Coming soon — for agencies",
+    headline: "Bring ShearQuery to the shops you serve",
+    subhead: "A partner program for agencies that build AI and marketing for barbers, stylists and shops.",
+    benefits: [],
+    ctaLabel: "Tell us about your agency",
+    agentBrief:
+      "You are talking to an AGENCY that builds AI agents, automations or marketing for barbers, stylists and shops. ShearQuery's partner program for agencies is being built and is not open yet. Be exact about that: do not quote commission rates, prices, terms or dates, and do not promise that they can manage their clients' accounts yet. What is true today: the ShearQuery MCP connector and its tools work in Claude, a demo appointment book can be set up for them to try, and ShearQuery wants to hear from them — ask what they build and for whom, and point them to ShearQuery directly to talk.",
+    lifecycleTrack: null,
+    collectsJourney: false,
+  },
 };
 
 /** Every audience that may be shown to the public, in display order. */
@@ -430,12 +678,10 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
  * whose status is "live", which is what the name suggests and why this comment
  * exists.
  *
- * service_customer is live and its benefits ship, but it is deliberately absent
- * here. Nobody arrives at /membership to describe themselves as a haircut
- * customer; that audience is inferred server-side from a completed booking and
- * the account is offered afterwards. Adding a fourth tab would invite a
- * self-select that is not the path, on the page whose entire job is converting
- * the other three.
+ * client is live and its benefits ship, but it is deliberately absent here.
+ * Nobody arrives at /membership to describe themselves as a haircut client;
+ * that account follows a booking. Adding a tab would invite a self-select that
+ * is not the path, on the page whose job is converting the others.
  *
  * If a customer-facing signup entry point is ever wanted, add it here on
  * purpose rather than deriving this list from `status` — the two answer
@@ -450,7 +696,8 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
  * everyone who kept the query form.
  *
  * Degrades to `?for=` for an audience with no landing page, so a caller cannot
- * produce a 404 by asking for one that does not exist yet — `school` today.
+ * produce a 404 by asking for one that does not exist yet — `school`,
+ * `supply_store` and `agency` today.
  */
 export function membershipPath(id: AudienceId, extra?: Record<string, string>): string {
   const a = AUDIENCES[id];
@@ -476,8 +723,11 @@ export function landingAudiences(): Audience[] {
 
 export const LIVE_AUDIENCES: Audience[] = [
   AUDIENCES.student,
-  AUDIENCES.professional,
-  AUDIENCES.owner,
+  AUDIENCES.barber,
+  AUDIENCES.cosmetologist,
+  AUDIENCES.barbershop,
+  AUDIENCES.salon,
+  AUDIENCES.supply_store,
 ];
 
 /**
@@ -491,7 +741,7 @@ export const LIVE_AUDIENCES: Audience[] = [
  */
 export function audienceFromParam(raw: string | null | undefined): AudienceId {
   if (!raw) return DEFAULT_AUDIENCE;
-  const key = raw.trim().toLowerCase();
+  const key = resolveLegacy(raw);
   const found = (Object.keys(AUDIENCES) as AudienceId[]).find((id) => id === key);
   if (!found) return DEFAULT_AUDIENCE;
   if (AUDIENCES[found].status !== "live") return DEFAULT_AUDIENCE;
@@ -504,9 +754,14 @@ export function audienceFromParam(raw: string | null | undefined): AudienceId {
  * and an unknown value should stay unknown rather than silently becoming the
  * default audience and getting the wrong lifecycle emails.
  */
+function resolveLegacy(raw: string): string {
+  const key = raw.trim().toLowerCase();
+  return LEGACY_AUDIENCE_IDS[key] ?? key;
+}
+
 export function storedAudience(raw: string | null | undefined): AudienceId | null {
   if (!raw) return null;
-  const key = raw.trim().toLowerCase();
+  const key = resolveLegacy(raw);
   return (Object.keys(AUDIENCES) as AudienceId[]).find((id) => id === key) ?? null;
 }
 

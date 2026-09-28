@@ -26,6 +26,8 @@ export interface Provider {
   booking_window_days: number;
   entity_type: string | null;
   entity_id: string | null;
+  /** Made-up data for a demo (lib/calendar/demo.ts); hidden from client search. */
+  is_demo?: boolean;
 }
 
 export async function getProvider(memberId: string): Promise<Provider | null> {

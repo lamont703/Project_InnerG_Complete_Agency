@@ -46,7 +46,7 @@ const findPros: McpTool = {
   inputSchema: { type: "object", properties: { query: { type: "string" } } },
   handler: async (args, ctx) => {
     if (!ctx.identity) return NO_IDENTITY;
-    const pros = await searchBookablePros(String(args.query || ""));
+    const pros = await searchBookablePros(String(args.query || ""), ctx.identity.memberId);
     if (!pros.length) return "No one matching that takes bookings on ShearQuery yet. Booking is new and is opening to pros gradually.";
     return pros
       .map((p) =>

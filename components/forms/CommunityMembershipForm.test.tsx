@@ -118,6 +118,7 @@ describe("CommunityMembershipForm — signup attribution", () => {
     render(<CommunityMembershipForm source="membership-students" audience="student" />);
     await signUp();
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
-    expect(bodyOf().audience).toBe("owner");
+    // "owner" is a retired type (2026-09-28); an old link records its successor.
+    expect(bodyOf().audience).toBe("barbershop");
   });
 });

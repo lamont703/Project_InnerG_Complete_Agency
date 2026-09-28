@@ -98,7 +98,7 @@ export function MembershipBenefits() {
    * all true and none of them the reason they tapped. The owner set leads with
    * the appointment-requests benefit, which is what they came for.
    */
-  const activeId = params.get("src") === "booking" ? "owner" : audienceFromParam(params.get("for"));
+  const activeId = params.get("src") === "booking" ? "barbershop" : audienceFromParam(params.get("for"));
   const active = AUDIENCES[activeId];
   const isClaiming = Boolean(params.get("claim_name"));
 
