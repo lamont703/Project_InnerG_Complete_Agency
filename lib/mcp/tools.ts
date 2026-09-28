@@ -1159,11 +1159,21 @@ export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));
  * advertising one that always fails invites the model to keep trying it and
  * then explain our product to the user incorrectly.
  */
-export const toolDescriptors = (ctx?: McpToolContext, enabled?: Set<string>) =>
+export const toolDescriptors = (
+  ctx?: McpToolContext,
+  enabled?: Set<string>,
+  /**
+   * On the sign-in endpoint every tool is listed, signed in or not, and
+   * whatever the token's scopes. Lazy authentication depends on it: Claude can
+   * only reach the 401 (or the 403 step-up) by calling a tool it was shown, so
+   * hiding owner tools until sign-in would mean sign-in never starts.
+   */
+  opts?: { advertiseAll?: boolean }
+) =>
   MCP_TOOLS.filter(
     (t) =>
-      (!t.requiresIdentity || ctx?.identity) &&
-      (!t.requiresScope || ctx?.identity?.scopes.includes(t.requiresScope)) &&
+      (opts?.advertiseAll || !t.requiresIdentity || ctx?.identity) &&
+      (opts?.advertiseAll || !t.requiresScope || ctx?.identity?.scopes.includes(t.requiresScope)) &&
       (!enabled || enabled.has(t.name))
   ).map(
     ({ name, title, description, annotations, inputSchema }) => ({

@@ -69,6 +69,12 @@ export interface McpIdentity {
   scopes: McpScope[];
   /** For messages back to the model/owner — never the whole key. */
   keyPrefix: string;
+  /**
+   * How the caller proved who they are. "oauth" callers can be sent back
+   * through sign-in (a 403 insufficient_scope step-up); key callers cannot, so
+   * they get an explanation instead. Absent means a connection key.
+   */
+  via?: "key" | "oauth";
 }
 
 export interface ConnectionKeyRow {
