@@ -40,6 +40,7 @@ import {
   formatClock,
   type RegularHoursInput,
 } from "@/lib/gbp-change-rules";
+import { kindOf, describeChange } from "@/lib/gbp-change-describe";
 
 /**
  * Changing an owner's Google Business Profile from Claude.
@@ -902,7 +903,12 @@ export async function draftChange(args: {
  * calls racing on the same id publish it once. Everything after that is
  * recorded on the row whether it succeeds or not.
  */
-export async function publishChange(args: { memberId: string; keyPrefix: string; changeId: string }): Promise<DraftResult> {
+export async function publishChange(args: {
+  memberId: string;
+  /** The connection that asked; absent when the owner clicked Publish on the website. */
+  keyPrefix?: string;
+  changeId: string;
+}): Promise<DraftResult> {
   const admin = createAdminClient();
   const id = String(args.changeId || "").trim();
   if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, text: "That is not a change id. Ids come from a propose_ tool or my_changes." };
@@ -950,7 +956,7 @@ export async function publishChange(args: { memberId: string; keyPrefix: string;
     .select("id");
   if (!claimed?.length) return { ok: false, text: "That change was published or discarded a moment ago. Nothing was done." };
 
-  const note = `claude ${args.keyPrefix} — ${KIND_LABEL[kind]}`;
+  const note = `${args.keyPrefix ? `claude ${args.keyPrefix}` : "owner on website"} — ${KIND_LABEL[kind]}`;
   let applied: Applied;
   try {
     applied = await spec.apply(row.proposed, g, args.memberId, note);
@@ -970,7 +976,7 @@ export async function publishChange(args: { memberId: string; keyPrefix: string;
     return { ok: false, text: `Google refused the change: ${applied.error}\n\nNothing was changed. The draft is marked failed; fix the problem and draft it again.` };
   }
 
-  void notifyOwner(args.memberId, kind, row.proposed?.preview || [], id, args.keyPrefix).catch((e) =>
+  void notifyOwner(args.memberId, kind, row.proposed?.preview || [], id, args.keyPrefix ?? null).catch((e) =>
     console.error("[gbp-changes] owner notification failed:", e)
   );
 
@@ -982,7 +988,7 @@ export async function publishChange(args: { memberId: string; keyPrefix: string;
       "",
       "Google can take a few minutes to show a change, and occasionally holds one for its own review.",
       UNDO_NOTE[kind],
-      "The owner has been emailed a record of this change.",
+      `The owner has been emailed a record of this change, and can also review or undo it at ${SITE}/account/changes.`,
     ].join("\n"),
   };
 }
@@ -1008,7 +1014,7 @@ export async function discardChange(args: { memberId: string; changeId: string }
 export async function undoChange(args: { memberId: string; changeId: string }): Promise<DraftResult> {
   const admin = createAdminClient();
   const { data: row } = await (admin.from("gbp_change_requests") as any)
-    .select("id, status, proposed, snapshot_id, location_name")
+    .select("id, status, surface, proposed, snapshot_id, location_name")
     .eq("id", String(args.changeId || ""))
     .eq("community_member_id", args.memberId)
     .maybeSingle();
@@ -1017,8 +1023,10 @@ export async function undoChange(args: { memberId: string; changeId: string }): 
   if (row.status === "reverted") return { ok: false, text: "That change has already been undone." };
   if (row.status !== "applied") return { ok: false, text: `That change is ${row.status}, not published, so there is nothing to undo.` };
 
-  const kind = row.proposed?.kind as ChangeKind;
-  if (!kind) return { ok: false, text: "That change was made on the website, not from Claude. Undo it there or in Google." };
+  // Website rows carry no kind; it is derived from the surface they wrote to,
+  // so a change saved on the site can be undone from the history page too.
+  const kind = kindOf(row) as ChangeKind | null;
+  if (!kind) return { ok: false, text: "That change has no undo recorded, so it cannot be reversed from here." };
   if (kind === "booking_link" || kind === "photo_remove") return { ok: false, text: UNDO_NOTE[kind] };
 
   const g = await resolveOwnerGbp(args.memberId);
@@ -1046,7 +1054,13 @@ export async function undoChange(args: { memberId: string; changeId: string }): 
   } else if (kind === "post") {
     res = await deleteLocalPost({ token: g.token, snapshotId: row.snapshot_id });
   } else if (kind === "photo_add") {
-    const mediaName = row.proposed?.result?.name;
+    // Claude rows keep Google's response; website rows only have the snapshot.
+    let mediaName: string | null = row.proposed?.result?.name ?? null;
+    if (!mediaName) {
+      const { data: snap } = await (admin.from("gbp_write_snapshots") as any)
+        .select("after_state").eq("id", row.snapshot_id).maybeSingle();
+      mediaName = snap?.after_state?.mediaName ?? null;
+    }
     if (!mediaName) return { ok: false, text: "Google did not report which photo was created, so it cannot be removed from here." };
     res = await deleteMedia({ token: g.token, mediaName, locationName: g.locationName, memberId: args.memberId });
   } else {
@@ -1071,13 +1085,13 @@ export async function listChanges(memberId: string, limit = 15): Promise<string>
 
   if (!data?.length) return "No changes have been drafted or made on this account yet.";
   return [
-    "RECENT CHANGES (newest first). Pending drafts can be published or discarded; published ones made from Claude can usually be undone.",
+    `RECENT CHANGES (newest first). Pending drafts can be published or discarded; most published ones can be undone. The owner sees the same list, with buttons, at ${SITE}/account/changes.`,
     "",
     ...data.map((r: any) => {
-      const kind = r.proposed?.kind as ChangeKind | undefined;
+      const kind = kindOf(r) as ChangeKind | null;
       const what = kind ? KIND_LABEL[kind] : r.surface;
       const where = String(r.origin || "").startsWith("claude:") ? "from Claude" : "on the website";
-      const first = Array.isArray(r.proposed?.preview) ? r.proposed.preview[0] : "";
+      const first = describeChange(r)[0] || "";
       return `- ${r.id} · ${String(r.status).toUpperCase()} · ${what} (${where}) · ${String(r.created_at).slice(0, 16).replace("T", " ")}${first ? `\n    ${String(first).slice(0, 160)}` : ""}${r.error ? `\n    error: ${String(r.error).slice(0, 160)}` : ""}`;
     }),
   ].join("\n");
@@ -1090,7 +1104,7 @@ export async function listChanges(memberId: string, limit = 15): Promise<string>
  * URL leaks, the first published change tells the owner, and the email says
  * how to stop it.
  */
-async function notifyOwner(memberId: string, kind: ChangeKind, preview: string[], id: string, keyPrefix: string) {
+async function notifyOwner(memberId: string, kind: ChangeKind, preview: string[], id: string, keyPrefix: string | null) {
   const { data: member } = await (createAdminClient().from("community_members") as any)
     .select("email, first_name")
     .eq("id", memberId)
@@ -1104,10 +1118,17 @@ async function notifyOwner(memberId: string, kind: ChangeKind, preview: string[]
     subject: `Published to your Google profile: ${KIND_LABEL[kind]}`,
     html: [
       `<p>Hi ${esc(member.first_name || "there")},</p>`,
-      `<p>Your Claude connection (<code>${esc(keyPrefix)}…</code>) just published this change to your Google Business Profile:</p>`,
+      keyPrefix
+        ? `<p>Your Claude connection (<code>${esc(keyPrefix)}…</code>) just published this change to your Google Business Profile:</p>`
+        : `<p>You just published this change to your Google Business Profile from ShearQuery:</p>`,
       `<pre style="white-space:pre-wrap;font-family:inherit;background:#f6f6f6;padding:12px;border-radius:8px">${esc(preview.join("\n"))}</pre>`,
-      `<p>To reverse it, ask Claude to <strong>undo change ${esc(id)}</strong>.</p>`,
-      `<p>If you did not ask for this, revoke that connection right away at <a href="${SITE}/account/claude">${SITE}/account/claude</a>. Revoking stops it working immediately.</p>`,
+      // The link is the point of the change-history page: an owner reading this
+      // on their phone can undo without opening Claude — and without trusting
+      // the connection that made the change, if it was not them.
+      `<p><a href="${SITE}/account/changes#${esc(id)}" style="display:inline-block;background:#0f172a;color:#fff;padding:10px 16px;border-radius:8px;font-weight:700;text-decoration:none">Review or undo this change</a></p>`,
+      keyPrefix
+        ? `<p>If you did not ask for this, undo it from that page and revoke the connection there too. Revoking stops it working immediately.</p>`
+        : "",
     ].join("\n"),
   });
 }

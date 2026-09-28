@@ -434,7 +434,11 @@ export default function ConnectClaudePage() {
             <p className="mt-6 text-sm leading-relaxed text-slate-600">
               Once it&apos;s connected, ask it something like{" "}
               <em>&quot;audit my Google profile and fix what you can&quot;</em>. It will show you each
-              change as a draft and publish only the ones you approve.
+              change as a draft and publish only the ones you approve. Every change is listed at{" "}
+              <Link href="/account/changes" className="font-bold text-blue-700 underline">
+                your change history
+              </Link>
+              , with an undo button.
             </p>
           </section>
 
