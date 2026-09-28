@@ -16,6 +16,7 @@ import { gbpAccessToken, isGbpReconnectRequired } from "@/lib/google-business";
 import { GBP_TOOLS } from "@/lib/mcp/gbp-tools";
 import { INSTAGRAM_TOOLS } from "@/lib/mcp/instagram-tools";
 import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
+import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -1172,6 +1173,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...GBP_TOOLS,
   ...INSTAGRAM_TOOLS,
   ...CALENDAR_TOOLS,
+  ...CLIENT_BOOKING_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

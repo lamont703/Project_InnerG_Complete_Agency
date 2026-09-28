@@ -77,8 +77,8 @@ describe("MCP App views", () => {
 });
 
 describe("private pages stay out of the sitemap and the .md layer", () => {
-  it("excludes the consent screen and the one-time upload page", () => {
-    for (const route of ["/oauth/authorize", "/upload/squp_abc"]) {
+  it("excludes the consent screen, the upload page and the appointment link", () => {
+    for (const route of ["/oauth/authorize", "/upload/squp_abc", "/appointments/abc"]) {
       expect(isExcludedFromSitemap(route), route).toBe(true);
       expect(isMarkdownEligible(route), route).toBe(false);
     }
