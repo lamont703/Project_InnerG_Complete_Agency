@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { exchangeCodeForLongLivedToken, IG_GRAPH, IG_SCOPES } from "@/lib/instagram-oauth";
+import { canConnectInstagram, memberEmail, storeMemberInstagram } from "@/lib/instagram-member";
 
 /**
  * Finish the authorisation and store a LONG-lived token.
@@ -17,6 +18,18 @@ export async function GET(req: Request) {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const denied = url.searchParams.get("error");
+
+  // A MEMBER connecting their own account (api/instagram/member/connect) shares
+  // this callback URL, because Meta matches redirect URIs exactly and this one
+  // is registered. Its own state cookie decides the branch, before anything
+  // here can touch the platform's single-row instagram_connection.
+  const jar0 = await cookies();
+  const memberCookie = jar0.get("ig_member_oauth_state")?.value;
+  // Matched on the state value, not mere presence: a member flow abandoned a
+  // few minutes ago must not capture an admin reconnecting @shearquery.
+  if (memberCookie && state && memberCookie.split(".")[0] === state) {
+    return finishMemberConnect({ url, code, state, denied, memberCookie });
+  }
 
   if (denied) {
     return NextResponse.redirect(`${url.origin}/admin/connectors?ig=denied`);
@@ -93,4 +106,64 @@ export async function GET(req: Request) {
   return NextResponse.redirect(
     `${url.origin}/admin/connectors?ig=connected${username ? `&as=${encodeURIComponent(username)}` : ""}`
   );
+}
+
+/**
+ * The member branch. Writes ONLY member_instagram_connections, keyed by the
+ * member id that was stored with the state when the flow started.
+ */
+async function finishMemberConnect(args: {
+  url: URL;
+  code: string | null;
+  state: string | null;
+  denied: string | null;
+  memberCookie: string;
+}) {
+  const { url, code, state, denied, memberCookie } = args;
+  const back = (reason: string, extra = "") => NextResponse.redirect(`${url.origin}/account/instagram?ig=${reason}${extra}`);
+
+  const jar = await cookies();
+  jar.delete("ig_member_oauth_state");
+  if (denied) return back("denied");
+  if (!code) return back("missing_code");
+
+  const [expectedState, memberId] = memberCookie.split(".");
+  if (!expectedState || !memberId || expectedState !== state) return back("bad_state");
+
+  // The allowlist is checked again here, not only when the flow started.
+  if (!canConnectInstagram(await memberEmail(memberId))) return back("not_available");
+
+  const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID;
+  const clientSecret = process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET;
+  if (!clientId || !clientSecret) return back("missing_credentials");
+  const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || `${url.origin}/api/instagram/callback`;
+
+  const result = await exchangeCodeForLongLivedToken({ code, clientId, clientSecret, redirectUri });
+  if (!result.ok || !result.accessToken) {
+    console.error("[instagram/member] token exchange failed:", result.error);
+    return back("exchange_failed");
+  }
+
+  let username: string | null = null;
+  let accountType: string | null = null;
+  let igUserId: string | null = result.userId || null;
+  try {
+    const me = await fetch(`${IG_GRAPH}/me?fields=id,username,account_type&access_token=${result.accessToken}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    const body: any = await me.json().catch(() => ({}));
+    if (body?.id) {
+      igUserId = String(body.id);
+      username = body.username || null;
+      accountType = body.account_type || null;
+    }
+  } catch { /* identity is nice to have */ }
+
+  try {
+    await storeMemberInstagram({ memberId, accessToken: result.accessToken, expiresAt: result.expiresAt ?? null, igUserId, username, accountType });
+  } catch (e: any) {
+    console.error("[instagram/member] could not store token:", e?.message);
+    return back("store_failed");
+  }
+  return back("connected", username ? `&as=${encodeURIComponent(username)}` : "");
 }
