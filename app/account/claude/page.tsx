@@ -267,6 +267,14 @@ export default function ConnectClaudePage() {
             </p>
           </section>
 
+          <p className="mt-4 text-sm text-slate-600">
+            Want Claude to read your Instagram too?{" "}
+            <Link href="/account/instagram" className="font-bold text-blue-700 underline">
+              Connect Instagram
+            </Link>
+            .
+          </p>
+
           {/* Apps the owner has signed in from. */}
           <section className="mt-8">
             <h2 className="text-lg font-black">Connected apps</h2>

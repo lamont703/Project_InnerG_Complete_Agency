@@ -37,12 +37,16 @@ export const IG_SCOPES = [
   "instagram_business_manage_messages",
 ];
 
-export function instagramAuthUrl(clientId: string, redirectUri: string, state: string): string {
+/**
+ * `scopes` defaults to the platform account's set. A member connection passes
+ * its own, narrower list (lib/instagram-member.ts) — reading, not posting.
+ */
+export function instagramAuthUrl(clientId: string, redirectUri: string, state: string, scopes: string[] = IG_SCOPES): string {
   const q = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
-    scope: IG_SCOPES.join(","),
+    scope: scopes.join(","),
     state,
   });
   return `${IG_AUTHORIZE}?${q}`;
