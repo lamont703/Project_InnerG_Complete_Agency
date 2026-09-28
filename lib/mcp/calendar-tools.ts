@@ -1,7 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { McpTool, McpToolContext, McpToolAnnotations } from "@/lib/mcp/tools";
-import { canUseCalendar, CALENDAR_NOT_AVAILABLE } from "@/lib/calendar/access";
+import { CALENDAR_NOT_AVAILABLE } from "@/lib/calendar/access";
+import { hasCalendarAccess } from "@/lib/feature-access";
 import { normaliseDay } from "@/lib/gbp-change-rules";
 import {
   zonedToUtc, parseDateKey, localDateKey, addDaysToKey, formatLocal, minuteToClock, parseClock, startOfLocalDay,
@@ -39,7 +40,7 @@ const NO_IDENTITY = "This tool needs an owner connection and this connection has
 async function allowed(ctx: McpToolContext): Promise<{ ok: true; memberId: string } | { ok: false; text: string }> {
   if (!ctx.identity) return { ok: false, text: NO_IDENTITY };
   const { data } = await (createAdminClient().from("community_members") as any).select("email").eq("id", ctx.identity.memberId).maybeSingle();
-  if (!canUseCalendar(data?.email)) return { ok: false, text: CALENDAR_NOT_AVAILABLE };
+  if (!(await hasCalendarAccess(data?.email))) return { ok: false, text: CALENDAR_NOT_AVAILABLE };
   return { ok: true, memberId: ctx.identity.memberId };
 }
 
@@ -108,7 +109,7 @@ const myCalendar: McpTool = {
       return `  ${DAY_NAMES[wd]}: ${today.length ? today.map((h) => `${minuteToClock(h.start_minute)}–${minuteToClock(h.end_minute)}`).join(", ") : "closed"}`;
     });
     return [
-      `CALENDAR — ${p.display_name}${listing ? ` at ${listing}` : ""}`,
+      `CALENDAR — ${p.display_name}${listing ? ` at ${listing}` : ""}${p.is_demo ? "  [DEMO — made-up clients and bookings; no texts go to them]" : ""}`,
       `Time zone ${p.timezone} · start times every ${p.slot_step_minutes} min · clients book at least ${p.min_notice_minutes} min ahead, up to ${p.booking_window_days} days out`,
       "",
       "WEEKLY HOURS", ...week,

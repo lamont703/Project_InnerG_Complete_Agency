@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canUseCalendar } from "@/lib/calendar/access";
+import { hasCalendarAccess } from "@/lib/feature-access";
 import {
   getHours, listServices, findOpenTimes, upsertClient, bookAppointment, getAppointment, setAppointmentStatus,
   normalisePhone, listingName, type Provider, type Service, type Appointment,
@@ -55,7 +55,7 @@ export async function bookableProvider(providerId: string): Promise<BookablePro 
     .eq("id", providerId)
     .eq("active", true)
     .maybeSingle();
-  if (!p || !canUseCalendar(p.member?.email)) return null;
+  if (!p || !(await hasCalendarAccess(p.member?.email))) return null;
   const [services, hours] = await Promise.all([listServices(p.id), getHours(p.id)]);
   if (!services.length || !hours.length) return null;
   const { member: _m, ...provider } = p;
@@ -78,12 +78,23 @@ export async function bookableForEntity(entityType: string, entityId: string): P
   return null;
 }
 
-/** For Claude: bookable pros matching a name or business, newest calendars first. */
-export async function searchBookablePros(query: string): Promise<BookablePro[]> {
-  const { data } = await db().from("calendar_providers").select("id, display_name").eq("active", true).order("created_at", { ascending: false }).limit(50);
+/**
+ * For Claude: bookable pros matching a name or business, newest calendars first.
+ *
+ * Demo calendars are left out — a real client must never find and book the
+ * made-up shop — except for the demo's own owner, who is testing it.
+ */
+export async function searchBookablePros(query: string, viewerMemberId?: string | null): Promise<BookablePro[]> {
+  const { data } = await db()
+    .from("calendar_providers")
+    .select("id, display_name, is_demo, community_member_id")
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(50);
   const q = query.trim().toLowerCase();
   const out: BookablePro[] = [];
   for (const row of data || []) {
+    if (row.is_demo && row.community_member_id !== viewerMemberId) continue;
     const pro = await bookableProvider(row.id);
     if (!pro) continue;
     const hay = `${pro.provider.display_name} ${pro.listing || ""}`.toLowerCase();
