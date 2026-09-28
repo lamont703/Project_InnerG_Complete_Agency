@@ -82,10 +82,17 @@ describe("the MCP tool registry", () => {
     }
   });
 
-  it("lets only publish_change and undo_change change the live profile", () => {
+  /**
+   * Destructive tools are named one by one, so a new one fails here until it
+   * is added on purpose. Two change the live Google profile and need
+   * "publish"; cancelling an appointment frees a client's booking on the
+   * owner's own ShearQuery calendar and is marked destructive so Claude always
+   * asks — it needs only "propose" (lib/mcp/calendar-tools.ts).
+   */
+  it("names every destructive tool, and only Google changes need publish", () => {
     const destructive = MCP_TOOLS.filter((t) => t.annotations.readOnlyHint === false && t.annotations.destructiveHint !== false);
-    expect(destructive.map((t) => t.name).sort()).toEqual(["publish_change", "undo_change"]);
-    for (const t of destructive) expect(t.requiresScope).toBe("publish");
+    expect(destructive.map((t) => t.name).sort()).toEqual(["cancel_appointment", "publish_change", "undo_change"]);
+    for (const t of destructive) expect(t.requiresScope).toBe(t.name === "cancel_appointment" ? "propose" : "publish");
   });
 
   it("marks every propose_ tool as a non-destructive draft behind the propose scope", () => {
