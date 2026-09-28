@@ -60,6 +60,9 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   // filesystem crawl advertised it until this line existed.
   '/oauth',
   '/upload',
+  // A client's appointment, reached only from their confirmation text; the
+  // token in the URL is the credential.
+  '/appointments',
   // OAuth callback shims. Each of these directories contains nothing but a
   // `callback` child — there is no /discord or /x page, which is why those
   // paths 404. The callbacks themselves are redirect handlers with no reader.

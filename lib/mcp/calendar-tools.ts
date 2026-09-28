@@ -13,6 +13,7 @@ import {
   moveAppointment, setAppointmentStatus, windowKeys, normalisePhone,
   type Provider, type Appointment,
 } from "@/lib/calendar/store";
+import { notifyCancelled } from "@/lib/calendar/notify";
 
 /**
  * The pro's own appointment book, managed from Claude.
@@ -531,16 +532,27 @@ const cancelTool: McpTool = {
   name: "cancel_appointment",
   title: "Cancel an appointment",
   provides: "cancelling appointments",
-  description: "Cancel an appointment (id from my_schedule), freeing the time. Confirm with the owner first. Does not text the client.",
+  description:
+    "Cancel an appointment (id from my_schedule), freeing the time. Confirm with the owner first. Texts the client only with notify_client: true — ask the owner, especially for a client who booked themselves online or through Claude.",
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
-  inputSchema: { type: "object", properties: { id: { type: "string" }, reason: { type: "string" } }, required: ["id"] },
+  inputSchema: {
+    type: "object",
+    properties: { id: { type: "string" }, reason: { type: "string" }, notify_client: { type: "boolean", description: "Text the client that it's cancelled." } },
+    required: ["id"],
+  },
   handler: async (args, ctx) => {
     const r = await writeProvider(ctx);
     if (!r.ok) return r.text;
     const res = await setAppointmentStatus({ providerId: r.p.id, id: String(args.id || ""), status: "cancelled", reason: args.reason ? String(args.reason).slice(0, 200) : null });
-    return res.ok ? `Cancelled: ${apptLine(res.appointment!, r.p.timezone, true)}\nThe time is free again. The client was not texted — let them know.` : res.reason!;
+    if (!res.ok) return res.reason!;
+    let texted = false;
+    if (args.notify_client && res.appointment?.client?.phone) {
+      await notifyCancelled({ pro: { provider: r.p, listing: await listingName(r.p), services: [] }, appointment: res.appointment, by: "pro" });
+      texted = true;
+    }
+    return `Cancelled: ${apptLine(res.appointment!, r.p.timezone, true)}\nThe time is free again. ${texted ? "The client was texted." : "The client was not texted — let them know."}`;
   },
 };
 

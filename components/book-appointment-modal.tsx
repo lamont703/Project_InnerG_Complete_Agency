@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatServiceLabel, type BookableService, type BookingEntityType } from "@/lib/booking-services";
 import { bookableSlots, bookableSlotsForDate } from "@/lib/booking-lead-time";
 import { PostConversionAccountOffer } from "@/components/account/post-conversion-offer";
+import { CalendarBookingPanel, type CalendarInfo } from "@/components/calendar-booking-panel";
 
 /**
  * The Book Appointment CTA and its modal — the single conversion point on the
@@ -120,6 +121,28 @@ export function BookAppointmentButton({
 }: BookAppointmentButtonProps) {
   const [open, setOpen] = React.useState(false);
   const [step, setStep] = React.useState<Step>("details");
+
+  /**
+   * REAL BOOKING WHEN THE PRO RUNS A SHEARQUERY CALENDAR.
+   *
+   * Asked once, on first open, so a page with a dozen Book pills does not make
+   * a dozen requests on load. A bookable listing gets CalendarBookingPanel —
+   * real open times, a confirmed appointment — and everything else keeps the
+   * request form below exactly as it was. The copy rule above ("it requests,
+   * it does not book") still holds for every listing without a calendar.
+   * "loading" shows a spinner rather than flashing the request form first.
+   */
+  const [calendar, setCalendar] = React.useState<CalendarInfo | null | "loading" | undefined>(undefined);
+  const openDialog = (next: boolean) => {
+    setOpen(next);
+    if (next && calendar === undefined) {
+      setCalendar("loading");
+      fetch(`/api/calendar/public/lookup?entity_type=${encodeURIComponent(entityType)}&entity_id=${encodeURIComponent(entityId)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => setCalendar(j?.bookable ? (j as CalendarInfo) : null))
+        .catch(() => setCalendar(null));
+    }
+  };
 
   /**
    * The service the modal opens on. `preselectService` wins when it names one
@@ -299,7 +322,7 @@ export function BookAppointmentButton({
   const siteHref = siteOut ? (siteOut.startsWith("http") ? siteOut : `https://${siteOut}`) : null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={openDialog}>
       <DialogTrigger asChild>
         <button type="button" data-ig-click={trackingId} className={cn(triggerClass, className)}>
           {variant !== "inline" && <CalendarDays className="w-4 h-4" />}
@@ -315,7 +338,14 @@ export function BookAppointmentButton({
           the calendar renders near-white text on near-white surfaces. Anything
           else portalled out of a page must carry this too. */}
       <DialogContent className="light sm:max-w-lg max-h-[90vh] overflow-y-auto bg-white text-slate-900 border-slate-200">
-        {step === "done" ? (
+        {calendar === "loading" ? (
+          <div className="flex items-center justify-center py-16">
+            <DialogTitle className="sr-only">Loading</DialogTitle>
+            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+          </div>
+        ) : calendar ? (
+          <CalendarBookingPanel info={calendar} onClose={() => setOpen(false)} />
+        ) : step === "done" ? (
           <>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">

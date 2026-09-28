@@ -87,12 +87,14 @@ describe("the MCP tool registry", () => {
    * is added on purpose. Two change the live Google profile and need
    * "publish"; cancelling an appointment frees a client's booking on the
    * owner's own ShearQuery calendar and is marked destructive so Claude always
-   * asks — it needs only "propose" (lib/mcp/calendar-tools.ts).
+   * asks — it needs only "propose" (lib/mcp/calendar-tools.ts). A client
+   * cancelling their own booking is the same kind of change from the other
+   * side (lib/mcp/client-booking-tools.ts).
    */
   it("names every destructive tool, and only Google changes need publish", () => {
     const destructive = MCP_TOOLS.filter((t) => t.annotations.readOnlyHint === false && t.annotations.destructiveHint !== false);
-    expect(destructive.map((t) => t.name).sort()).toEqual(["cancel_appointment", "publish_change", "undo_change"]);
-    for (const t of destructive) expect(t.requiresScope).toBe(t.name === "cancel_appointment" ? "propose" : "publish");
+    expect(destructive.map((t) => t.name).sort()).toEqual(["cancel_appointment", "cancel_my_booking", "publish_change", "undo_change"]);
+    for (const t of destructive) expect(t.requiresScope).toBe(t.name.startsWith("cancel_") ? "propose" : "publish");
   });
 
   it("marks every propose_ tool as a non-destructive draft behind the propose scope", () => {
