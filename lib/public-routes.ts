@@ -54,6 +54,12 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   '/accept-invite',
   '/forgot-password',
   '/reset-password',
+  // The OAuth consent screen and the one-time photo upload page. Both are
+  // reached only from a link Claude hands the owner, and /upload/<token> is a
+  // credential in a URL. /oauth/authorize is a static page.tsx, so the
+  // filesystem crawl advertised it until this line existed.
+  '/oauth',
+  '/upload',
   // OAuth callback shims. Each of these directories contains nothing but a
   // `callback` child — there is no /discord or /x page, which is why those
   // paths 404. The callbacks themselves are redirect handlers with no reader.
