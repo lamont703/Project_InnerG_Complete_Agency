@@ -1,33 +1,37 @@
+import { EXT_APPS_BUNDLE } from "@/lib/mcp/apps/vendor/ext-apps-bundle";
+
 /**
  * The upload box: an MCP App rendered inside the Claude conversation when
  * upload_photo runs.
  *
- * Protocol: MCP Apps 2026-01-26 (github.com/modelcontextprotocol/ext-apps,
- * specification/2026-01-26/apps.mdx, read 2026-09-29). The view talks to the
- * host over postMessage JSON-RPC:
+ * BUILT ON THE OFFICIAL SDK, AFTER A HAND-ROLLED VERSION NEVER APPEARED.
+ * Version one spoke the postMessage protocol directly from the spec. It passed
+ * a simulated host, and in claude.ai it never showed: Claude fetched the view
+ * on every call and no upload ever arrived (2026-09-28). The SDK's App class
+ * answers pings, reports size the way hosts measure it, and is what Claude is
+ * tested against, so the box now uses it — vendored inline, because the
+ * sandbox's default CSP allows inline script only (scripts/vendor_mcp_ext_apps.js).
  *
- *   view → host   ui/initialize, then ui/notifications/initialized
- *   host → view   ui/notifications/tool-result  — carries structuredContent
- *                 with the one-time upload URL
- *   view → host   ui/message after the upload, so Claude carries on and shows
- *                 the draft for approval; ui/open-link for the fallback page
+ * IT REPORTS ON ITSELF. Each step — loaded, connected, result received,
+ * upload started/finished/failed — is sent to /api/mcp-upload/<token>/event
+ * and lands in agent_requests as "app/<step>", so the next failure says where
+ * it stopped instead of leaving only an absence to reason from.
  *
- * WHY THE PHOTO GOES STRAIGHT TO SHEARQUERY and not through a tool call: a
- * tool call is a JSON-RPC body, ours are capped at 32KB, and a phone photo is
- * megabytes. The resource declares our origin in csp.connectDomains so the
- * sandbox allows the POST. A host may still refuse it ("MAY further
- * restrict"), so any failure to reach us switches the box to the fallback
- * link instead of leaving the owner stuck.
+ * WHY THE PHOTO GOES STRAIGHT TO SHEARQUERY: a tool call is a JSON-RPC body,
+ * ours are capped at 32KB, and a phone photo is megabytes. The resource
+ * declares our origin in csp.connectDomains; a host may still refuse it, so
+ * any failure to reach us switches the box to the fallback link.
  *
- * Self-contained: inline script and style only, no external loads, which is
- * what the spec's restrictive default CSP permits. Text from the host is set
- * with textContent, never innerHTML.
+ * Text from the host is set with textContent, never innerHTML.
  */
 
 export const PHOTO_UPLOAD_URI = "ui://shearquery/photo-upload";
 export const MCP_APP_MIME = "text/html;profile=mcp-app";
 
-export function photoUploadHtml(): string {
+/** How long after connecting to wait for the tool result before saying so. */
+const RESULT_WAIT_MS = 20_000;
+
+export function photoUploadHtml(origin: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -37,8 +41,9 @@ export function photoUploadHtml(): string {
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
+  html, body { margin: 0; }
   body {
-    margin: 0; padding: 16px;
+    padding: 16px;
     font-family: var(--font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
     background: var(--color-background-primary, transparent);
     color: var(--color-text-primary, CanvasText);
@@ -55,7 +60,7 @@ export function photoUploadHtml(): string {
   }
   .pick { display: flex; align-items: center; justify-content: center; min-height: 120px; cursor: pointer; text-align: center; border-style: dashed; }
   .pick img { max-width: 100%; max-height: 220px; border-radius: 8px; display: block; }
-  input[type=file] { display: none; }
+  input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
   .guide { margin-top: 6px; }
   .row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   button {
@@ -64,7 +69,7 @@ export function photoUploadHtml(): string {
   }
   button.primary { background: var(--color-text-primary, #111); color: var(--color-background-primary, #fff); border-color: transparent; }
   button:disabled { opacity: .5; cursor: default; }
-  .msg { margin-top: 12px; font-size: 13px; }
+  .msg { margin-top: 12px; font-size: 13px; overflow-wrap: anywhere; }
   .err { color: #c0392b; }
   .ok { color: #1e8449; }
   [hidden] { display: none !important; }
@@ -79,7 +84,7 @@ export function photoUploadHtml(): string {
   <p class="muted guide" id="guide"></p>
 
   <label class="field" for="file">Photo</label>
-  <label class="pick" id="pick" for="file"><span id="pickText">Tap to choose a photo</span></label>
+  <label class="pick" id="pick" for="file"><span>Tap to choose a photo</span></label>
   <input type="file" id="file" accept="image/jpeg,image/png,image/webp" />
 
   <div class="row">
@@ -88,8 +93,10 @@ export function photoUploadHtml(): string {
   </div>
   <p class="msg" id="msg" role="status"></p>
 
+<script>${EXT_APPS_BUNDLE}</script>
 <script>
 (function () {
+  var ORIGIN = ${JSON.stringify(origin)};
   var CATEGORIES = [
     ["COVER", "Cover photo", "Your best shot of the shop itself."],
     ["EXTERIOR", "Outside", "The storefront as someone arriving would see it."],
@@ -100,10 +107,25 @@ export function photoUploadHtml(): string {
     ["LOGO", "Logo", "Your logo on a plain background."]
   ];
   var MAX_EDGE = 1600;
-  var uploadUrl = null, fallbackUrl = null, file = null, nextId = 1, pending = {};
+  var uploadUrl = null, fallbackUrl = null, token = "pending", file = null, app = null, gotResult = false;
+  var hostName = "", platform = "";
 
   var $ = function (id) { return document.getElementById(id); };
   var sel = $("category"), guide = $("guide"), msg = $("msg");
+
+  // ── self-reporting: fetch first, an image request if fetch is refused ──
+  function report(event, detail) {
+    var d = String(detail || "").slice(0, 300);
+    var url = ORIGIN + "/api/mcp-upload/" + encodeURIComponent(token) + "/event";
+    try {
+      fetch(url, { method: "POST", body: JSON.stringify({ event: event, detail: d, host: hostName, platform: platform }), keepalive: true })
+        .catch(function () {
+          try { new Image().src = url + "?e=" + encodeURIComponent(event) + "&d=" + encodeURIComponent(d) + "&h=" + encodeURIComponent(hostName) + "&p=" + encodeURIComponent(platform); } catch (e) {}
+        });
+    } catch (e) {}
+  }
+  window.addEventListener("error", function (e) { report("error", (e && e.message) || "script error"); });
+  report("loaded", typeof window.McpExtApps);
 
   CATEGORIES.forEach(function (c) {
     var o = document.createElement("option"); o.value = c[0]; o.textContent = c[1]; sel.appendChild(o);
@@ -113,39 +135,13 @@ export function photoUploadHtml(): string {
     var c = CATEGORIES.filter(function (x) { return x[0] === sel.value; })[0];
     guide.textContent = c ? c[2] : "";
   }
+  function setCategory(cat) {
+    if (cat && CATEGORIES.some(function (c) { return c[0] === cat; })) { sel.value = cat; showGuide(); }
+  }
   sel.addEventListener("change", showGuide); showGuide();
 
-  function say(text, kind) { msg.textContent = text; msg.className = "msg " + (kind || ""); reportSize(); }
-
-  // ── JSON-RPC over postMessage ──
-  function request(method, params) {
-    var id = nextId++;
-    return new Promise(function (resolve, reject) {
-      pending[id] = { resolve: resolve, reject: reject };
-      window.parent.postMessage({ jsonrpc: "2.0", id: id, method: method, params: params || {} }, "*");
-    });
-  }
-  function notify(method, params) {
-    window.parent.postMessage({ jsonrpc: "2.0", method: method, params: params || {} }, "*");
-  }
-  window.addEventListener("message", function (e) {
-    if (e.source !== window.parent) return;
-    var m = e.data;
-    if (!m || m.jsonrpc !== "2.0") return;
-    if (m.id != null && pending[m.id] && !m.method) {
-      var p = pending[m.id]; delete pending[m.id];
-      if (m.error) p.reject(new Error(m.error.message || "Request failed")); else p.resolve(m.result);
-      return;
-    }
-    if (m.method === "ui/notifications/tool-result") onResult(m.params || {});
-    else if (m.method === "ui/notifications/tool-input") {
-      var cat = m.params && m.params.arguments && m.params.arguments.category;
-      if (cat && CATEGORIES.some(function (c) { return c[0] === cat; })) { sel.value = cat; showGuide(); }
-    } else if (m.method === "ui/notifications/host-context-changed") applyTheme(m.params);
-    else if (m.method === "ui/resource-teardown" && m.id != null) {
-      window.parent.postMessage({ jsonrpc: "2.0", id: m.id, result: {} }, "*");
-    }
-  });
+  function say(text, kind) { msg.textContent = text; msg.className = "msg " + (kind || ""); }
+  function refresh() { $("upload").disabled = !(uploadUrl && file); }
 
   function applyTheme(ctx) {
     var vars = ctx && ctx.styles && ctx.styles.variables;
@@ -154,38 +150,38 @@ export function photoUploadHtml(): string {
   }
 
   function onResult(result) {
-    var s = result.structuredContent || {};
-    if (result.isError || !s.uploadUrl) {
-      say((result.content && result.content[0] && result.content[0].text) || "Uploading isn't available right now.", "err");
+    gotResult = true;
+    var s = (result && result.structuredContent) || {};
+    if (result && result.isError || !s.uploadUrl) {
+      report("no-result", "result without uploadUrl");
+      say((result && result.content && result.content[0] && result.content[0].text) || "Uploading isn't available right now.", "err");
       return;
     }
     uploadUrl = s.uploadUrl; fallbackUrl = s.fallbackUrl || null;
-    if (s.category && CATEGORIES.some(function (c) { return c[0] === s.category; })) { sel.value = s.category; showGuide(); }
+    var m = /\\/api\\/mcp-upload\\/([^/?#]+)/.exec(uploadUrl); if (m) token = m[1];
+    setCategory(s.category);
     $("fallback").hidden = !fallbackUrl;
+    report("tool-result", "");
     refresh();
   }
 
-  function reportSize() {
-    var h = Math.ceil(document.documentElement.getBoundingClientRect().height);
-    notify("ui/notifications/size-changed", { width: document.documentElement.clientWidth, height: h });
-  }
-  if (window.ResizeObserver) new ResizeObserver(reportSize).observe(document.body);
-
-  function refresh() { $("upload").disabled = !(uploadUrl && file); }
-
   // ── picking and shrinking ──
   $("file").addEventListener("change", function () {
-    file = this.files && this.files[0] || null;
+    file = (this.files && this.files[0]) || null;
     var pick = $("pick");
     pick.textContent = "";
     if (file) {
-      var img = document.createElement("img");
-      img.alt = "Selected photo";
-      img.src = URL.createObjectURL(file);
-      img.onload = reportSize;
-      pick.appendChild(img);
+      // A data: URL, not blob: — the sandbox's default img-src allows data:.
+      var reader = new FileReader();
+      reader.onload = function () {
+        var img = document.createElement("img");
+        img.alt = "Selected photo"; img.src = String(reader.result);
+        pick.textContent = ""; pick.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+      var t = document.createElement("span"); t.textContent = file.name; pick.appendChild(t);
     } else {
-      var t = document.createElement("span"); t.textContent = "Tap to choose a photo"; pick.appendChild(t);
+      var e = document.createElement("span"); e.textContent = "Tap to choose a photo"; pick.appendChild(e);
     }
     say("");
     refresh();
@@ -209,6 +205,7 @@ export function photoUploadHtml(): string {
   $("upload").addEventListener("click", function () {
     if (!uploadUrl || !file) return;
     var btn = this; btn.disabled = true; say("Uploading…");
+    report("upload-start", file.type + " " + file.size);
     var label = sel.options[sel.selectedIndex].textContent;
     shrink(file).then(function (f) {
       var body = new FormData(); body.append("file", f); body.append("category", sel.value);
@@ -216,18 +213,29 @@ export function photoUploadHtml(): string {
     }).then(function (res) {
       return res.json().then(function (j) { return { status: res.status, body: j }; });
     }).then(function (r) {
-      if (!r.body || !r.body.ok) { btn.disabled = false; say((r.body && r.body.message) || "The upload failed.", "err"); return; }
+      if (!r.body || !r.body.ok) {
+        btn.disabled = false;
+        report("upload-failed", r.status + " " + ((r.body && r.body.message) || ""));
+        say((r.body && r.body.message) || "The upload failed.", "err");
+        return;
+      }
+      report("upload-ok", r.body.changeId);
       say("Uploaded. It's a draft — Claude will show it to you before anything goes on Google.", "ok");
       $("file").disabled = true; sel.disabled = true;
       var text = "I uploaded a photo for \\"" + label + "\\" on my Google listing (draft " + r.body.changeId + "). " +
         (r.body.canPublish ? "Show me the draft and publish it when I say so." : "Show me the draft.");
-      request("ui/message", { role: "user", content: { type: "text", text: text } }).catch(function () {
-        request("ui/update-model-context", { content: [{ type: "text", text: text }] }).catch(function () {});
+      if (!app) return;
+      app.sendMessage({ role: "user", content: [{ type: "text", text: text }] }).then(function (res) {
+        // The host can decline without throwing; the result says so.
+        if (res && res.isError) throw new Error("host declined the message");
+        report("message-sent", "");
+      }).catch(function (err) {
+        report("message-failed", err && err.message);
         say("Uploaded as a draft. Tell Claude \\"I uploaded the photo\\" to review and publish it.", "ok");
       });
-    }).catch(function () {
-      // Most likely the host blocked the request to our domain. The link does the same job.
+    }).catch(function (err) {
       btn.disabled = false;
+      report("network-blocked", err && err.message);
       say("This box couldn't reach ShearQuery from here. Use the upload page instead — it does the same thing.", "err");
       $("fallback").hidden = !fallbackUrl;
     });
@@ -235,21 +243,43 @@ export function photoUploadHtml(): string {
 
   $("fallback").addEventListener("click", function () {
     if (!fallbackUrl) return;
-    request("ui/open-link", { url: fallbackUrl }).catch(function () {
-      say("Open this link to upload: " + fallbackUrl);
-    });
+    var open = app ? app.openLink({ url: fallbackUrl }) : Promise.reject(new Error("not connected"));
+    open.catch(function () { say("Open this link to upload: " + fallbackUrl); });
   });
 
-  // ── handshake ──
-  request("ui/initialize", {
-    appInfo: { name: "ShearQuery photo upload", version: "1.0.0" },
-    appCapabilities: { availableDisplayModes: ["inline"] },
-    protocolVersion: "2026-01-26"
-  }).then(function (r) {
-    applyTheme(r && r.hostContext);
-    notify("ui/notifications/initialized", {});
-    reportSize();
-  }).catch(function () { notify("ui/notifications/initialized", {}); });
+  // ── connect through the SDK ──
+  if (!window.McpExtApps || !window.McpExtApps.App) {
+    report("error", "SDK missing");
+    say("This box couldn't start. Use the link in Claude's reply instead.", "err");
+    return;
+  }
+  app = new window.McpExtApps.App(
+    { name: "ShearQuery photo upload", version: "2.0.0" },
+    { availableDisplayModes: ["inline"] },
+    { autoResize: true }
+  );
+  // Registered BEFORE connect: the host may send these the moment the handshake ends.
+  app.ontoolinput = function (p) { setCategory(p && p.arguments && p.arguments.category); };
+  app.ontoolresult = onResult;
+  app.onhostcontextchanged = applyTheme;
+  app.onteardown = function () { return {}; };
+
+  app.connect().then(function () {
+    var ctx = app.getHostContext && app.getHostContext();
+    hostName = (app.getHostVersion && app.getHostVersion() && app.getHostVersion().name) || "";
+    platform = (ctx && ctx.platform) || "";
+    applyTheme(ctx);
+    report("connected", "");
+    setTimeout(function () {
+      if (!gotResult) {
+        report("no-result", "none after ${RESULT_WAIT_MS}ms");
+        say("Claude didn't pass the upload details to this box. Use the link in Claude's reply instead.", "err");
+      }
+    }, ${RESULT_WAIT_MS});
+  }).catch(function (err) {
+    report("error", "connect failed: " + (err && err.message));
+    say("This box couldn't connect to Claude. Use the link in Claude's reply instead.", "err");
+  });
 })();
 </script>
 </body>

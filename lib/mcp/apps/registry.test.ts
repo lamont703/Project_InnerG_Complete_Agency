@@ -24,6 +24,7 @@ describe("MCP App views", () => {
     const c = read.contents[0];
     expect(c.mimeType).toBe(MCP_APP_MIME);
     expect(c._meta.ui.csp.connectDomains).toEqual(["https://preview.example.com"]);
+    expect(c.text).toContain('"https://preview.example.com"');
     expect(readAppResource("ui://something-else", "https://shearquery.com")).toBeNull();
   });
 
@@ -32,15 +33,39 @@ describe("MCP App views", () => {
    * would be blocked and the box would render dead, with no error the owner
    * can see.
    */
-  it("is a self-contained page that speaks the MCP Apps handshake", () => {
-    const html = photoUploadHtml();
+  it("is a self-contained page that connects through the vendored SDK", () => {
+    const html = photoUploadHtml("https://shearquery.com");
     expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     expect(html).not.toMatch(/<script[^>]+src=/i);
     expect(html).not.toMatch(/<link[^>]+href=/i);
-    expect(html).toContain('"ui/initialize"');
-    expect(html).toContain('"ui/notifications/initialized"');
-    expect(html).toContain("ui/notifications/tool-result");
-    expect(html).not.toContain("innerHTML");
+    // The box's own script is the second one; the first is the SDK, which
+    // contains the same words.
+    const own = html.split("<script>")[2].split("</script>")[0];
+    expect(own).toContain("window.McpExtApps");
+    expect(own).toContain("app.connect()");
+    // Handlers must be registered before connect, or the result can be missed.
+    expect(own.indexOf("app.ontoolresult")).toBeLessThan(own.indexOf("app.connect()"));
+  });
+
+  /**
+   * The inline scripts must parse and must not be cut short: a stray
+   * "</script" inside the SDK would end the tag early and the box would render
+   * dead, which is the invisible failure this rewrite exists to fix.
+   */
+  it("has inline scripts that parse, with no early </script>", () => {
+    const html = photoUploadHtml("https://shearquery.com");
+    const scripts = html.split("<script>").slice(1).map((s) => s.split("</script>")[0]);
+    expect(scripts).toHaveLength(2);
+    for (const js of scripts) expect(() => new Function(js)).not.toThrow();
+    expect((html.match(/<\/script>/g) || []).length).toBe(2);
+  });
+
+  it("runs the SDK bundle into window.McpExtApps.App", () => {
+    const html = photoUploadHtml("https://shearquery.com");
+    const sdk = html.split("<script>")[1].split("</script>")[0];
+    const win: any = {};
+    new Function("window", "self", "globalThis", sdk)(win, win, win);
+    expect(typeof win.McpExtApps?.App).toBe("function");
   });
 
   it("keeps the upload box behind identity and the propose scope", () => {

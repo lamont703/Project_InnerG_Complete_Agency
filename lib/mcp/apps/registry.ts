@@ -31,8 +31,10 @@ export function readAppResource(uri: unknown, origin: string) {
       {
         uri: PHOTO_UPLOAD_URI,
         mimeType: MCP_APP_MIME,
-        text: photoUploadHtml(),
-        _meta: { ui: { csp: { connectDomains: [origin] }, prefersBorder: true } },
+        text: photoUploadHtml(origin),
+        // resourceDomains too: the box's self-report falls back to an image
+        // request when fetch is refused, and that is governed by img-src.
+        _meta: { ui: { csp: { connectDomains: [origin], resourceDomains: [origin] }, prefersBorder: true } },
       },
     ],
   };
