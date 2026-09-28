@@ -15,6 +15,7 @@ import { analysePhotoCoverage } from "@/lib/gbp-photos";
 import { gbpAccessToken, isGbpReconnectRequired } from "@/lib/google-business";
 import { GBP_TOOLS } from "@/lib/mcp/gbp-tools";
 import { INSTAGRAM_TOOLS } from "@/lib/mcp/instagram-tools";
+import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -1170,6 +1171,7 @@ export const MCP_TOOLS: McpTool[] = [
   myPhotoCoverage,
   ...GBP_TOOLS,
   ...INSTAGRAM_TOOLS,
+  ...CALENDAR_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

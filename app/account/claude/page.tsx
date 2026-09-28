@@ -272,6 +272,10 @@ export default function ConnectClaudePage() {
             <Link href="/account/instagram" className="font-bold text-blue-700 underline">
               Connect Instagram
             </Link>
+            . Run your appointment book from Claude:{" "}
+            <Link href="/account/calendar" className="font-bold text-blue-700 underline">
+              Calendar
+            </Link>
             .
           </p>
 
