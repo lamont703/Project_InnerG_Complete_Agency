@@ -21,6 +21,13 @@ import { createBrowserClient } from "@/lib/supabase/browser"
  *  - revoking is one click and always available, since "I pasted it somewhere I
  *    shouldn't have" is the likely reason anyone reads this page twice
  *
+ * SIGN-IN IS THE MAIN PATH NOW (2026-09-28). An owner adds the plain
+ * shearquery.com/mcp URL to Claude and signs in when Claude first reaches an
+ * owner tool — nothing secret is copied (lib/mcp/oauth.ts). Connection keys
+ * still work and are kept under "Advanced" for clients without OAuth, but the
+ * page leads with sign-in because a key in a URL is a password in a place
+ * passwords leak from.
+ *
  * The second thing is expectation setting: a connected Claude can READ this
  * owner's listing and DRAFT changes to it, and — only on a connection created
  * with publishing switched on — publish a draft after the owner says yes in
@@ -28,6 +35,16 @@ import { createBrowserClient } from "@/lib/supabase/browser"
  * 2026-09-27 (see lib/gbp-changes.ts). The switch is per connection so an
  * owner can keep a read-and-draft link somewhere less trusted.
  */
+
+interface GrantRow {
+  id: string
+  clientHost: string
+  clientName: string | null
+  scopes: string[]
+  createdAt: string
+  lastUsedAt: string | null
+  revokedAt: string | null
+}
 
 interface KeyRow {
   id: string
@@ -47,6 +64,7 @@ export default function ConnectClaudePage() {
   const [authChecked, setAuthChecked] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [keys, setKeys] = useState<KeyRow[]>([])
+  const [grants, setGrants] = useState<GrantRow[]>([])
   const [label, setLabel] = useState("")
   const [allowPublish, setAllowPublish] = useState(true)
   const [freshCanPublish, setFreshCanPublish] = useState(false)
@@ -57,6 +75,12 @@ export default function ConnectClaudePage() {
   const [freshKey, setFreshKey] = useState<string | null>(null)
   const [mcpBase, setMcpBase] = useState<string>("https://shearquery.com/mcp")
   const [copied, setCopied] = useState<string | null>(null)
+
+  useEffect(() => {
+    // The address shown is the one this page is served from, so a preview or
+    // local run shows a URL that actually reaches it.
+    setMcpBase(`${window.location.origin}/mcp`)
+  }, [])
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -70,11 +94,14 @@ export default function ConnectClaudePage() {
   }, [router])
 
   const load = () =>
-    fetch("/api/account/mcp-keys", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) throw new Error(data.error)
-        setKeys(data.keys || [])
+    Promise.all([
+      fetch("/api/account/mcp-keys", { credentials: "include" }).then((res) => res.json()),
+      fetch("/api/account/mcp-grants", { credentials: "include" }).then((res) => res.json()),
+    ])
+      .then(([keyData, grantData]) => {
+        if (keyData.error) throw new Error(keyData.error)
+        setKeys(keyData.keys || [])
+        setGrants(grantData.grants || [])
       })
       .catch((err) => toast.error(err.message || "Could not load your connections."))
       .finally(() => setIsLoading(false))
@@ -133,6 +160,21 @@ export default function ConnectClaudePage() {
     }
   }
 
+  const disconnect = async (id: string) => {
+    try {
+      const res = await fetch(`/api/account/mcp-grants?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      toast.success("Disconnected. That app has to sign in again to use your account.")
+      await load()
+    } catch (err: any) {
+      toast.error(err.message || "Could not disconnect that app.")
+    }
+  }
+
   const copy = async (what: string, value: string) => {
     try {
       await navigator.clipboard.writeText(value)
@@ -146,6 +188,7 @@ export default function ConnectClaudePage() {
   }
 
   const live = keys.filter((k) => !k.revokedAt)
+  const liveGrants = grants.filter((g) => !g.revokedAt)
 
   if (!authChecked || isLoading) {
     return (
@@ -178,12 +221,92 @@ export default function ConnectClaudePage() {
             </span>
             <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Use your Claude on your own shop</h1>
             <p className="mt-4 text-base leading-relaxed text-slate-600">
-              Add one link to Claude and it can look at your own listing — your audit score, your
-              reviews, what Google is missing — and fix it for you: hours, description, services,
-              categories, review replies, posts and photos. Claude shows you each change first and
-              nothing reaches Google until you say yes.
+              Add ShearQuery to Claude and sign in once. Claude can then look at your own listing —
+              your audit score, your reviews, what Google is missing — and fix it for you: hours,
+              description, services, categories, review replies, posts and photos. Claude shows you
+              each change first and nothing reaches Google until you say yes.
             </p>
           </header>
+
+          {/* The main path: a plain URL, then sign-in inside Claude. */}
+          <section className="mt-8 rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-black">Connect Claude</h2>
+            <div className="mt-4 flex items-stretch gap-2">
+              <code className="flex-1 overflow-x-auto rounded-lg bg-slate-50 px-3 py-2 font-mono text-[13px] text-slate-800">
+                {mcpBase}
+              </code>
+              <button
+                onClick={() => copy("signin", mcpBase)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-black text-white transition hover:bg-slate-800"
+              >
+                {copied === "signin" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied === "signin" ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <ol className="mt-4 space-y-1.5 text-sm leading-relaxed text-slate-700">
+              <li>1. In Claude, open Settings, then Connectors, and add a custom connector.</li>
+              <li>2. Paste the address above and save. Leave the advanced OAuth fields empty.</li>
+              <li>
+                3. Ask Claude something about your business, like{" "}
+                <em>&quot;audit my Google profile&quot;</em>. It shows a{" "}
+                <strong className="font-black">Connect</strong> button.
+              </li>
+              <li>
+                4. Sign in to ShearQuery, choose whether Claude may publish, and tap{" "}
+                <strong className="font-black">Allow</strong>. Claude carries on from there.
+              </li>
+            </ol>
+            <p className="mt-4 text-xs leading-relaxed text-slate-500">
+              Nothing secret to copy or lose: Claude gets its own pass, which expires on its own and
+              renews in the background. Claude Code:{" "}
+              <code className="rounded bg-slate-100 px-1 font-mono text-[12px]">
+                claude mcp add --transport http shearquery {mcpBase}
+              </code>
+              , then run <code className="rounded bg-slate-100 px-1 font-mono text-[12px]">/mcp</code>{" "}
+              to sign in.
+            </p>
+          </section>
+
+          {/* Apps the owner has signed in from. */}
+          <section className="mt-8">
+            <h2 className="text-lg font-black">Connected apps</h2>
+            {liveGrants.length === 0 ? (
+              <p className="mt-2 text-sm text-slate-600">None yet. They appear here after you tap Allow.</p>
+            ) : (
+              <div className="mt-4 space-y-3">
+                {liveGrants.map((g) => (
+                  <div key={g.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black">{g.clientName || g.clientHost}</p>
+                      <p className="mt-0.5 text-xs font-black text-slate-500">
+                        {g.scopes.includes("publish") ? "can publish" : g.scopes.includes("propose") ? "read and draft only" : "read only"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Allowed {when(g.createdAt)} · Last used {when(g.lastUsedAt)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => disconnect(g.id)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Disconnect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* The older path, kept for clients with no OAuth. Collapsed unless in use. */}
+          <details className="mt-10 rounded-2xl border border-slate-200 bg-white p-6" open={!!freshUrl || live.length > 0}>
+            <summary className="cursor-pointer text-sm font-black uppercase tracking-wide text-slate-500">
+              Advanced — connection keys, for apps that can&apos;t sign in
+            </summary>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600">
+              The older way to connect: a secret key you paste into the app. Use it only if an app has
+              no sign-in option. Anyone who gets the key can use it, so revoke any you no longer need.
+            </p>
 
           {/* The new credential. Its own panel, because it is shown once. */}
           {freshUrl && freshKey && (
@@ -384,9 +507,8 @@ export default function ConnectClaudePage() {
               <li>2. Paste the server URL.</li>
               <li>
                 3. On the Authentication step, choose{" "}
-                <strong className="font-black">No sign-in</strong>. Claude should already have
-                detected that — ShearQuery uses a key, not a Google-style sign-in flow, so the other
-                two options have nothing to sign in to.
+                <strong className="font-black">No sign-in</strong>, because the key does the job
+                sign-in would.
               </li>
               <li>
                 4. If you used the recommended method, add your header under{" "}
@@ -410,6 +532,10 @@ export default function ConnectClaudePage() {
   --header "Authorization: Bearer <your key>"`}
             </pre>
 
+          </section>
+          </details>
+
+          <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             {/* Claude asks per tool. The markers we send make the safe answer obvious,
                 but the owner is the one choosing, so say what each group does. */}
             <h3 className="mt-6 text-sm font-black uppercase tracking-wide text-slate-500">

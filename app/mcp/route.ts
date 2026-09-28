@@ -4,14 +4,19 @@ import { handleMcpPost } from "@/lib/mcp/handler";
 import { keyFromRequest, resolveConnectionKey } from "@/lib/mcp/connection";
 import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import { SITE_URL } from "@/lib/site";
+import { resolveAccessToken } from "@/lib/mcp/oauth";
+import { resourceFor, wwwAuthenticate } from "@/lib/mcp/oauth-rules";
+import { originOf, resourceMetadataUrl } from "@/lib/mcp/oauth-metadata";
 
 /**
- * MCP endpoint — Streamable HTTP transport, stateless, ANONYMOUS.
+ * MCP endpoint — Streamable HTTP transport, stateless.
  *
  * The protocol work lives in lib/mcp/handler.ts, shared with the per-owner
- * endpoint at /mcp/k/<key>. This file is the public door: no identity, so the
- * handler exposes only the tools that answer industry questions. Owner-scoped
- * tools are absent from the list here and refused by name if asked for.
+ * endpoint at /mcp/k/<key>. This is the one URL owners add: anonymous callers
+ * get the industry tools, and the owner tools answer 401 until the owner signs
+ * in to ShearQuery through Claude (OAuth, lib/mcp/oauth.ts). A connection key
+ * in the Authorization header still works, for Claude Code setups made before
+ * sign-in existed.
  *
  * Implements the transport directly rather than pulling in the SDK: the SDK's
  * HTTP transport is built around Node's req/res, while App Router handlers get
@@ -49,9 +54,53 @@ export const maxDuration = 60;
  * public tools.
  */
 export async function POST(request: NextRequest) {
-  const presented = keyFromRequest({ authorization: request.headers.get("authorization") });
+  const origin = originOf(request);
+  const oauth = { metadataUrl: resourceMetadataUrl(origin) };
+  const authorization = request.headers.get("authorization");
+  const presented = keyFromRequest({ authorization });
 
-  if (!presented) return handleMcpPost(request, { logPath: "/mcp", identity: null });
+  /**
+   * OAUTH, THE WAY OWNERS CONNECT NOW. Any bearer value that is not a
+   * connection key is treated as one of our access tokens and validated —
+   * the spec requires an invalid or expired token to get a 401, which is what
+   * tells Claude to refresh or sign in again. (This used to ignore non-sq_
+   * tokens and serve the public tools, which was right before this server
+   * issued tokens of its own.)
+   */
+  const bearer = /^Bearer\s+(\S+)$/i.exec((authorization || "").trim())?.[1];
+  if (!presented && bearer) {
+    let resolved;
+    try {
+      resolved = await resolveAccessToken(bearer, resourceFor(origin));
+    } catch (err) {
+      console.error("[mcp] token resolution failed:", err);
+      return NextResponse.json(
+        { error: "ShearQuery cannot check sign-ins right now. Try again shortly." },
+        { status: 503, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+    if (!resolved.ok) {
+      recordAgentRequest({
+        surface: "mcp", path: "/mcp", userAgent: request.headers.get("user-agent"),
+        clientIp: clientIpFrom(request.headers), statusCode: 401, isError: true,
+      });
+      return NextResponse.json(
+        { error: "invalid_token", error_description: resolved.reason },
+        {
+          status: 401,
+          headers: {
+            "WWW-Authenticate": wwwAuthenticate({ metadataUrl: oauth.metadataUrl, error: "invalid_token", description: resolved.reason }),
+            "Cache-Control": "no-store",
+          },
+        }
+      );
+    }
+    return handleMcpPost(request, { logPath: "/mcp", identity: resolved.identity, oauth });
+  }
+
+  // Anonymous: public tools answer, and an owner tool answers 401 so Claude
+  // shows its Connect card — lazy authentication.
+  if (!presented) return handleMcpPost(request, { logPath: "/mcp", identity: null, oauth });
 
   let identity = null;
   try {
@@ -135,9 +184,9 @@ export async function GET() {
     "",
     "IF YOU OWN A LISTED BUSINESS",
     "",
-    "  A connection URL of your own adds tools that answer about YOUR profile —",
-    "  its audit score, its reviews, and drafts of changes to it. Nothing is",
-    "  published without your approval on the site.",
+    "  The same URL manages YOUR Google profile — its audit, reviews, hours,",
+    "  posts and photos. The first time Claude reaches one of those tools it",
+    "  asks you to sign in to ShearQuery. Nothing is published without your OK.",
     `    ${SITE_URL}/account/claude`,
     "",
     "THE DATA BEHIND IT",

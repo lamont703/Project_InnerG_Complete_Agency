@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { resolveMemberContext, assertNotImpersonating } from "@/lib/account/view-as";
 import { listConnectionKeys } from "@/lib/mcp/connection";
+import { listGrants } from "@/lib/mcp/oauth";
 import { publishChange, undoChange, discardChange, DRAFT_TTL_HOURS } from "@/lib/gbp-changes";
 import { kindOf, isUndoable, describeChange, sourceOf, KIND_TITLE } from "@/lib/gbp-change-describe";
 
@@ -35,16 +36,23 @@ export async function GET() {
   if ("error" in ctx) return NextResponse.json({ success: false, error: ctx.error }, { status: ctx.status });
 
   const admin = createAdminClient();
-  const [{ data: rows }, keys] = await Promise.all([
+  const [{ data: rows }, keys, grants] = await Promise.all([
     (admin.from("gbp_change_requests") as any)
       .select("id, status, surface, proposed, origin, created_at, approved_at, applied_at, error, snapshot_id")
       .eq("community_member_id", ctx.memberId)
       .order("created_at", { ascending: false })
       .limit(100),
     listConnectionKeys(ctx.memberId),
+    listGrants(ctx.memberId),
   ]);
 
-  const byPrefix = new Map(keys.map((k) => [k.keyPrefix, k]));
+  // A change records the connection that made it as claude:<prefix>. Keys and
+  // signed-in apps share that namespace (oa_… is a grant), so one map finds
+  // either, and the page's revoke button knows which endpoint to call.
+  const byPrefix = new Map<string, { id: string; label: string | null; keyPrefix: string; revoked: boolean; kind: "key" | "grant" }>([
+    ...keys.map((k) => [k.keyPrefix, { id: k.id, label: k.label, keyPrefix: k.keyPrefix, revoked: !!k.revokedAt, kind: "key" as const }] as const),
+    ...grants.map((g) => [g.prefix, { id: g.id, label: `${g.clientName || g.clientHost} (signed in)`, keyPrefix: g.prefix, revoked: !!g.revokedAt, kind: "grant" as const }] as const),
+  ]);
   const now = Date.now();
 
   const changes = (rows || []).map((r: any) => {
@@ -60,9 +68,9 @@ export async function GET() {
       lines: describeChange(r),
       via: source.via,
       connection: key
-        ? { id: key.id, label: key.label, keyPrefix: key.keyPrefix, revoked: !!key.revokedAt }
+        ? key
         : source.via === "claude"
-          ? { id: null, label: null, keyPrefix: source.keyPrefix, revoked: true }
+          ? { id: null, label: null, keyPrefix: source.keyPrefix, revoked: true, kind: "key" as const }
           : null,
       createdAt: r.created_at,
       appliedAt: r.applied_at,

@@ -4,6 +4,7 @@ import { getToolAccess, isToolEnabled } from "@/lib/tool-access";
 import { SITE_URL } from "@/lib/site";
 import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import type { McpIdentity } from "@/lib/mcp/connection";
+import { wwwAuthenticate, scopesForTool, CHALLENGE_SCOPES } from "@/lib/mcp/oauth-rules";
 import {
   negotiateProtocol,
   negotiatedInitializeVersion,
@@ -205,6 +206,15 @@ export interface McpRequestContext {
    */
   logPath: string;
   identity: McpIdentity | null;
+  /**
+   * Present when this endpoint offers OAuth sign-in (/mcp, not /mcp/k/<key>).
+   * It changes two things: the tool list advertises owner tools before sign-in,
+   * and an owner tool called without a token answers HTTP 401 with a
+   * WWW-Authenticate challenge — the ONLY response that makes Claude show its
+   * Connect card. A 200 with isError, which this used to return, is read as a
+   * tool failure and no sign-in is offered.
+   */
+  oauth?: { metadataUrl: string };
 }
 
 const PUBLIC_INSTRUCTIONS =
@@ -213,6 +223,16 @@ const PUBLIC_INSTRUCTIONS =
   "public Google Business Profile audit for any listed business. Figures come from state " +
   "licensing records and owner-reported listings, and each response states its own coverage — " +
   "quote those caveats when citing a number.";
+
+/**
+ * On the sign-in endpoint, before sign-in. The owner tools are listed so
+ * Claude can reach them; the first call triggers the Connect card.
+ */
+const SIGN_IN_INSTRUCTIONS =
+  PUBLIC_INSTRUCTIONS +
+  " Business owners can also manage their own Google Business Profile here — the my_*, propose_* " +
+  "and publish tools. Calling one asks the owner to sign in to ShearQuery the first time; that is " +
+  "expected, not an error.";
 
 /**
  * What the model is told when a key IS present.
@@ -306,6 +326,24 @@ async function callTool(
    * handler that forgets is a data leak and this cannot be forgotten in one
    * place.
    */
+  if (tool.requiresIdentity && !ctx.identity && ctx.oauth) {
+    return NextResponse.json(
+      { error: "invalid_token", error_description: "Sign in to ShearQuery to use this tool." },
+      {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": wwwAuthenticate({
+            metadataUrl: ctx.oauth.metadataUrl,
+            scopes: CHALLENGE_SCOPES,
+            error: "invalid_token",
+            description: "Sign in to ShearQuery to use this tool",
+          }),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
   if (tool.requiresIdentity && !ctx.identity) {
     return rpcResult(
       id,
@@ -330,6 +368,33 @@ async function callTool(
    * The answer names the fix, because "unknown tool" would send the model
    * looking for a tool that does exist.
    */
+  /**
+   * Step-up for a signed-in owner who did not grant this tool's scope — most
+   * often publishing, which the consent screen lets them untick. A 403 with
+   * insufficient_scope makes Claude re-run consent and retry the call. The
+   * scope list is everything they need, not just the missing piece, so the
+   * re-consent does not drop what they already granted.
+   */
+  const signedIn = ctx.identity;
+  if (tool.requiresScope && signedIn?.via === "oauth" && ctx.oauth && !signedIn.scopes.includes(tool.requiresScope)) {
+    const needed = [...new Set([...signedIn.scopes, ...scopesForTool(tool)])];
+    return NextResponse.json(
+      { error: "insufficient_scope", error_description: `"${tool.name}" needs the ${tool.requiresScope} permission.` },
+      {
+        status: 403,
+        headers: {
+          "WWW-Authenticate": wwwAuthenticate({
+            metadataUrl: ctx.oauth.metadataUrl,
+            scopes: needed,
+            error: "insufficient_scope",
+            description: tool.requiresScope === "publish" ? "Allow publishing to your Google profile" : `Allow ${tool.requiresScope}`,
+          }),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
   if (tool.requiresScope && !ctx.identity?.scopes.includes(tool.requiresScope)) {
     return rpcResult(
       id,
@@ -516,7 +581,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
             wrap({
               supportedVersions: SUPPORTED_PROTOCOL_VERSIONS,
               capabilities: { tools: {} },
-              instructions: ctx.identity ? ownerInstructions(ctx.identity) : PUBLIC_INSTRUCTIONS,
+              instructions: ctx.identity ? ownerInstructions(ctx.identity) : ctx.oauth ? SIGN_IN_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
               _meta: { [META_SERVER_INFO_KEY]: SERVER_INFO },
             })
           );
@@ -525,7 +590,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
           return rpcResult(id, wrap({}));
 
         case "tools/list":
-          return rpcResult(id, wrap({ tools: toolDescriptors(toolContext, (await getToolAccess()).mcp) }));
+          return rpcResult(id, wrap({ tools: toolDescriptors(toolContext, (await getToolAccess()).mcp, { advertiseAll: !!ctx.oauth }) }));
 
         case "tools/call":
           return callTool(id, params, ctx, toolContext, log, wrap);
@@ -550,7 +615,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
           // notification channel this stateless server cannot open.
           capabilities: { tools: { listChanged: false } },
           serverInfo: SERVER_INFO,
-          instructions: ctx.identity ? ownerInstructions(ctx.identity) : PUBLIC_INSTRUCTIONS,
+          instructions: ctx.identity ? ownerInstructions(ctx.identity) : ctx.oauth ? SIGN_IN_INSTRUCTIONS : PUBLIC_INSTRUCTIONS,
         });
       }
 
@@ -558,7 +623,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
         return rpcResult(id, {});
 
       case "tools/list":
-        return rpcResult(id, { tools: toolDescriptors(toolContext, (await getToolAccess()).mcp) });
+        return rpcResult(id, { tools: toolDescriptors(toolContext, (await getToolAccess()).mcp, { advertiseAll: !!ctx.oauth }) });
 
       case "tools/call":
         return callTool(id, params, ctx, toolContext, log, wrap);

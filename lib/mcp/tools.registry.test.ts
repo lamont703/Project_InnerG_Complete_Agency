@@ -18,7 +18,7 @@ import { describe, it, expect, beforeAll, vi } from "vitest";
  */
 
 let MCP_TOOLS: any[];
-let toolDescriptors: (ctx?: any) => any[];
+let toolDescriptors: (ctx?: any, enabled?: any, opts?: any) => any[];
 let capabilityLines: (scopes: string[]) => string[];
 
 beforeAll(async () => {
@@ -96,6 +96,18 @@ describe("the MCP tool registry", () => {
       expect(t.annotations.readOnlyHint, t.name).toBe(false);
       expect(t.annotations.destructiveHint, t.name).toBe(false);
     }
+  });
+
+  /**
+   * Lazy authentication: on the sign-in endpoint Claude must SEE owner tools
+   * before sign-in, because calling one is what triggers the 401 and the
+   * Connect card. Hidden tools would mean sign-in never starts.
+   */
+  it("advertises every tool before sign-in on the OAuth endpoint", () => {
+    const names = toolDescriptors(undefined, undefined, { advertiseAll: true }).map((t: any) => t.name);
+    expect(names).toContain("my_google_profile");
+    expect(names).toContain("publish_change");
+    expect(names.length).toBe(MCP_TOOLS.length);
   });
 
   it("hides publishing from a key without the publish scope", () => {

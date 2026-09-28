@@ -24,7 +24,7 @@ interface Change {
   title: string;
   lines: string[];
   via: "claude" | "website";
-  connection: { id: string | null; label: string | null; keyPrefix: string; revoked: boolean } | null;
+  connection: { id: string | null; label: string | null; keyPrefix: string; revoked: boolean; kind: "key" | "grant" } | null;
   createdAt: string;
   appliedAt: string | null;
   error: string | null;
@@ -91,7 +91,8 @@ export function GbpChangeHistory() {
     setBusy(change.id);
     try {
       if (action === "revoke") {
-        const res = await fetch(`/api/account/mcp-keys?id=${encodeURIComponent(change.connection?.id || "")}`, {
+        const endpoint = change.connection?.kind === "grant" ? "/api/account/mcp-grants" : "/api/account/mcp-keys";
+        const res = await fetch(`${endpoint}?id=${encodeURIComponent(change.connection?.id || "")}`, {
           method: "DELETE", credentials: "include",
         });
         const json = await res.json();
