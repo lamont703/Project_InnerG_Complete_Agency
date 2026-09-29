@@ -750,7 +750,7 @@ const myAccount: McpTool = {
   title: "What this ShearQuery connection can see",
   provides: "which business this account claimed and whether Google is connected",
   description:
-    "Report which business this authenticated ShearQuery connection is for: the claimed directory listing, whether the owner's Google Business Profile is connected, which Google location is selected, and what this connection is allowed to do. Call this first before any other my_* or propose_* tool — those need a claimed listing and, for anything Google-side, a live Google connection.",
+    "Report who this ShearQuery connection is signed in as: their account type, the claimed directory listing, whether Google Business Profile is connected, and what this connection may do. Call this first before any other my_* or propose_* tool. ALSO THE WAY TO SIGN SOMEONE UP OR IN FROM CLAUDE: if they aren't connected yet, calling it shows the Connect button, where they can create a ShearQuery account and come straight back.",
   requiresIdentity: true,
   annotations: READ_ONLY,
   inputSchema: { type: "object", properties: {} },

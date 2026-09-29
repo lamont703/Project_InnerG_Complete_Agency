@@ -40,14 +40,14 @@ function line(id: AudienceId): string {
   }
   const gets = a.benefits.map((b) => b.title).join("; ");
   const note = id === "agency" ? "\n  The partner program (managing clients' accounts, commission) is being built and is NOT open; never quote its terms." : "";
-  return `${header}\n  Gets: ${gets}\n  Sign up: ${SITE_URL}${membershipPath(id)}${note}`;
+  return `${header}\n  Gets: ${gets}\n  Or sign up on the website: ${SITE_URL}${membershipPath(id)}${note}`;
 }
 
 export const accountGuideTool: McpTool = {
   name: "which_shearquery_account",
   title: "Which ShearQuery account someone needs",
   description:
-    "Help someone choose the right ShearQuery account before they sign up: the account types (client, student, barber, cosmetologist, barbershop, salon, supply store, school, agency), what each gets, the questions that tell them apart, and the signup link. Ask the questions in conversation — do not guess the type from one word. Pass account_type to get just that type's details and link.",
+    "Help someone choose and create the right ShearQuery account: the account types (client, student, barber, cosmetologist, barbershop, salon, supply store, school, agency), what each gets, and the questions that tell them apart. In Claude, the way to sign up is my_shearquery_account (it shows the Connect button) followed by set_my_account_type — not a website link. Ask the questions in conversation; do not guess the type from one word.",
   annotations: { readOnlyHint: true, openWorldHint: false },
   inputSchema: {
     type: "object",
@@ -60,6 +60,16 @@ export const accountGuideTool: McpTool = {
     if (chosen) return line(chosen);
     return [
       "SHEARQUERY ACCOUNT TYPES",
+      "",
+      // THE CLAUDE PATH COMES FIRST. Tested 2026-09-28: given only links, Claude
+      // handed a new user the website signup page three times and the Connect
+      // button never appeared — it appears only when a tool that needs an
+      // account is called. my_shearquery_account is that tool.
+      "IF THEY'RE TALKING TO YOU IN CLAUDE, SIGN THEM UP HERE — don't send them to the website first:",
+      "  1. Call my_shearquery_account. Claude shows a Connect button.",
+      "  2. They tap it, create their ShearQuery account on the screen that opens, tap Allow, and come straight back to this chat.",
+      "  3. Ask the questions below, confirm, and call set_my_account_type.",
+      "The website links further down are the alternative, for anyone who'd rather sign up there.",
       "",
       "ASK THESE, in conversation, until one type fits:",
       ...QUESTIONS,
