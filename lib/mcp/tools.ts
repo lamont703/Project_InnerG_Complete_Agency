@@ -1,4 +1,5 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
 import { createClient } from "@supabase/supabase-js";
 import { getSchoolIndex, getSchoolBenchmarks, MIN_SAMPLE } from "@/lib/compare-schools-data";
 import { queryVenues, getRentBenchmarks, getVenueIndex } from "@/lib/compare-shops-data";
@@ -19,6 +20,7 @@ import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
 import { accountGuideTool, featureGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
 import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
+import { DEMO_TOOLS } from "@/lib/mcp/demo-tools";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
@@ -766,7 +768,7 @@ const myAccount: McpTool = {
 
     const [{ data: member }, { data: link }, { data: conn }] = await Promise.all([
       (admin.from("community_members") as any)
-        .select("first_name, last_name, audience")
+        .select("first_name, last_name, audience, is_demo")
         .eq("id", identity.memberId)
         .maybeSingle(),
       (admin.from("community_member_entity_links") as any)
@@ -801,7 +803,11 @@ const myAccount: McpTool = {
     ];
 
     // ── the claimed listing ──
-    if (!link?.entity_type) {
+    if (member.is_demo) {
+      // A demo business (lib/demo/) has a Google profile but no directory
+      // listing on purpose — it must never appear in the public directory.
+      lines.push("CLAIMED LISTING: this is a DEMO business, so it has no public directory listing. Its Google profile, appointment book and Instagram are demo versions the tools can use.");
+    } else if (!link?.entity_type) {
       lines.push(
         "CLAIMED LISTING: none.",
         `This account has not claimed a business on ShearQuery yet, so there is no listing to audit or change. The owner claims theirs from its own page — search for it at ${SITE}/search and use "Claim this listing".`
@@ -1090,7 +1096,7 @@ const myPhotoCoverage: McpTool = {
         : `Could not reach Google: ${safeEcho(e?.message, 160)}`;
     }
 
-    const accRes = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
+    const accRes = await outboundFetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
       headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
     });
     const accountName = accRes.ok ? (await accRes.json())?.accounts?.[0]?.name ?? null : null;
@@ -1102,7 +1108,7 @@ const myPhotoCoverage: McpTool = {
       const url = new URL(`https://mybusiness.googleapis.com/v4/${accountName}/${locationName}/media`);
       url.searchParams.set("pageSize", "100");
       if (pageToken) url.searchParams.set("pageToken", pageToken);
-      const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+      const r = await outboundFetch(url.toString(), { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
       if (!r.ok) break;
       const body = await r.json();
       items.push(...(body.mediaItems || []));
@@ -1185,6 +1191,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...CALENDAR_TOOLS,
   ...CLIENT_BOOKING_TOOLS,
   ...AGENCY_TOOLS,
+  ...DEMO_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

@@ -1,4 +1,6 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
+import { currentDemo, isFictionalPhone } from "@/lib/demo/core";
 import { normalizePhone } from "./ghl-contacts";
 
 /**
@@ -39,6 +41,10 @@ export async function sendGhlSms(args: {
   /** Used only when a contact has to be created. */
   name?: string | null;
 }): Promise<GhlSmsResult> {
+  // Demo mode (lib/demo/core.ts): a demo client's 555-01xx number, or any
+  // text while a demo is running, is "sent" without reaching GoHighLevel —
+  // the demo shows the confirmation, and nobody real is texted.
+  if (isFictionalPhone(args.phone) || currentDemo()) return { ok: true, skipped: true };
   const apiKey = process.env.GHL_API_KEY;
   const locationId = process.env.GHL_LOCATION_ID;
   if (!apiKey || !locationId) {
@@ -58,7 +64,7 @@ export async function sendGhlSms(args: {
     if (!phone) return { ok: false, error: "no contact id and no usable phone" };
 
     try {
-      const res = await fetch(`${GHL_API_BASE}/contacts/`, {
+      const res = await outboundFetch(`${GHL_API_BASE}/contacts/`, {
         method: "POST",
         headers,
         body: JSON.stringify({ phone, name: args.name || phone, locationId }),
@@ -82,7 +88,7 @@ export async function sendGhlSms(args: {
   if (!contactId) return { ok: false, error: "no contact id returned" };
 
   try {
-    const res = await fetch(`${GHL_API_BASE}/conversations/messages`, {
+    const res = await outboundFetch(`${GHL_API_BASE}/conversations/messages`, {
       method: "POST",
       headers,
       body: JSON.stringify({ type: "SMS", contactId, message: args.message }),

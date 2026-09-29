@@ -61,7 +61,7 @@ export async function GET(req: Request) {
   const now = new Date();
 
   const [memberRes, linkRes, connRes, sentRes, journeyRes] = await Promise.all([
-    (admin.from("community_members") as any).select("id, first_name, last_name, email, phone, created_at, audience"),
+    (admin.from("community_members") as any).select("id, first_name, last_name, email, phone, created_at, audience").eq("is_demo", false),
     (admin.from("community_member_entity_links") as any).select("community_member_id, entity_type, entity_id, linked_at"),
     (admin.from("gbp_connections") as any).select("community_member_id, created_at, updated_at"),
     (admin.from("member_lifecycle_emails") as any).select("community_member_id, stage, sent_at"),

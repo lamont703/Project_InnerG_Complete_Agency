@@ -1,3 +1,4 @@
+import { outboundFetch } from "@/lib/outbound";
 /**
  * Keeping the Instagram token alive.
  *
@@ -94,7 +95,7 @@ export async function refreshInstagramToken(
 
   try {
     const url = `${IG_GRAPH}/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(currentToken)}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    const res = await outboundFetch(url, { signal: AbortSignal.timeout(15000) });
     const body: any = await res.json().catch(() => ({}));
 
     if (!res.ok || !body?.access_token) {

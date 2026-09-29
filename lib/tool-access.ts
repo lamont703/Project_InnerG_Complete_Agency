@@ -77,6 +77,9 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     note: "Agency accounts only. Status, referral link, credited businesses." },
   { id: "update_my_agency_details", label: "Save agency details", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Agency accounts only. First save notifies the admin for approval." },
+  { id: "start_demo", label: "Start a demo as a made-up business", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Agency accounts and admins. Swaps owner tools onto a demo business (lib/demo/); its Google/Instagram/texts are fenced." },
+  { id: "stop_demo", label: "Leave demo mode", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

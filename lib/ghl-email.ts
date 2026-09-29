@@ -1,4 +1,6 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
+import { currentDemo, isDemoEmail } from "@/lib/demo/core";
 
 /**
  * Transactional email through GoHighLevel.
@@ -34,6 +36,9 @@ export async function sendGhlEmail(args: {
    */
   contactId?: string;
 }): Promise<GhlEmailResult> {
+  // Demo mode: a demo business's .invalid address, or any email while a demo
+  // is running (a publish confirmation, say), never reaches GoHighLevel.
+  if (isDemoEmail(args.email) || currentDemo()) return { ok: true };
   const apiKey = process.env.GHL_API_KEY;
   const locationId = process.env.GHL_LOCATION_ID;
   if (!apiKey || !locationId) {
@@ -50,7 +55,7 @@ export async function sendGhlEmail(args: {
 
   if (!contactId) {
     try {
-      const res = await fetch(`${GHL_API_BASE}/contacts/`, {
+      const res = await outboundFetch(`${GHL_API_BASE}/contacts/`, {
         method: "POST",
         headers,
         body: JSON.stringify({ email: args.email, name: args.name || args.email, locationId }),
@@ -74,7 +79,7 @@ export async function sendGhlEmail(args: {
   if (!contactId) return { ok: false, error: "no contact id returned" };
 
   try {
-    const res = await fetch(`${GHL_API_BASE}/conversations/messages`, {
+    const res = await outboundFetch(`${GHL_API_BASE}/conversations/messages`, {
       method: "POST",
       headers,
       body: JSON.stringify({

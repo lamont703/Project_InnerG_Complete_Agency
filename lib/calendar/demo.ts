@@ -23,7 +23,7 @@ import { localDateKey, addDaysToKey, weekdayOfKey, parseDateKey, zonedToUtc } fr
  *    ones, so the demo shows exactly what the product does.
  */
 
-const DEMO_NAME = "ShearQuery Demo Barbershop";
+const DEFAULT_NAME = "ShearQuery Demo Barbershop";
 const TZ = "America/Chicago";
 
 const SERVICES = [
@@ -33,6 +33,29 @@ const SERVICES = [
   { name: "Beard Trim", duration_minutes: 20, price_cents: 2000, buffer_minutes: 5 },
   { name: "Line Up", duration_minutes: 15, price_cents: 1500, buffer_minutes: 5 },
   { name: "Kids Cut", duration_minutes: 30, price_cents: 2500, buffer_minutes: 5 },
+];
+
+// The salon book: same shape as the barber one, so the same PLAN fills it.
+const SALON_SERVICES = [
+  { name: "Silk Press", duration_minutes: 90, price_cents: 8500, buffer_minutes: 15 },
+  { name: "Cut & Style", duration_minutes: 60, price_cents: 6500, buffer_minutes: 10 },
+  { name: "Color", duration_minutes: 120, price_cents: 12000, buffer_minutes: 15 },
+  { name: "Trim", duration_minutes: 30, price_cents: 3500, buffer_minutes: 5 },
+  { name: "Blowout", duration_minutes: 45, price_cents: 4500, buffer_minutes: 10 },
+  { name: "Deep Condition", duration_minutes: 45, price_cents: 4000, buffer_minutes: 5 },
+];
+const TO_SALON: Record<string, string> = {
+  Haircut: "Cut & Style", Fade: "Silk Press", "Haircut + Beard": "Color", "Beard Trim": "Trim", "Line Up": "Blowout", "Kids Cut": "Deep Condition",
+};
+const SALON_CLIENTS = [
+  { name: "Keisha Hill", phone: "+17135550111", notes: "Fine hair — low heat on the press." },
+  { name: "Maria Lopez", phone: "+17135550112", notes: "Color: 6N with a gloss." },
+  { name: "Brianna Scott", phone: "+17135550113", notes: "Runs late; text a reminder." },
+  { name: "Ashley Chen", phone: "+17135550114", notes: null },
+  { name: "Tasha Green", phone: "+17135550115", notes: "Brings her daughter for a trim." },
+  { name: "Nicole Adams", phone: "+17135550116", notes: "Every three weeks, Fridays." },
+  { name: "Priya Shah", phone: "+17135550117", notes: null },
+  { name: "Erin Walsh", phone: "+17135550118", notes: "No-showed once in August." },
 ];
 
 const CLIENTS = [
@@ -62,8 +85,20 @@ const PLAN: [number, string, number, "booked" | "completed" | "no_show"][] = [
 
 export interface SeedResult { providerId: string; services: number; clients: number; appointments: number; skipped: number }
 
-export async function seedDemoCalendar(memberId: string): Promise<SeedResult> {
+export interface SeedOptions {
+  /** The book's name. Defaults to the agency demo shop. */
+  name?: string;
+  /** "salon" fills it with salon services and clients instead of barber ones. */
+  kind?: "barber" | "salon";
+}
+
+export async function seedDemoCalendar(memberId: string, opts: SeedOptions = {}): Promise<SeedResult> {
   const db = createAdminClient() as any;
+  const DEMO_NAME = opts.name || DEFAULT_NAME;
+  const salon = opts.kind === "salon";
+  const services = salon ? SALON_SERVICES : SERVICES;
+  const people = salon ? SALON_CLIENTS : CLIENTS;
+  const serviceNamed = (n: string) => (salon ? TO_SALON[n] : n);
   let provider: Provider | null = await getProvider(memberId);
 
   if (provider && !provider.is_demo) {
@@ -91,9 +126,9 @@ export async function seedDemoCalendar(memberId: string): Promise<SeedResult> {
   const p = provider!;
 
   await setHoursForDays(p.id, HOURS);
-  for (const s of SERVICES) await upsertService(p.id, s);
+  for (const s of services) await upsertService(p.id, s);
   const clients = [];
-  for (const c of CLIENTS) clients.push(await upsertClient(p.id, c));
+  for (const c of people) clients.push(await upsertClient(p.id, c));
 
   // A dentist appointment next week, to show time off.
   const today = localDateKey(new Date(), TZ);
@@ -105,7 +140,7 @@ export async function seedDemoCalendar(memberId: string): Promise<SeedResult> {
   const used = new Set<string>();
   for (const [offset, serviceName, ci, status] of PLAN) {
     const key = nextOpenDay(addDaysToKey(today, offset), offset < 0 ? -1 : 1);
-    const service = (await findService(p.id, serviceName))!;
+    const service = (await findService(p.id, serviceNamed(serviceName)))!;
     // Past days: offer every slot (forClient false still floors at "now", so
     // compute past slots directly from hours by booking at a fixed time).
     const start = offset < 0
@@ -119,7 +154,7 @@ export async function seedDemoCalendar(memberId: string): Promise<SeedResult> {
     if (status !== "booked") await setAppointmentStatus({ providerId: p.id, id: res.appointment.id, status });
   }
 
-  return { providerId: p.id, services: SERVICES.length, clients: clients.length, appointments, skipped };
+  return { providerId: p.id, services: services.length, clients: clients.length, appointments, skipped };
 }
 
 /** Skip Sunday/Monday, the demo shop's closed days. */

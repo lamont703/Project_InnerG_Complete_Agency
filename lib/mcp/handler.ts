@@ -4,6 +4,9 @@ import { getToolAccess, isToolEnabled } from "@/lib/tool-access";
 import { SITE_URL } from "@/lib/site";
 import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import type { McpIdentity } from "@/lib/mcp/connection";
+import { runInDemo, type DemoContext } from "@/lib/demo/core";
+import { activeDemo } from "@/lib/demo/session";
+import { DEMO_EXEMPT } from "@/lib/mcp/demo-tools";
 import { wwwAuthenticate, scopesForTool, CHALLENGE_SCOPES } from "@/lib/mcp/oauth-rules";
 import { originOf } from "@/lib/mcp/oauth-metadata";
 import { APP_RESOURCES, readAppResource } from "@/lib/mcp/apps/registry";
@@ -289,6 +292,11 @@ type LogFn = (fields: {
   isError?: boolean;
 }) => void;
 
+/** First line of every demo result, so no answer can be read as a real business. */
+function demoBanner(demo: DemoContext): string {
+  return `[DEMO — a made-up ${demo.businessType.replace("_", " ")}. Nothing here is a real business, and nothing reaches Google, Instagram or any customer. stop_demo leaves.]`;
+}
+
 /**
  * tools/call, shared by both eras.
  *
@@ -432,9 +440,37 @@ async function callTool(
     );
   }
 
+  /**
+   * DEMO MODE (lib/demo/). A member in a demo gets this tool run as their
+   * made-up business: the identity is swapped here, once, and the call runs
+   * inside runInDemo, which is what keeps every outbound request and every
+   * text or email inside the fence. Only owner-scoped tools are swapped;
+   * DEMO_EXEMPT ones always see the real member.
+   *
+   * If demo mode can't be checked, the call is REFUSED rather than run as the
+   * real account: for an admin with a real Google profile, "run it anyway"
+   * turns a demo publish into a real one.
+   */
+  let runContext = toolContext;
+  let demo: DemoContext | null = null;
+  if (tool.requiresIdentity && ctx.identity && !DEMO_EXEMPT.has(tool.name)) {
+    try {
+      demo = await activeDemo(ctx.identity.memberId);
+    } catch (err) {
+      console.error("[mcp] demo check failed:", err);
+      return rpcResult(id, wrap({
+        content: [{ type: "text", text: "Couldn't check whether this account is in demo mode, so nothing was run. Try again in a moment." }],
+        isError: true,
+      }));
+    }
+    if (demo) runContext = { ...toolContext, identity: { ...ctx.identity, memberId: demo.demoMemberId } };
+  }
+
   try {
-    const out = await tool.handler(params?.arguments ?? {}, toolContext);
-    const text = typeof out === "string" ? out : out.text;
+    const args = params?.arguments ?? {};
+    const out = demo ? await runInDemo(demo, () => tool.handler(args, runContext)) : await tool.handler(args, runContext);
+    const raw = typeof out === "string" ? out : out.text;
+    const text = demo ? `${demoBanner(demo)}\n\n${raw}` : raw;
     const structuredContent = typeof out === "string" ? undefined : out.structuredContent;
     return rpcResult(
       id,

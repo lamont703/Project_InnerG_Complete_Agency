@@ -1,4 +1,5 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/site";
 import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
@@ -200,7 +201,7 @@ export async function resolveOwnerGbp(memberId: string, opts: { account?: boolea
 
   let accountName: string | null = null;
   if (opts.account) {
-    const res = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
+    const res = await outboundFetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
@@ -212,7 +213,7 @@ export async function resolveOwnerGbp(memberId: string, opts: { account?: boolea
 }
 
 async function gget(url: string, token: string): Promise<any | null> {
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+  const res = await outboundFetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
   return res.ok ? res.json().catch(() => null) : null;
 }
 
@@ -709,7 +710,7 @@ const SPECS: Record<ChangeKind, KindSpec> = {
         return { ok: false, message: `category must be one of ${PHOTO_CATEGORIES.map((c) => c.category).join(", ")}.` };
       }
       // Checked now so a dead link fails at the draft, not after the owner approved it.
-      const head = await fetch(sourceUrl, { method: "HEAD", cache: "no-store" }).catch(() => null);
+      const head = await outboundFetch(sourceUrl, { method: "HEAD", cache: "no-store" }).catch(() => null);
       const type = head?.headers.get("content-type") || "";
       if (!head?.ok) return { ok: false, message: `That link did not load (${head?.status ?? "no response"}). Google fetches the photo itself, so it must be publicly reachable.` };
       if (type && !/^image\/(jpeg|png|webp)/i.test(type)) return { ok: false, message: `That link serves ${type}, not a JPEG, PNG or WebP image.` };

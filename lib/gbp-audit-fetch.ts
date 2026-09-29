@@ -1,4 +1,5 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
@@ -68,7 +69,7 @@ export interface GbpAuditBundle {
  *  one check rather than failing the whole report. */
 async function get(url: string, token: string): Promise<any | null> {
   try {
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+    const r = await outboundFetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
     if (!r.ok) {
       const b = await r.json().catch(() => ({}));
       console.warn("[gbp-audit] %s %s — %s", r.status, url.split("?")[0].split("/").slice(-2).join("/"), (b.error?.message || "").slice(0, 120));

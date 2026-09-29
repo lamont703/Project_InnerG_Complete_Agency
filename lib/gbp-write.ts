@@ -1,4 +1,5 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
@@ -36,7 +37,7 @@ export interface WriteResult {
 }
 
 async function gbpFetch(url: string, token: string, init?: RequestInit) {
-  const res = await fetch(url, {
+  const res = await outboundFetch(url, {
     ...init,
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init?.headers || {}) },
     cache: "no-store",
@@ -255,6 +256,31 @@ export async function writeLocationFields(args: {
 }
 
 /**
+ * The PATCH body that puts a snapshot back, for each field in the updateMask.
+ *
+ * A mask path can be DOTTED — a description change is masked
+ * "profile.description" — so the value is read from, and written to, that
+ * path in the nested object. It used to be looked up and sent as a literal
+ * "profile.description" key, which found nothing in the nested snapshot and
+ * sent Google a field it doesn't have, with null: undoing a description never
+ * restored it (found 2026-09-28, while building the demo's fake Google).
+ *
+ * A field absent from before_state was unset; send an empty value so the
+ * restore clears it rather than leaving what we added in place.
+ */
+export function revertBody(locationName: string, updateMask: string, beforeState: any): Record<string, unknown> {
+  const body: Record<string, unknown> = { name: locationName };
+  for (const path of updateMask.split(",").map((f) => f.trim()).filter(Boolean)) {
+    const keys = path.split(".");
+    const value = keys.reduce((o: any, k) => (o == null ? undefined : o[k]), beforeState);
+    let target: any = body;
+    for (const k of keys.slice(0, -1)) target = target[k] ??= {};
+    target[keys[keys.length - 1]] = value ?? (path === "serviceItems" ? [] : null);
+  }
+  return body;
+}
+
+/**
  * Restore location fields from a snapshot.
  *
  * Straightforward in a way the attribute revert isn't: because these fields are
@@ -275,12 +301,7 @@ export async function revertLocationFields(args: { token: string; snapshotId: st
   const updateMask = String(snap.applied_patch?.updateMask || "");
   if (!updateMask) return { ok: false, error: "snapshot has no updateMask" };
 
-  const body: Record<string, unknown> = { name: snap.location_name };
-  for (const field of updateMask.split(",").map((f) => f.trim()).filter(Boolean)) {
-    // A field absent from before_state was unset; send an empty value so the
-    // restore clears it rather than leaving what we added in place.
-    body[field] = snap.before_state?.[field] ?? (field === "serviceItems" ? [] : null);
-  }
+  const body = revertBody(snap.location_name, updateMask, snap.before_state);
 
   const res = await gbpFetch(
     `${BIZ_INFO}/${snap.location_name}?updateMask=${encodeURIComponent(updateMask)}`,

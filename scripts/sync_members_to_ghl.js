@@ -81,7 +81,7 @@ async function ghl(url, body, attempts = 4) {
 
   const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-  let q = db.from("community_members").select("id, first_name, last_name, email, phone, contact_id");
+  let q = db.from("community_members").select("id, first_name, last_name, email, phone, contact_id").eq("is_demo", false);
   if (!ALL) q = q.is("contact_id", null);
   const { data: members, error } = await q;
   if (error) { console.error("Query failed:", error.message); process.exit(1); }

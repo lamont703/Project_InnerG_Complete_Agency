@@ -1,4 +1,6 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
+import { isRunningDemoBusiness } from "@/lib/demo/core";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { refreshInstagramToken, needsRefresh, isExpired } from "@/lib/instagram-token";
 
@@ -40,6 +42,7 @@ export const INSTAGRAM_CONNECT_ALLOWLIST = ["lamont703@gmail.com"];
 
 export function canConnectInstagram(email?: string | null): boolean {
   if (process.env.INSTAGRAM_MEMBER_CONNECT_OPEN === "true") return true;
+  if (isRunningDemoBusiness(email)) return true;
   return !!email && INSTAGRAM_CONNECT_ALLOWLIST.includes(email.trim().toLowerCase());
 }
 
@@ -105,7 +108,7 @@ export async function getMemberInstagram(memberId: string, origin: string): Prom
 async function ig(path: string, token: string): Promise<{ ok: boolean; status: number; body: any }> {
   const sep = path.includes("?") ? "&" : "?";
   try {
-    const res = await fetch(`${IG_GRAPH_V}${path}${sep}access_token=${encodeURIComponent(token)}`, {
+    const res = await outboundFetch(`${IG_GRAPH_V}${path}${sep}access_token=${encodeURIComponent(token)}`, {
       cache: "no-store",
       signal: AbortSignal.timeout(15000),
     });
