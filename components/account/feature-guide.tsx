@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { featureGuide, PRICING_NOTE, STATUS_LABEL } from "@/lib/account-features";
+import { featureGuide, pricingNote, STATUS_LABEL } from "@/lib/account-features";
 
 /**
  * What each account type gets, for an agency to read before a call. Built from
@@ -15,7 +15,7 @@ export function FeatureGuide() {
         What to tell a business before they sign up. Anything marked <strong>In testing</strong> isn&apos;t open to your clients yet — don&apos;t sell it as available.
         In your Claude, ask &ldquo;what would a salon get from ShearQuery?&rdquo; for the same answer.
       </p>
-      <p className="mt-2 text-xs text-slate-500"><strong>Pricing:</strong> {PRICING_NOTE}</p>
+      <p className="mt-2 text-xs text-slate-500"><strong>Pricing:</strong> {pricingNote()}</p>
       <div className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100">
         {guides.map((g) => (
           <details key={g.id} className="group px-4 py-3">

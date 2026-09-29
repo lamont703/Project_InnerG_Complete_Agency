@@ -70,15 +70,31 @@ export function publishAllowance(plan: Plan, usedThisMonth: number, now = new Da
   return { allowed: remaining > 0, unlimited: false, used: usedThisMonth, remaining, resetsOn: monthWindow(now).next };
 }
 
+/**
+ * Whether anyone can buy a plan: Stripe is configured AND BILLING_OPEN=true.
+ * Admins can test checkout before this (lib/billing/stripe.ts), but nothing
+ * shown to members says a plan can be bought until it's true.
+ */
+export const checkoutIsOpen = () => process.env.BILLING_OPEN === "true" && !!process.env.STRIPE_SECRET_KEY;
+
+export const PLAN_PAGE = "https://shearquery.com/account/plan";
+
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
 
 /** One line for the owner: the plan, and what it leaves them this month. */
 export function planSummary(plan: Plan, type: AudienceId | null, usedThisMonth: number, now = new Date()): string {
+  const status = planStatusLine(plan, usedThisMonth, now);
+  if (publishAllowance(plan, usedThisMonth, now).unlimited) return status;
+  const upgrade = type && PRICES[type]
+    ? ` Manage ($${PRICES[type]!.manage}/month for this account type) publishes without a limit; ${checkoutIsOpen() ? `upgrade at ${PLAN_PAGE}.` : "paid plans aren't open for checkout yet."}`
+    : "";
+  return `${status}${upgrade}`;
+}
+
+/** Just the plan and what's left: "Free plan — 2 of 3 free publishes left this month (resets October 1)." */
+export function planStatusLine(plan: Plan, usedThisMonth: number, now = new Date()): string {
   const a = publishAllowance(plan, usedThisMonth, now);
   const head = `${PLAN_LABEL[plan]} plan`;
   if (a.unlimited) return `${head} — unlimited publishing.`;
-  const upgrade = type && PRICES[type]
-    ? ` Manage ($${PRICES[type]!.manage}/month for this account type) publishes without a limit; paid plans aren't open for checkout yet.`
-    : "";
-  return `${head} — ${a.remaining} of ${FREE_PUBLISHES_PER_MONTH} free publishes left this month (resets ${day(a.resetsOn)}).${upgrade}`;
+  return `${head} — ${a.remaining} of ${FREE_PUBLISHES_PER_MONTH} free publishes left this month (resets ${day(a.resetsOn)}).`;
 }

@@ -1,5 +1,5 @@
 import { AUDIENCES, membershipPath, type AudienceId } from "@/lib/audiences";
-import { FREE_PUBLISHES_PER_MONTH, PLAN_LABEL, PRICES, type Plan } from "@/lib/plans";
+import { FREE_PUBLISHES_PER_MONTH, PLAN_LABEL, PLAN_PAGE, PRICES, checkoutIsOpen, type Plan } from "@/lib/plans";
 
 /**
  * WHAT EACH ACCOUNT TYPE GETS, AND WHAT IS ACTUALLY OPEN — for agencies
@@ -98,15 +98,21 @@ export const CLAUDE_FEATURES: ClaudeFeature[] = [
 /** The types an agency would sign up, in pitch order. Agency itself is left out. */
 export const GUIDE_TYPES: AudienceId[] = ["barbershop", "salon", "barber", "cosmetologist", "school", "supply_store", "student", "client"];
 
-export const PRICING_NOTE =
-  "Every account starts on Free. Manage and Autopilot are monthly plans priced by account type (below). Checkout isn't open yet, so nobody can buy a plan today — don't say they can. Using ShearQuery inside Claude also needs the business's own Claude subscription, about $20 a month, paid to Anthropic.";
+/** Said with every price. Follows the same switch as checkout, so it can't claim plans are for sale early — or say they aren't once they are. */
+export function pricingNote(): string {
+  return [
+    "Every account starts on Free. Manage and Autopilot are monthly plans priced by account type (below).",
+    checkoutIsOpen() ? `They're bought at ${PLAN_PAGE}.` : "Checkout isn't open yet, so nobody can buy a plan today — don't say they can.",
+    "Using ShearQuery inside Claude also needs the business's own Claude subscription, about $20 a month, paid to Anthropic.",
+  ].join(" ");
+}
 
 export const STATUS_LABEL: Record<FeatureStatus, string> = {
   live: "Available now",
   testing: "In testing — not open to their clients yet",
 };
 
-/** Benefits that are pricing claims, which PRICING_NOTE and the plans replace. */
+/** Benefits that are pricing claims, which pricingNote() and the plans replace. */
 const PRICING_BENEFITS = new Set(["Free, Always"]);
 
 export interface TypeGuide {

@@ -1,7 +1,7 @@
 import { SITE_URL } from "@/lib/site";
 import type { McpTool } from "@/lib/mcp/tools";
 import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/lib/audiences";
-import { GUIDE_TYPES, PRICING_NOTE, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
+import { GUIDE_TYPES, pricingNote, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
 
 /**
  * Which ShearQuery account someone needs — for Claude to work out by asking.
@@ -170,7 +170,7 @@ export const featureGuideTool: McpTool = {
     const guides = chosen && GUIDE_TYPES.includes(chosen) ? [typeGuide(chosen)] : featureGuide();
     const out: string[] = [
       "WHAT SHEARQUERY DOES, BY ACCOUNT TYPE",
-      `Pricing: ${PRICING_NOTE}`,
+      `Pricing: ${pricingNote()}`,
       "Statuses are live: 'In testing' means only ShearQuery's own test account can use it today. Say so when you mention one.",
       "",
     ];
