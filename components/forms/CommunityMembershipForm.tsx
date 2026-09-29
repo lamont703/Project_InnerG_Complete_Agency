@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ArrowRight, Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createBrowserClient } from "@/lib/supabase/browser"
-import { audienceFromParam, type AudienceId } from "@/lib/audiences"
+import { audienceFromParam, SIGNUP_AUDIENCES, type AudienceId } from "@/lib/audiences"
 import { toast } from "sonner"
 
 /**
@@ -129,8 +129,33 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
   // set_my_account_type only fills an empty type. Everywhere else keeps the
   // default, because those pages showed barber copy to the person signing up.
   const explicitAudience = searchParams.get("for") ?? audience
-  const signupAudience: AudienceId | null =
+  const pageAudience: AudienceId | null =
     explicitAudience ? audienceFromParam(explicitAudience) : source === "login" ? null : audienceFromParam(undefined)
+
+  /*
+   * THE ACCOUNT TYPE IS CHOSEN IN THE FORM, the same on every page that shows
+   * it. It used to come only from the page around the form: /membership had a
+   * row of type buttons beside it (and silently meant Barber if none was
+   * tapped), while /login had no choice at all. Now the form always asks,
+   * pre-set from whatever the page already knows (?for=, a type's own page),
+   * and required on /login where nothing is known.
+   */
+  const [chosenAudience, setChosenAudience] = useState<AudienceId | "">(pageAudience ?? "")
+  useEffect(() => {
+    if (pageAudience) setChosenAudience(pageAudience)
+  }, [pageAudience])
+  const signupAudience: AudienceId | null = chosenAudience || null
+  const router = useRouter()
+  const pathname = usePathname()
+  const chooseAudience = (id: AudienceId) => {
+    setChosenAudience(id)
+    // Keep ?for= in step, so the page's own copy and type buttons follow the
+    // choice. Every other parameter — the redirect back to Claude above all —
+    // is kept as it is.
+    const next = new URLSearchParams(searchParams.toString())
+    next.set("for", id)
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+  }
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -246,6 +271,11 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
 
     track("form_submit_attempt", { ...claimContext(), ...progress() })
 
+    if (!chosenAudience) {
+      toast.error("Choose what kind of account this is.")
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       track("form_validation_error", {
         ...claimContext(),
@@ -350,6 +380,22 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
           </p>
         </div>
       )}
+      <div className="space-y-1.5">
+        <label htmlFor="cm-account-type" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">I&apos;m signing up as</label>
+        <select
+          id="cm-account-type"
+          required
+          value={chosenAudience}
+          onChange={(e) => chooseAudience(e.target.value as AudienceId)}
+          className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
+        >
+          <option value="" disabled>Choose one</option>
+          {SIGNUP_AUDIENCES.map((a) => (
+            <option key={a.id} value={a.id}>{a.label} — {a.who}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label htmlFor="cm-first-name" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">First Name</label>

@@ -15,7 +15,8 @@ import { CommunityMembershipForm } from "./CommunityMembershipForm";
 
 let params = new URLSearchParams();
 
-vi.mock("next/navigation", () => ({ useSearchParams: () => params }));
+const replace = vi.fn();
+vi.mock("next/navigation", () => ({ useSearchParams: () => params, useRouter: () => ({ replace }), usePathname: () => "/membership" }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), warning: vi.fn(), success: vi.fn() } }));
 vi.mock("@/lib/supabase/browser", () => ({
   createBrowserClient: () => ({
@@ -39,8 +40,9 @@ beforeEach(() => {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-async function signUp() {
+async function signUp(accountType?: string) {
   const user = userEvent.setup();
+  if (accountType) await user.selectOptions(screen.getByLabelText(/signing up as/i), accountType);
   await user.type(screen.getByLabelText(/first name/i), "A");
   await user.type(screen.getByLabelText(/last name/i), "B");
   await user.type(screen.getByLabelText(/email address/i), "a@b.com");
@@ -132,7 +134,7 @@ describe("CommunityMembershipForm — signing up on the way to connecting Claude
   it("returns to Claude's Allow screen after signup on /login", async () => {
     params = new URLSearchParams({ redirect: "/oauth/authorize?client_id=https%3A%2F%2Fclaude.ai%2Fx&state=s" });
     render(<CommunityMembershipForm source="login" />);
-    await signUp();
+    await signUp("client");
     await waitFor(() => expect(setHref).toHaveBeenCalled());
     expect(setHref).toHaveBeenCalledWith("/oauth/authorize?client_id=https%3A%2F%2Fclaude.ai%2Fx&state=s");
   });
@@ -141,19 +143,51 @@ describe("CommunityMembershipForm — signing up on the way to connecting Claude
     it(`never follows the redirect ${r}`, async () => {
       params = new URLSearchParams({ redirect: r });
       render(<CommunityMembershipForm source="login" />);
-      await signUp();
+      await signUp("barber");
       await waitFor(() => expect(setHref).toHaveBeenCalled());
       expect(setHref).not.toHaveBeenCalledWith(r);
       expect(setHref).toHaveBeenCalledWith("/account/manage-listing");
     });
   }
 
-  it("leaves the account type empty on /login, and keeps the default elsewhere", async () => {
+  /*
+   * ONE FORM, ONE CHOICE. /login and /membership both show the account-type
+   * picker. /login knows nothing about who's signing up, so nothing is
+   * pre-chosen there and it can't be submitted blank — a client connecting
+   * Claude to book a haircut must never be stamped Barber by default.
+   */
+  it("asks for the account type on /login and won't submit without one", async () => {
     render(<CommunityMembershipForm source="login" />);
+    expect((screen.getByLabelText(/signing up as/i) as HTMLSelectElement).value).toBe("");
     await signUp();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("records the type chosen on /login, and keeps ?for= in step without dropping the Claude redirect", async () => {
+    params = new URLSearchParams({ redirect: "/oauth/authorize?client_id=x" });
+    render(<CommunityMembershipForm source="login" />);
+    await signUp("client");
     await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
     const body = JSON.parse(((globalThis.fetch as any).mock.calls[0][1] as RequestInit).body as string);
-    expect(body.audience).toBeNull();
+    expect(body.audience).toBe("client");
+    const url = replace.mock.calls.at(-1)![0] as string;
+    expect(url).toContain("for=client");
+    expect(url).toContain("redirect=%2Foauth%2Fauthorize");
+  });
+
+  it("offers the same account types on every page, Client included", () => {
+    const { unmount } = render(<CommunityMembershipForm source="login" />);
+    const onLogin = [...(screen.getByLabelText(/signing up as/i) as HTMLSelectElement).options].map((o) => o.value);
+    unmount();
+    render(<CommunityMembershipForm />);
+    const onMembership = [...(screen.getByLabelText(/signing up as/i) as HTMLSelectElement).options].map((o) => o.value);
+    expect(onLogin).toEqual(onMembership);
+    expect(onLogin).toContain("client");
+  });
+
+  it("pre-chooses the membership page's default where the page shows it", () => {
+    render(<CommunityMembershipForm />);
+    expect((screen.getByLabelText(/signing up as/i) as HTMLSelectElement).value).toBe("barber");
   });
 });
 

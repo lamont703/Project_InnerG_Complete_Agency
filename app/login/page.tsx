@@ -63,6 +63,8 @@ function LoginContent() {
     // wants to book a haircut, for whom "school portal" and "dashboard" say
     // nothing. The form is the same; the words say what happens next.
     const fromApp = redirectTo.startsWith("/oauth/authorize")
+    // ?signup=1 opens straight on the create-account form.
+    useEffect(() => { if (searchParams.get("signup") === "1") setIsRegisterView(true) }, [searchParams])
 
     const {
         register,
@@ -217,9 +219,26 @@ function LoginContent() {
 
                     <div className="mt-8 text-center border-t border-border pt-8">
                         <div className="flex flex-col items-center gap-4">
+                            {/*
+                             * From an AI app, most people arriving here have no account yet — a
+                             * client booking a haircut from Claude. A 10px link under Sign In read
+                             * as a footnote and left them stuck, so here it's a full button.
+                             */}
+                            {fromApp && !isRegisterView && (
+                                <>
+                                    <p className="text-sm font-bold text-foreground">New to ShearQuery?</p>
+                                    <button
+                                        id="btn-create-account"
+                                        onClick={() => setIsRegisterView(true)}
+                                        className="-mt-2 w-full h-14 rounded-xl border-2 border-primary bg-white text-sm font-black uppercase tracking-[0.2em] text-primary transition-all hover:bg-primary hover:text-white"
+                                    >
+                                        Create a free account
+                                    </button>
+                                </>
+                            )}
                             <button 
                                 onClick={() => setIsRegisterView(!isRegisterView)}
-                                className="text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:underline transition-colors"
+                                className={`text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:underline transition-colors ${fromApp && !isRegisterView ? "hidden" : ""}`}
                             >
                                 {isRegisterView 
                                     ? "Already have an account? Sign In" 

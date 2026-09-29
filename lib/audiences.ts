@@ -165,28 +165,40 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     status: "live",
     label: "Client",
     who: "I'm looking for a barber or salon",
-    eyebrow: "Free — for customers",
-    headline: "Know where your appointment actually stands",
+    eyebrow: "Free for clients",
+    // Rewritten 2026-09-29 for booking. Everything claimed here is live: real
+    // open times with pros who take bookings on ShearQuery (opening to more
+    // pros as the calendar opens — said plainly), booking and changes from
+    // your own AI with this account (lib/mcp/client-booking-tools.ts), the
+    // appointment link with reschedule/cancel under the pro's own rules,
+    // deposits and tips paid to the pro through Stripe (lib/calendar/payments.ts),
+    // and the older request tracking for places that don't take online bookings.
+    headline: "Book your next cut, and keep every appointment in one place",
     subhead:
-      "A request isn't a confirmed appointment until the business says so. This is where you see which ones they've answered — free, no password.",
+      "One free account to book barbers and stylists — here, or by asking your own AI like Claude or ChatGPT — and to keep track of every appointment you've asked for.",
     benefits: [
       {
         icon: "calendar",
-        title: "Every request in one place",
-        body: "Appointments and school tours you've asked for, each with where it stands — waiting on them, confirmed, or declined so you know not to hold the time.",
-      },
-      {
-        icon: "check-circle",
-        title: "Told either way, quickly",
-        body: "We text the business and chase them if they go quiet. When they answer, you get an email — including when the answer is no, which is the one nobody else tells you.",
-      },
-      {
-        icon: "map-pin",
-        title: "Their number when you want it",
-        body: "Once you've sent a request, the business's own phone number is right there. No dead ends waiting on a callback that isn't coming.",
+        title: "Book real open times",
+        body: "With barbers and stylists who take bookings on ShearQuery, you pick from the times they actually have open, and you're booked when you finish. No waiting to hear back. More pros are joining as online booking opens up.",
       },
       {
         icon: "sparkles",
+        title: "Or just ask your AI",
+        body: "Tell Claude or ChatGPT to book you a haircut and it handles it. Your account is how it knows it's you, so later you can say \"move my appointment to Friday\" or \"cancel it\" and it's done.",
+      },
+      {
+        icon: "check-circle",
+        title: "Change plans without a phone call",
+        body: "Every booking comes with a link to reschedule or cancel. You see the pro's rules before you book — any deposit, and what's refunded if plans change. Deposits and tips go straight to the pro through Stripe.",
+      },
+      {
+        icon: "map-pin",
+        title: "Requests tracked, too",
+        body: "Where a place doesn't take online bookings yet, you can still send a request. We text the business, chase them if they go quiet, and tell you either way — including when the answer is no.",
+      },
+      {
+        icon: "bar-chart",
         title: "Your shortlist, saved",
         body: "The places you were comparing stay compared, on any device, instead of living in six browser tabs.",
       },
@@ -828,6 +840,15 @@ export const LIVE_AUDIENCES: Audience[] = [
   AUDIENCES.school,
   AUDIENCES.agency,
 ];
+
+/**
+ * THE ACCOUNT TYPES SOMEONE CAN SIGN UP AS — the one list the sign-up form
+ * offers, wherever the form is (/membership, /membership/<audience>, /login).
+ * LIVE_AUDIENCES plus Client: the membership page's switcher never showed
+ * Client, but clients now create accounts to book from their own AI, and
+ * signing up as a barber to book a haircut is how types go wrong.
+ */
+export const SIGNUP_AUDIENCES: Audience[] = [AUDIENCES.client, ...LIVE_AUDIENCES];
 
 /**
  * Read an audience out of a query string, a database column, or anything else
