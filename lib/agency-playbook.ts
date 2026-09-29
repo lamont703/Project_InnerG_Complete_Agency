@@ -77,7 +77,8 @@ export function playbookSections(): PlaybookSection[] {
         "Schools: tour requests from students comparing schools, their exam pass rates shown next to the state's, and the same Google tools.",
         "Supply stores: their listing and the Google tools.",
         "Using ShearQuery inside Claude needs the owner's own Claude subscription, about $20 a month paid to Anthropic, but everything also works on the website without it.",
-        "Say it plainly when something is still in testing. Right now that's the appointment book and Instagram insights. Claude's what_shearquery_does always has the current status.",
+        "When the appointment book opens, Manage also lets a barber's clients book them from their own AI — Claude or ChatGPT — or from the barber's booking page and QR code, with no account to create. That's a strong reason for a busy barber to pay for Manage.",
+        "Say it plainly when something is still in testing. Right now that's the appointment book (and with it, clients booking through their AI) and Instagram insights. Claude's what_shearquery_does always has the current status.",
       ],
     },
     {

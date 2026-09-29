@@ -75,8 +75,22 @@ describe("the MCP tool registry", () => {
    * scope, and the only tools that may touch the live profile are the two that
    * say so. A new writing tool fails here until it declares which it is.
    */
+  /**
+   * GUEST BOOKING is the one deliberate exception: a client's AI books without
+   * a ShearQuery account, proven by a text code instead — the same door as the
+   * website's Book button, with the same per-phone and per-requester limits
+   * (lib/mcp/client-booking-tools.ts). Named here so no other tool can join it
+   * by accident.
+   */
+  const GUEST_WRITES = ["request_booking_code", "book_as_guest"];
+
+  it("lets only the named guest-booking tools write without sign-in", () => {
+    const open = MCP_TOOLS.filter((x) => !x.annotations.readOnlyHint && !x.requiresIdentity).map((x) => x.name).sort();
+    expect(open).toEqual([...GUEST_WRITES].sort());
+  });
+
   it("puts every tool that writes behind an identity and a scope", () => {
-    for (const t of MCP_TOOLS.filter((x) => !x.annotations.readOnlyHint)) {
+    for (const t of MCP_TOOLS.filter((x) => !x.annotations.readOnlyHint && !GUEST_WRITES.includes(x.name))) {
       expect(t.requiresIdentity, `${t.name} writes but does not require identity`).toBe(true);
       expect(t.requiresScope, `${t.name} writes but declares no scope`).toBeTruthy();
     }

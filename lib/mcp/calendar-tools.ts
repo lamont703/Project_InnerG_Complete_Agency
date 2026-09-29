@@ -1,4 +1,5 @@
 import "server-only";
+import { SITE_URL } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { McpTool, McpToolContext, McpToolAnnotations } from "@/lib/mcp/tools";
 import { CALENDAR_NOT_AVAILABLE } from "@/lib/calendar/access";
@@ -121,6 +122,18 @@ const myCalendar: McpTool = {
       "",
       `TIME OFF (next 60 days): ${off.length ? off.map((o: any) => `${formatLocal(new Date(o.starts_at), p.timezone)} to ${formatLocal(new Date(o.ends_at), p.timezone)}${o.reason ? ` (${o.reason})` : ""} [id ${o.id}]`).join("; ") : "none"}`,
       `Appointments in the next 7 days: ${upcoming.filter((a) => ["booked", "confirmed"].includes(a.status)).length}`,
+      "",
+      ...(await (async () => {
+        if (p.is_demo) return ["BOOKING PAGE: demo calendars aren't bookable by clients."];
+        const { ensureBookingHandle } = await import("@/lib/calendar/booking-handle");
+        const handle = await ensureBookingHandle(p.id);
+        if (!handle) return [];
+        return [
+          `YOUR BOOKING PAGE: ${SITE_URL}/book/${handle}  (handle: ${handle})`,
+          "  Clients book there, or from their own Claude or ChatGPT with no ShearQuery account — they just say",
+          `  "book with ${p.display_name} on ShearQuery, booking handle ${handle}". The QR code for the mirror is on ${SITE_URL}/account/calendar.`,
+        ];
+      })()),
     ].join("\n");
   },
 };

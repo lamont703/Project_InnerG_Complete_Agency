@@ -61,6 +61,8 @@ export interface McpToolContext {
    * to itself rather than to production, where its data does not exist.
    */
   origin?: string;
+  /** The caller's IP, for rate limits on tools that work without sign-in (guest booking codes). */
+  clientIp?: string | null;
 }
 
 /**

@@ -33,6 +33,14 @@ export const CLIENT_LIMITS = {
   codeMaxAttempts: 5,
   codesPerPhonePerHour: 3,
   codesPerRequesterPerHour: 6,
+  /**
+   * Codes per hour from one AI assistant's server address. A guest booking
+   * from Claude or ChatGPT reaches us from THEIR servers, shared by all their
+   * users, so the website's per-visitor 6 would let the seventh person on
+   * ChatGPT that hour be refused. The per-phone limit is unchanged, so no one
+   * number can be spammed either way.
+   */
+  codesPerAiServerPerHour: 60,
 } as const;
 
 const db = () => createAdminClient() as any;
@@ -119,7 +127,7 @@ export type CodeSend = { ok: true } | { ok: false; reason: string };
  * Send a 6-digit code. Rate-limited per phone and per requester (member or
  * IP), so the endpoint cannot be used to text a stranger repeatedly.
  */
-export async function sendPhoneCode(args: { phone: unknown; memberId?: string | null; ip?: string | null }): Promise<CodeSend> {
+export async function sendPhoneCode(args: { phone: unknown; memberId?: string | null; ip?: string | null; viaAi?: boolean }): Promise<CodeSend> {
   const phone = normalisePhone(args.phone);
   if (!phone) return { ok: false, reason: "That doesn't look like a full mobile number with area code." };
   const hourAgo = new Date(Date.now() - 3600_000).toISOString();
@@ -127,17 +135,21 @@ export async function sendPhoneCode(args: { phone: unknown; memberId?: string | 
   const { count: perPhone } = await db().from("calendar_phone_codes").select("id", { count: "exact", head: true }).eq("phone", phone).gte("created_at", hourAgo);
   if ((perPhone ?? 0) >= CLIENT_LIMITS.codesPerPhonePerHour) return { ok: false, reason: "Too many codes sent to that number. Try again in an hour." };
 
+  // AI guest requests are counted under their own key, since the address is
+  // the AI provider's server, not the client's.
+  const requester = args.viaAi ? `ai:${args.ip || "unknown"}` : args.ip || "unknown";
+  const cap = args.memberId ? CLIENT_LIMITS.codesPerRequesterPerHour : args.viaAi ? CLIENT_LIMITS.codesPerAiServerPerHour : CLIENT_LIMITS.codesPerRequesterPerHour;
   let q = db().from("calendar_phone_codes").select("id", { count: "exact", head: true }).gte("created_at", hourAgo);
-  q = args.memberId ? q.eq("community_member_id", args.memberId) : q.eq("requester_ip", args.ip || "unknown");
+  q = args.memberId ? q.eq("community_member_id", args.memberId) : q.eq("requester_ip", requester);
   const { count: perRequester } = await q;
-  if ((perRequester ?? 0) >= CLIENT_LIMITS.codesPerRequesterPerHour) return { ok: false, reason: "Too many codes requested. Try again in an hour." };
+  if ((perRequester ?? 0) >= cap) return { ok: false, reason: "Too many codes requested. Try again in an hour." };
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const { error } = await db().from("calendar_phone_codes").insert({
     phone,
     code_hash: sha(`${phone}:${code}`),
     community_member_id: args.memberId ?? null,
-    requester_ip: args.memberId ? null : args.ip || "unknown",
+    requester_ip: args.memberId ? null : requester,
     expires_at: new Date(Date.now() + CLIENT_LIMITS.codeTtlMinutes * 60_000).toISOString(),
   });
   if (error) return { ok: false, reason: "Could not create a code. Try again." };

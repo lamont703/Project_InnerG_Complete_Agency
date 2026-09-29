@@ -33,6 +33,25 @@ const WRITES: McpToolAnnotations = { readOnlyHint: false, destructiveHint: false
 const NO_IDENTITY = "Booking needs the client to be signed in to ShearQuery in this connection.";
 const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+/** A pro by id, or by the booking handle on their "Book me" page. */
+async function resolvePro(ref: unknown) {
+  const raw = String(ref || "").trim();
+  if (/^[0-9a-f-]{36}$/i.test(raw)) return bookableProvider(raw);
+  const { providerIdByHandle } = await import("@/lib/calendar/booking-handle");
+  const id = await providerIdByHandle(raw.replace(/^.*\/book\//, "").replace(/[/?#].*$/, ""));
+  return id ? bookableProvider(id) : null;
+}
+
+/** A start time from "date" + "time" as a client's AI says them, in the pro's zone. */
+function startFrom(tz: string, date: unknown, time: unknown): Date | null {
+  const today = localDateKey(new Date(), tz);
+  const d = String(date || "").trim().toLowerCase();
+  const key = d === "today" ? today : d === "tomorrow" ? addDaysToKey(today, 1) : d;
+  const parts = parseDateKey(key);
+  const minute = parseClock(time);
+  return parts && minute != null ? zonedToUtc(parts.year, parts.month, parts.day, minute, tz) : null;
+}
+
 const money = (c: number | null) => (c == null ? "" : ` · $${(c / 100).toFixed(c % 100 ? 2 : 0)}`);
 
 const findPros: McpTool = {
@@ -40,18 +59,20 @@ const findPros: McpTool = {
   title: "Find barbers and stylists you can book on ShearQuery",
   provides: "barbers and stylists taking bookings on ShearQuery, with their services",
   description:
-    "Find barbers, stylists and shops that take real bookings on ShearQuery, by name or business name (or leave the search empty to list them). Returns each pro's id, where they work, and their services with length and price.",
-  requiresIdentity: true,
+    "Find barbers, stylists and shops that take real bookings on ShearQuery, by name, business name, or the booking handle from their \"Book me\" page (e.g. marcus-cuts) — or leave the search empty to list them. No ShearQuery account needed. Returns each pro's id, where they work, and their services with length and price.",
   annotations: READS,
   inputSchema: { type: "object", properties: { query: { type: "string" } } },
   handler: async (args, ctx) => {
-    if (!ctx.identity) return NO_IDENTITY;
-    const pros = await searchBookablePros(String(args.query || ""), ctx.identity.memberId);
+    const byHandle = args.query ? await resolvePro(args.query) : null;
+    const pros = byHandle ? [byHandle] : await searchBookablePros(String(args.query || ""), ctx.identity?.memberId ?? null);
     if (!pros.length) return "No one matching that takes bookings on ShearQuery yet. Booking is new and is opening to pros gradually.";
+    // Booking itself: request_booking_code then book_as_guest (no account), or book_with_pro for a signed-in client.
+    const { ensureBookingHandle } = await import("@/lib/calendar/booking-handle");
+    const handles = await Promise.all(pros.map((p) => ensureBookingHandle(p.provider.id)));
     return pros
-      .map((p) =>
+      .map((p, i) =>
         [
-          `${p.provider.display_name}${p.listing ? ` at ${p.listing}` : ""} · pro id ${p.provider.id} · ${p.provider.timezone}`,
+          `${p.provider.display_name}${p.listing ? ` at ${p.listing}` : ""} · pro id ${p.provider.id}${handles[i] ? ` · booking handle ${handles[i]} (${SITE_URL}/book/${handles[i]})` : ""} · ${p.provider.timezone}`,
           ...p.services.map((s) => `  ${s.name} · ${s.duration_minutes} min${money(s.price_cents)}`),
         ].join("\n")
       )
@@ -64,17 +85,15 @@ const proOpenTimes: McpTool = {
   title: "Open times with a barber or stylist",
   provides: "a pro's open appointment times for a service",
   description:
-    'Open times with a pro (id from find_pros_to_book) for a service, on "today", "tomorrow", "week", a date (YYYY-MM-DD) or a range. Times are in the pro\'s local time zone.',
-  requiresIdentity: true,
+    'Open times with a pro (id from find_pros_to_book, or their booking handle) for a service, on "today", "tomorrow", "week", a date (YYYY-MM-DD) or a range. Times are in the pro\'s local time zone. No ShearQuery account needed.',
   annotations: READS,
   inputSchema: {
     type: "object",
     properties: { pro_id: { type: "string" }, service: { type: "string" }, when: { type: "string", description: 'Default "week".' } },
     required: ["pro_id", "service"],
   },
-  handler: async (args, ctx) => {
-    if (!ctx.identity) return NO_IDENTITY;
-    const pro = await bookableProvider(String(args.pro_id || ""));
+  handler: async (args) => {
+    const pro = await resolvePro(args.pro_id);
     if (!pro) return "That pro isn't taking bookings on ShearQuery.";
     const service = pickService(pro.services, args.service);
     if (!service) return `No single service matches. They offer: ${pro.services.map((s) => s.name).join(", ")}.`;
@@ -154,7 +173,7 @@ const bookWithPro: McpTool = {
     if (!ctx.identity) return NO_IDENTITY;
     const phone = await getMemberPhone(ctx.identity.memberId);
     if (!phone) return "The client needs to confirm their mobile number first: call verify_my_phone.";
-    const pro = await bookableProvider(String(args.pro_id || ""));
+    const pro = await resolvePro(args.pro_id);
     if (!pro) return "That pro isn't taking bookings on ShearQuery.";
     const service = pickService(pro.services, args.service);
     if (!service) return `No single service matches. They offer: ${pro.services.map((s) => s.name).join(", ")}.`;
@@ -236,4 +255,77 @@ function pickService(services: { id: string; name: string; duration_minutes: num
   return partial.length === 1 ? partial[0] : null;
 }
 
-export const CLIENT_BOOKING_TOOLS: McpTool[] = [findPros, proOpenTimes, verifyPhone, confirmPhone, bookWithPro, myBookings, cancelMine];
+
+/**
+ * GUEST BOOKING — from any AI assistant, with no ShearQuery account. The same
+ * door the website's Book button uses (app/api/calendar/public/code and
+ * /book): the client's phone is proven by a text code, and that code is
+ * spent on exactly one booking. Same limits as the website — codes per phone
+ * and per requester (here, the caller's IP), per-pro caps, the pro's hours,
+ * notice and window. Deliberately without sign-in: asking a client to create
+ * an account before booking a haircut is where they drop off.
+ */
+const requestBookingCode: McpTool = {
+  name: "request_booking_code",
+  title: "Text a booking code to the client's phone",
+  provides: "texting a one-time code that lets a client book without a ShearQuery account",
+  description:
+    "Before book_as_guest: text a 6-digit code to the client's mobile number. No ShearQuery account needed. Ask the client for their number first, then ask them to read back the code from the text. Codes expire in 10 minutes and are limited per number, so don't resend unless they ask.",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  inputSchema: { type: "object", properties: { phone: { type: "string", description: "The client's mobile number, with area code." } }, required: ["phone"] },
+  handler: async (args, ctx) => {
+    const r = await sendPhoneCode({ phone: args.phone, memberId: ctx.identity?.memberId ?? null, ip: ctx.clientIp ?? null, viaAi: true });
+    return r.ok ? "Code sent. Ask the client for the 6-digit code from the text, then book with book_as_guest." : r.reason;
+  },
+};
+
+const bookAsGuest: McpTool = {
+  name: "book_as_guest",
+  title: "Book an appointment for a client, with their text code",
+  provides: "booking an appointment with a pro using a client's phone code, no account needed",
+  description:
+    "Book the client an appointment with a pro (id from find_pros_to_book, or their booking handle) at an open time from pro_open_times, using the code from request_booking_code. No ShearQuery account needed. Confirm the service, day, time and name with the client first. The client gets a text confirmation with a link to view or cancel.",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  inputSchema: {
+    type: "object",
+    properties: {
+      pro_id: { type: "string", description: "Pro id or booking handle." },
+      service: { type: "string" },
+      date: { type: "string", description: 'YYYY-MM-DD, "today" or "tomorrow", in the pro\'s time zone.' },
+      time: { type: "string", description: 'e.g. "3pm", exactly as pro_open_times listed it.' },
+      name: { type: "string", description: "The client's name for the booking." },
+      phone: { type: "string" },
+      code: { type: "string", description: "The 6-digit code from the text." },
+      notes: { type: "string" },
+    },
+    required: ["pro_id", "service", "date", "time", "name", "phone", "code"],
+  },
+  handler: async (args, ctx) => {
+    const pro = await resolvePro(args.pro_id);
+    if (!pro) return "That pro isn't taking bookings on ShearQuery.";
+    const service = pickService(pro.services, args.service);
+    if (!service) return `No single service matches. They offer: ${pro.services.map((s) => s.name).join(", ")}.`;
+    const tz = pro.provider.timezone;
+    const start = startFrom(tz, args.date, args.time);
+    if (!start) return 'Give the date as YYYY-MM-DD (or "today"/"tomorrow") and a time like "3pm".';
+    const name = String(args.name || "").trim();
+    if (!name) return "What name should the booking be under?";
+    // Checked at the moment of booking, so the code is spent on this one booking.
+    const verified = await checkPhoneCode(args.phone, args.code);
+    if (!verified.ok) return verified.reason;
+    const res = await clientBook({
+      pro, service, start, name, phone: verified.phone,
+      memberId: ctx.identity?.memberId ?? null,
+      notes: args.notes ? String(args.notes).slice(0, 300) : null,
+      source: "client_claude",
+      origin: ctx.origin || SITE_URL,
+    });
+    if (!res.ok) return `${res.reason} (The code was used; the client can ask for a new one.)`;
+    return [
+      `Booked: ${service.name} with ${pro.provider.display_name}${pro.listing ? ` at ${pro.listing}` : ""}, ${formatLocal(start, tz)} (${tz}).`,
+      `A confirmation was texted to ${verified.phone} with a link to view or cancel: ${res.manageUrl}`,
+    ].join("\n");
+  },
+};
+
+export const CLIENT_BOOKING_TOOLS: McpTool[] = [requestBookingCode, bookAsGuest, findPros, proOpenTimes, verifyPhone, confirmPhone, bookWithPro, myBookings, cancelMine];

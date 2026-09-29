@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, Lock } from "lucide-react";
+import { CalendarDays, Lock, QrCode } from "lucide-react";
+import QRCode from "qrcode";
+import { SITE_URL } from "@/lib/site";
+import { ensureBookingHandle } from "@/lib/calendar/booking-handle";
+import { CopyField } from "@/components/account/copy-field";
 import { Navbar } from "@/components/layout/navbar";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -67,8 +71,29 @@ export default async function CalendarPage() {
       const k = localDateKey(new Date(a.starts_at), tz);
       days.set(k, [...(days.get(k) || []), a]);
     }
+    const handle = provider.is_demo ? null : await ensureBookingHandle(provider.id);
+    const bookUrl = handle ? `${SITE_URL}/book/${handle}` : null;
+    const qr = bookUrl ? await QRCode.toDataURL(bookUrl, { margin: 1, width: 480 }) : null;
     body = (
       <div className="mt-8 space-y-6">
+        {bookUrl && qr && (
+          <section className="rounded-2xl border-2 border-slate-900 bg-white p-6 shadow-sm">
+            <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-500"><QrCode className="h-4 w-4" /> Let clients book you — here or from their AI</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Share your booking page, or print the QR code for your mirror or front desk. Clients can book on the page, or tell their own Claude or ChatGPT
+              &ldquo;book with {provider.display_name} on ShearQuery, booking handle {handle}&rdquo; — no ShearQuery account needed, just a text code to confirm their number.
+            </p>
+            <div className="mt-4 flex flex-wrap items-start gap-5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qr} alt={`QR code for ${bookUrl}`} width={160} height={160} className="rounded-lg border border-slate-100" />
+              <div className="min-w-[240px] flex-1 space-y-3">
+                <CopyField label="Booking page" value={bookUrl} />
+                <CopyField label="For your clients' AI" value={`Book with ${provider.display_name} on ShearQuery, booking handle ${handle}`} />
+                <a href={qr} download={`shearquery-booking-${handle}.png`} className="inline-block text-xs font-bold text-blue-700 underline">Download the QR code</a>
+              </div>
+            </div>
+          </section>
+        )}
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Next 7 days</h2>
           {appts.length === 0 ? (

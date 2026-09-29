@@ -539,7 +539,7 @@ export async function handleMcpPost(request: NextRequest, ctx: McpRequestContext
   const userAgent = request.headers.get("user-agent");
   const clientIp = clientIpFrom(request.headers);
   const origin = originOf(request);
-  const toolContext: McpToolContext = { identity: ctx.identity, origin };
+  const toolContext: McpToolContext = { identity: ctx.identity, origin, clientIp };
 
   const log = (fields: {
     mcpMethod?: string | null;

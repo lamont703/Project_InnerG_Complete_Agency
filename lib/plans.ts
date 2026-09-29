@@ -58,7 +58,13 @@ export function planIncludes(plan: Plan): string[] {
   const instagram = process.env.INSTAGRAM_MEMBER_CONNECT_OPEN === "true";
   return {
     free: ["Your listing and verified badge", "The full Google profile audit", "Claude drafts any fix to your profile", `${FREE_PUBLISHES_PER_MONTH} Google publishes a month`],
-    manage: ["Everything in Free", "Unlimited Google publishing, from Claude or the website", `The appointment book, run from Claude${soon(calendar)}`, `Instagram insights in Claude${soon(instagram)}`],
+    manage: [
+      "Everything in Free",
+      "Unlimited Google publishing, from Claude or the website",
+      `The appointment book, run from Claude${soon(calendar)}`,
+      `Clients book you from their own AI — Claude or ChatGPT — or your booking page and QR code, no account needed${soon(calendar)}`,
+      `Instagram insights in Claude${soon(instagram)}`,
+    ],
     autopilot: ["Everything in Manage", "Replies to your 4 and 5 star reviews, in your voice", "One Google post a week — you see it a day ahead", "A Monday report and a daily digest"],
   }[plan];
 }
