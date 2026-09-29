@@ -82,7 +82,7 @@ describe("the MCP tool registry", () => {
    * (lib/mcp/client-booking-tools.ts). Named here so no other tool can join it
    * by accident.
    */
-  const GUEST_WRITES = ["request_booking_code", "book_as_guest"];
+  const GUEST_WRITES = ["request_booking_code", "book_as_guest", "find_my_bookings", "reschedule_booking_as_guest", "cancel_booking_as_guest"];
 
   it("lets only the named guest-booking tools write without sign-in", () => {
     const open = MCP_TOOLS.filter((x) => !x.annotations.readOnlyHint && !x.requiresIdentity).map((x) => x.name).sort();
@@ -103,12 +103,14 @@ describe("the MCP tool registry", () => {
    * owner's own ShearQuery calendar and is marked destructive so Claude always
    * asks — it needs only "propose" (lib/mcp/calendar-tools.ts). A client
    * cancelling their own booking is the same kind of change from the other
-   * side (lib/mcp/client-booking-tools.ts).
+   * side (lib/mcp/client-booking-tools.ts) — signed in (cancel_my_booking) or
+   * as a guest by confirmation link or guest pass (cancel_booking_as_guest,
+   * one of GUEST_WRITES, so it has no scope).
    */
   it("names every destructive tool, and only Google changes need publish", () => {
     const destructive = MCP_TOOLS.filter((t) => t.annotations.readOnlyHint === false && t.annotations.destructiveHint !== false);
-    expect(destructive.map((t) => t.name).sort()).toEqual(["cancel_appointment", "cancel_my_booking", "publish_change", "undo_change"]);
-    for (const t of destructive) expect(t.requiresScope).toBe(t.name.startsWith("cancel_") ? "propose" : "publish");
+    expect(destructive.map((t) => t.name).sort()).toEqual(["cancel_appointment", "cancel_booking_as_guest", "cancel_my_booking", "publish_change", "undo_change"]);
+    for (const t of destructive.filter((x) => !GUEST_WRITES.includes(x.name))) expect(t.requiresScope).toBe(t.name.startsWith("cancel_") ? "propose" : "publish");
   });
 
   it("marks every propose_ tool as a non-destructive draft behind the propose scope", () => {

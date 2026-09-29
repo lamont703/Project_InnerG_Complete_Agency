@@ -3,7 +3,7 @@ import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasCalendarAccess } from "@/lib/feature-access";
 import {
-  getHours, listServices, findOpenTimes, upsertClient, bookAppointment, getAppointment, setAppointmentStatus,
+  getHours, listServices, findOpenTimes, upsertClient, bookAppointment, getAppointment, setAppointmentStatus, moveAppointment,
   normalisePhone, listingName, type Provider, type Service, type Appointment,
 } from "@/lib/calendar/store";
 import { localDateKey } from "@/lib/calendar/time";
@@ -41,6 +41,8 @@ export const CLIENT_LIMITS = {
    * number can be spammed either way.
    */
   codesPerAiServerPerHour: 60,
+  /** How long a guest pass lasts after one verified code. */
+  guestPassMinutes: 30,
 } as const;
 
 const db = () => createAdminClient() as any;
@@ -313,3 +315,69 @@ export async function clientCancel(args: { providerId: string; appointmentId: st
 }
 
 export { normalisePhone };
+
+// ── guests managing their own bookings, without an account ─────────────────
+
+/** After one verified code: a pass the client's AI can use for the next steps. */
+export async function issueGuestPass(phone: string): Promise<string> {
+  const token = randomBytes(24).toString("base64url");
+  await db().from("calendar_guest_passes").insert({
+    token_hash: sha(token), phone, expires_at: new Date(Date.now() + CLIENT_LIMITS.guestPassMinutes * 60_000).toISOString(),
+  });
+  return token;
+}
+
+/** The verified phone behind a live pass, or null. */
+export async function phoneFromGuestPass(token: unknown): Promise<string | null> {
+  const t = String(token ?? "");
+  if (!/^[A-Za-z0-9_-]{32}$/.test(t)) return null;
+  const { data } = await db().from("calendar_guest_passes").select("phone, expires_at").eq("token_hash", sha(t)).maybeSingle();
+  return data && new Date(data.expires_at) > new Date() ? data.phone : null;
+}
+
+/** A client's upcoming live bookings, across every pro, by their verified phone. */
+export async function upcomingForPhone(phone: string) {
+  const { data: clients } = await db().from("calendar_clients").select("id, provider_id").eq("phone", phone);
+  if (!clients?.length) return [];
+  const { data } = await db()
+    .from("calendar_appointments")
+    .select("id, provider_id, starts_at, status, service_name, price_cents, client_id")
+    .in("client_id", clients.map((c: any) => c.id))
+    .in("status", ["booked", "confirmed"])
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at")
+    .limit(20);
+  return (data || []) as { id: string; provider_id: string; starts_at: string; status: string; service_name: string; price_cents: number | null; client_id: string }[];
+}
+
+/** Whether this appointment belongs to that phone — the check before a guest acts on it. */
+export async function appointmentBelongsToPhone(appointmentId: string, phone: string): Promise<string | null> {
+  const { data } = await db().from("calendar_appointments").select("provider_id, client:calendar_clients(phone)").eq("id", appointmentId).maybeSingle();
+  return data?.client?.phone === phone ? data.provider_id : null;
+}
+
+/**
+ * Move a client's own booking to another open time, for the same service.
+ * Same rules as booking (the new time must be one clientOpenTimes offers) and
+ * as cancelling (not within the cutoff). The pro and the client are texted.
+ */
+export async function clientReschedule(args: { providerId: string; appointmentId: string; start: Date }): Promise<{ ok: true; appointment: Appointment; pro: BookablePro } | { ok: false; reason: string }> {
+  const appt = await getAppointment(args.providerId, args.appointmentId);
+  if (!appt) return { ok: false, reason: "Appointment not found." };
+  if (!["booked", "confirmed"].includes(appt.status)) return { ok: false, reason: `This appointment is already ${appt.status.replace("_", "-")}.` };
+  if ((new Date(appt.starts_at).getTime() - Date.now()) / 60_000 < CLIENT_LIMITS.cancelCutoffMinutes) {
+    return { ok: false, reason: `It's less than ${CLIENT_LIMITS.cancelCutoffMinutes / 60} hours away, so it can't be changed online. Contact them directly.` };
+  }
+  const pro = await bookableProvider(args.providerId);
+  if (!pro) return { ok: false, reason: "This calendar isn't taking bookings online right now. Contact them directly." };
+  const service = pro.services.find((s) => s.name.toLowerCase() === appt.service_name.toLowerCase());
+  if (!service) return { ok: false, reason: `${appt.service_name} isn't offered online any more. Contact them directly to change it.` };
+  const key = localDateKey(args.start, pro.provider.timezone);
+  const offered = await clientOpenTimes(pro, service, key, key, 200);
+  if (!offered.some((d) => d.getTime() === args.start.getTime())) return { ok: false, reason: "That time isn't open. Pick one of the open times." };
+  const moved = await moveAppointment({ provider: pro.provider, id: appt.id, start: args.start });
+  if (!moved.ok) return { ok: false, reason: moved.reason };
+  const { notifyMoved } = await import("@/lib/calendar/notify");
+  await notifyMoved({ pro, before: appt, after: moved.appointment }).catch(() => {});
+  return { ok: true, appointment: moved.appointment, pro };
+}
