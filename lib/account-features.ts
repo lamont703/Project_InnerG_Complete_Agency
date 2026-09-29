@@ -66,7 +66,7 @@ export const CLAUDE_FEATURES: ClaudeFeature[] = [
   {
     id: "calendar",
     title: "An appointment book run from Claude",
-    what: "Working hours, services and prices, booking, moving and cancelling appointments, time off, and looking up a client — by talking to Claude. Clients get text confirmations and a reminder the day before.",
+    what: "Working hours, services and prices, booking, moving and cancelling appointments, time off, and looking up a client — by talking to Claude. Clients book the pro from their own AI (Claude or ChatGPT) or the pro's booking page and QR code, with no ShearQuery account — a text code confirms their number. Clients get text confirmations and a reminder the day before.",
     types: PROS,
     needs: "Texts to clients also wait on carrier registration before they run at volume.",
     status: calendarStatus,
@@ -76,7 +76,7 @@ export const CLAUDE_FEATURES: ClaudeFeature[] = [
   {
     id: "client_booking",
     title: "Clients book in Claude",
-    what: "A client asks Claude for a barber or stylist, sees open times, confirms their phone number and books — no app or website.",
+    what: "A client asks their own AI — Claude or ChatGPT — for a barber or stylist (or gives it the pro's booking handle), sees open times, confirms their phone with a text code and books. No app, website or ShearQuery account needed.",
     types: ["client"],
     needs: "Only pros using the ShearQuery calendar can be booked this way.",
     status: calendarStatus,
