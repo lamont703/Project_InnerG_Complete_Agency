@@ -7,7 +7,7 @@ import { sendGhlEmail } from "@/lib/ghl-email";
 import { buildCommunityWelcomeEmail } from "@/lib/community-welcome-email";
 import { storedAudience } from "@/lib/audiences";
 import { cookies } from "next/headers";
-import { attributeSignup, REF_COOKIE, INVITE_COOKIE } from "@/lib/agency-partners";
+import { attributeSignup, ensureDemoClients, REF_COOKIE, INVITE_COOKIE } from "@/lib/agency-partners";
 
 // Deliberately much simpler than /api/barber/register — community members
 // get a search-visible directory profile, not a business dashboard, so
@@ -99,6 +99,8 @@ export async function POST(req: Request) {
           typedCode: typeof body.agencyCode === "string" ? body.agencyCode : null,
           linkCode: jar.get(REF_COOKIE)?.value ?? null,
         });
+        // An agency starts with its sample barber, salon and school.
+        if (memberAudience === "agency") await ensureDemoClients(created.id);
       }
     }
 

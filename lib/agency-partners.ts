@@ -172,6 +172,8 @@ export async function attributeSignup(args: { clientMemberId: string; inviteToke
 
 export interface AgencyClient {
   memberId: string;
+  /** A sample client (agency_demo_clients), not a real business. Never credited. */
+  isDemo: boolean;
   name: string;
   email: string | null;
   type: string | null;
@@ -183,7 +185,37 @@ export interface AgencyClient {
   auditScore: number | null;
 }
 
+// ── sample clients ──────────────────────────────────────────────────────────
+
+/**
+ * The three sample clients an agency starts with, one per stage of setup, so
+ * the client list shows what "done", "halfway" and "just joined" look like.
+ * Named as samples so none can be mistaken for, or collide with, a real shop.
+ */
+const DEMO_CLIENTS = [
+  { business_type: "barber", name: "Sample Barber", source: "invite", daysAgo: 21, claimed_listing: true, google_connected: true, calendar_live: true, audit_score: 86 },
+  { business_type: "salon", name: "Sample Salon", source: "link", daysAgo: 9, claimed_listing: true, google_connected: true, calendar_live: false, audit_score: 62 },
+  { business_type: "school", name: "Sample Barber School", source: "code", daysAgo: 2, claimed_listing: false, google_connected: false, calendar_live: false, audit_score: null },
+] as const;
+
+/** Give an agency its sample clients. Idempotent; never throws. */
+export async function ensureDemoClients(agencyMemberId: string) {
+  try {
+    const now = Date.now();
+    await db()
+      .from("agency_demo_clients")
+      .upsert(
+        DEMO_CLIENTS.map(({ daysAgo, ...c }) => ({ ...c, agency_member_id: agencyMemberId, joined_at: new Date(now - daysAgo * 86400_000).toISOString() })),
+        { onConflict: "agency_member_id,business_type", ignoreDuplicates: true }
+      );
+  } catch (e) {
+    console.error("[agency] sample clients failed:", e);
+  }
+}
+
 export async function agencyDashboard(agencyMemberId: string) {
+  // Covers agency accounts made before sample clients existed.
+  await ensureDemoClients(agencyMemberId);
   const { data: refs } = await db()
     .from("agency_referrals")
     .select("client_member_id, source, created_at, member:community_members!agency_referrals_client_member_id_fkey(first_name, last_name, email, audience)")
@@ -207,8 +239,15 @@ export async function agencyDashboard(agencyMemberId: string) {
   const latestScore = new Map<string, number>();
   for (const a of (audits as any)?.data || []) if (!latestScore.has(a.community_member_id)) latestScore.set(a.community_member_id, a.score);
 
+  const { data: demos } = await db()
+    .from("agency_demo_clients")
+    .select("business_type, name, source, joined_at, claimed_listing, google_connected, calendar_live, audit_score")
+    .eq("agency_member_id", agencyMemberId)
+    .order("joined_at", { ascending: false });
+
   const clients: AgencyClient[] = (refs || []).map((r: any) => ({
     memberId: r.client_member_id,
+    isDemo: false,
     name: [r.member?.first_name, r.member?.last_name].filter(Boolean).join(" ") || "—",
     email: r.member?.email ?? null,
     type: r.member?.audience ?? null,
@@ -219,7 +258,21 @@ export async function agencyDashboard(agencyMemberId: string) {
     calendarLive: calendar.has(r.client_member_id),
     auditScore: latestScore.get(r.client_member_id) ?? null,
   }));
-  return { clients, invites: (invites as any)?.data || [] };
+  const samples: AgencyClient[] = (demos || []).map((d: any) => ({
+    memberId: `demo-${d.business_type}`,
+    isDemo: true,
+    name: d.name,
+    email: null,
+    type: d.business_type,
+    joinedAt: d.joined_at,
+    source: d.source,
+    claimedListing: d.claimed_listing,
+    googleConnected: d.google_connected,
+    calendarLive: d.calendar_live,
+    auditScore: d.audit_score,
+  }));
+  // Real clients first; samples after, so they never push a real one down.
+  return { clients: [...clients, ...samples], realCount: clients.length, invites: (invites as any)?.data || [] };
 }
 
 function escapeHtml(s: string) {

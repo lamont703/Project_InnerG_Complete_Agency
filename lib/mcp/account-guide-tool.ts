@@ -142,6 +142,7 @@ export const setMyAccountTypeTool: McpTool = {
         ? `Their account is already a ${AUDIENCES[current].label} account, and Claude can't change a type once it's set. If it's wrong, they can contact ShearQuery to change it.`
         : "Couldn't set the type. Try again.";
     }
+    if (id === "agency") await (await import("@/lib/agency-partners")).ensureDemoClients(ctx.identity.memberId);
     return `Done — this is now a ${AUDIENCES[id].label} account.\n${NEXT_STEP[id]}`;
   },
 };

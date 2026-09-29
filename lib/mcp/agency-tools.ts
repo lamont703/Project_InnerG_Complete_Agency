@@ -19,6 +19,34 @@ async function isAgencyAccount(memberId: string) {
 const NOT_AGENCY =
   "This isn't an agency account, so it has no agency details. my_shearquery_account shows the account type.";
 
+async function dashboard(memberId: string) {
+  const { agencyDashboard } = await import("@/lib/agency-partners");
+  return agencyDashboard(memberId);
+}
+
+type Client = Awaited<ReturnType<typeof dashboard>>["clients"][number];
+
+/**
+ * One line per client. Samples are said to be samples in every line: an
+ * agency showing Claude to a prospect must never hear a sample described as
+ * a business it signed.
+ */
+function clientLines(clients: Client[]): string[] {
+  const shown = clients.slice(0, 25).map(
+    (c) =>
+      `  - ${c.isDemo ? "[SAMPLE — not a real business] " : ""}${c.name} (${c.type || "type not set"}), joined ${c.joinedAt.slice(0, 10)} by ${c.source}: ` +
+      [
+        c.claimedListing ? "listing claimed" : "listing NOT claimed",
+        c.googleConnected ? "Google connected" : "Google not connected",
+        c.calendarLive ? "calendar live" : null,
+        c.auditScore != null ? `audit ${c.auditScore}` : null,
+      ].filter(Boolean).join(", ")
+  );
+  if (clients.length > 25) shown.push(`  …and ${clients.length - 25} more on ${SITE_URL}/account/agency`);
+  if (clients.some((c) => c.isDemo)) shown.push("  Samples show what each stage of setup looks like. They are never credited and never count toward commission.");
+  return shown;
+}
+
 const FIELDS = ["agency_name", "website", "what_they_build", "client_count", "markets"] as const;
 
 export const myAgencyTool: McpTool = {
@@ -26,7 +54,7 @@ export const myAgencyTool: McpTool = {
   title: "My agency partner account",
   provides: "an agency's partner status, referral link and the businesses credited to it",
   description:
-    "For an AGENCY account: its details as ShearQuery has them, whether it is approved as a partner, its referral link and code once approved, the businesses credited to it and where each is in setup, and the invites it has sent. Missing details are listed so you can ask for them and save them with update_my_agency_details.",
+    "For an AGENCY account: its details as ShearQuery has them, whether it is approved as a partner, its referral link and code once approved, the businesses credited to it and where each is in setup (plus three labeled SAMPLE clients every agency starts with), and the invites it has sent. Missing details are listed so you can ask for them and save them with update_my_agency_details.",
   requiresIdentity: true,
   annotations: { readOnlyHint: true, openWorldHint: false },
   inputSchema: { type: "object", properties: {} },
@@ -70,29 +98,20 @@ export const myAgencyTool: McpTool = {
           ? "PARTNER STATUS: not approved. Businesses they bring in aren't credited. They can contact ShearQuery about it."
           : "PARTNER STATUS: waiting for ShearQuery to approve. Nothing is credited until then, and there's no referral link yet. They get an email with their link when approved."
       );
-      return out.filter((l) => l !== null).join("\n");
+      const { clients } = await dashboard(memberId);
+      out.push("", "CLIENT LIST (samples only until approved):", ...clientLines(clients));
+      return out.join("\n");
     }
 
-    const { agencyDashboard } = await import("@/lib/agency-partners");
-    const { clients, invites } = await agencyDashboard(memberId);
+    const { clients, realCount, invites } = await dashboard(memberId);
     out.push(
       "PARTNER STATUS: approved.",
       `  Referral link: ${SITE_URL}/join/${p.referral_code}`,
       `  Referral code: ${p.referral_code} (a business can type it at signup)`,
       `  Invites by email are sent from ${SITE_URL}/account/agency.`,
       "",
-      `BUSINESSES CREDITED: ${clients.length}`,
-      ...clients.slice(0, 25).map(
-        (c) =>
-          `  - ${c.name} (${c.type || "type not set"}), joined ${c.joinedAt.slice(0, 10)} by ${c.source}: ` +
-          [
-            c.claimedListing ? "listing claimed" : "listing NOT claimed",
-            c.googleConnected ? "Google connected" : "Google not connected",
-            c.calendarLive ? "calendar live" : null,
-            c.auditScore != null ? `audit ${c.auditScore}` : null,
-          ].filter(Boolean).join(", ")
-      ),
-      clients.length > 25 ? `  …and ${clients.length - 25} more on ${SITE_URL}/account/agency` : "",
+      `BUSINESSES CREDITED: ${realCount}`,
+      ...clientLines(clients),
       "",
       `INVITES SENT: ${invites.length}, joined ${invites.filter((i: any) => i.accepted_at).length}.`,
       "",

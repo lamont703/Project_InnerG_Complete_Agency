@@ -39,7 +39,7 @@ export default async function AgencyPage() {
     ? await (createAdminClient().from("agency_profiles") as any).select("partner_status, referral_code").eq("community_member_id", ctx.memberId).maybeSingle()
     : { data: null };
   const approved = status?.partner_status === "approved";
-  const dash = approved ? await agencyDashboard(ctx.memberId) : null;
+  const dash = isAgency ? await agencyDashboard(ctx.memberId) : null;
 
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">
@@ -100,45 +100,55 @@ export default async function AgencyPage() {
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Your clients ({dash!.clients.length})</h2>
-                  {dash!.clients.length === 0 ? (
-                    <p className="mt-3 text-sm text-slate-600">No one yet. Share your link or send an invite.</p>
-                  ) : (
-                    <div className="mt-4 overflow-x-auto">
-                      <table className="w-full min-w-[640px] text-sm">
-                        <thead className="text-left text-[11px] font-black uppercase tracking-wide text-slate-500">
-                          <tr>
-                            <th className="py-2">Client</th><th>Type</th><th>Joined</th>
-                            <th className="text-center">Listing claimed</th><th className="text-center">Google connected</th>
-                            <th className="text-center">Calendar live</th><th className="text-center">Audit score</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {dash!.clients.map((c) => {
-                            const t = storedAudience(c.type);
-                            return (
-                              <tr key={c.memberId}>
-                                <td className="py-2"><p className="font-bold">{c.name}</p><p className="text-xs text-slate-500">{c.email}</p></td>
-                                <td>{t ? AUDIENCES[t].label : "not set"}</td>
-                                <td className="text-xs text-slate-500">{new Date(c.joinedAt).toLocaleDateString()} · {c.source}</td>
-                                <td className="text-center">{yes(c.claimedListing)}</td>
-                                <td className="text-center">{yes(c.googleConnected)}</td>
-                                <td className="text-center">{yes(c.calendarLive)}</td>
-                                <td className="text-center font-bold">{c.auditScore ?? <span className="text-slate-300">—</span>}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  <p className="mt-4 text-xs text-slate-500">
-                    Next for each client: claim their listing, connect Google, then turn on their calendar. The gaps above are who to nudge.
-                  </p>
-                </section>
               </>
             )}
+
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Your clients ({dash!.realCount})</h2>
+              {dash!.realCount === 0 && (
+                <p className="mt-2 text-sm text-slate-600">
+                  {approved ? "No one yet — share your link or send an invite." : "Once you're approved, businesses you bring in show up here."} The three marked Sample show what each stage looks like; they aren&apos;t real businesses and never count toward credit.
+                </p>
+              )}
+              {dash!.clients.length === 0 ? null : (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-sm">
+                    <thead className="text-left text-[11px] font-black uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="py-2">Client</th><th>Type</th><th>Joined</th>
+                        <th className="text-center">Listing claimed</th><th className="text-center">Google connected</th>
+                        <th className="text-center">Calendar live</th><th className="text-center">Audit score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {dash!.clients.map((c) => {
+                        const t = storedAudience(c.type);
+                        return (
+                          <tr key={c.memberId} className={c.isDemo ? "text-slate-500" : undefined}>
+                            <td className="py-2">
+                              <p className="font-bold">
+                                {c.name}
+                                {c.isDemo && <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-500">Sample</span>}
+                              </p>
+                              <p className="text-xs text-slate-500">{c.isDemo ? "Not a real business" : c.email}</p>
+                            </td>
+                            <td>{t ? AUDIENCES[t].label : "not set"}</td>
+                            <td className="text-xs text-slate-500">{new Date(c.joinedAt).toLocaleDateString()} · {c.source}</td>
+                            <td className="text-center">{yes(c.claimedListing)}</td>
+                            <td className="text-center">{yes(c.googleConnected)}</td>
+                            <td className="text-center">{yes(c.calendarLive)}</td>
+                            <td className="text-center font-bold">{c.auditScore ?? <span className="text-slate-300">—</span>}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <p className="mt-4 text-xs text-slate-500">
+                Next for each client: claim their listing, connect Google, then turn on their calendar. The gaps above are who to nudge.
+              </p>
+            </section>
 
             <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6 text-sm leading-relaxed text-slate-700">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">Use ShearQuery in your Claude</h2>
