@@ -830,6 +830,15 @@ export const LIVE_AUDIENCES: Audience[] = [
 ];
 
 /**
+ * THE ACCOUNT TYPES SOMEONE CAN SIGN UP AS — the one list the sign-up form
+ * offers, wherever the form is (/membership, /membership/<audience>, /login).
+ * LIVE_AUDIENCES plus Client: the membership page's switcher never showed
+ * Client, but clients now create accounts to book from their own AI, and
+ * signing up as a barber to book a haircut is how types go wrong.
+ */
+export const SIGNUP_AUDIENCES: Audience[] = [AUDIENCES.client, ...LIVE_AUDIENCES];
+
+/**
  * Read an audience out of a query string, a database column, or anything else
  * untrusted.
  *

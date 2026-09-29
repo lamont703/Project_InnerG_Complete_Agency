@@ -11,7 +11,7 @@ import {
   ArrowRight,
   type LucideIcon,
 } from "lucide-react";
-import { LIVE_AUDIENCES, membershipPath, type Audience, type AudienceBenefit } from "@/lib/audiences";
+import { SIGNUP_AUDIENCES, membershipPath, type Audience, type AudienceBenefit } from "@/lib/audiences";
 
 /**
  * How an audience is drawn. Nothing here decides WHICH audience — that is the
@@ -85,7 +85,8 @@ export function AudienceSwitcher({
 }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {LIVE_AUDIENCES.map((a) => {
+      {/* The same list the sign-up form offers (SIGNUP_AUDIENCES), so the buttons and the form never disagree. */}
+      {SIGNUP_AUDIENCES.map((a) => {
         const isActive = a.id === activeId;
         return (
           <Link
