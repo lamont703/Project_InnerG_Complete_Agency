@@ -55,6 +55,9 @@ vi.mock("@/lib/supabase/browser", () => ({
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  // The navbar reads ?embed= to hide itself inside the AI chat panel
+  // (lib/embed-mode.ts). No params here: the ordinary, non-embedded page.
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/lib/analytics", () => ({
