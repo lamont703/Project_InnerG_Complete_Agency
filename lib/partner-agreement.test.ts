@@ -14,9 +14,13 @@ describe("the partner agreement", () => {
     if (unfilledBlanks().length) expect(agreementIsFinal()).toBe(false);
   });
 
-  it("is still a draft, with the blanks a lawyer and the owner must settle", () => {
-    // Remove this test when the agreement is finalized.
-    expect(PARTNER_AGREEMENT.status).toBe("draft");
-    expect(unfilledBlanks()).toEqual(expect.arrayContaining(["[COMPANY LEGAL NAME]", "[STATE]", "[NOTICE EMAIL]"]));
+  it("is final as version 1.0, with every blank filled", () => {
+    expect(PARTNER_AGREEMENT.version).toBe("1.0");
+    expect(unfilledBlanks()).toEqual([]);
+    expect(agreementIsFinal()).toBe(true);
+    expect(text).toContain("Inner G Complete Agency");
+    expect(text).toContain("State of Georgia");
+    expect(text).toContain("Fulton County, Georgia");
+    expect(text).toContain("legal@innergcomplete.com");
   });
 });

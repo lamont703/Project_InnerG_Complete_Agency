@@ -4,24 +4,24 @@ import { COMMISSION_HOLD_DAYS, COMMISSION_RATE, MIN_PAYOUT_CENTS } from "@/lib/p
  * THE AGENCY PARTNER AGREEMENT — what an agency accepts before ShearQuery
  * approves it.
  *
- * A FIRST DRAFT, written 2026-09-29 from the terms the product owner decided
- * (the 25% rate, the 30-day hold, the $50 minimum, first-agency-wins credit,
- * read-only support access). It is NOT legal advice and must be reviewed by a
- * lawyer before it is used. Until it is, `status` stays "draft": agencies can
- * read it but can't accept it, and approval doesn't require it.
+ * Written 2026-09-29 from the terms the product owner decided (the 25% rate,
+ * the 30-day hold, the $50 minimum, first-agency-wins credit, read-only
+ * support access), with the company details, governing law, notice period
+ * and liability cap they supplied. Made FINAL as version 1.0 on 2026-09-29 at
+ * the owner's instruction.
  *
- * TO MAKE IT LIVE: fill every [BRACKETED] blank below, have it reviewed, then
- * set status to "final" and bump `version`. Changing the text later means a
- * new version, which existing partners are asked to accept again.
+ * CHANGING IT: edit the text, bump `version`. Every agency is then asked to
+ * accept the new version, and approval requires it. A draft ("draft", or any
+ * [BRACKETED] blank left) can be read but not accepted.
  *
  * The numbers come from lib/plans.ts, so the agreement can never quote a rate,
  * hold or minimum the code doesn't apply.
  */
 
 export const PARTNER_AGREEMENT = {
-  version: "2026-09-29-draft",
-  status: "draft" as "draft" | "final",
-  title: "ShearQuery Agency Partner Agreement",
+  version: "1.0",
+  status: "final" as "draft" | "final",
+  title: "ShearQuery Partner Agreement",
 };
 
 const pct = `${Math.round(COMMISSION_RATE * 100)}%`;
@@ -31,7 +31,7 @@ export const AGREEMENT_SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "1. Who this agreement is between",
     body: [
-      `This agreement is between [COMPANY LEGAL NAME], which operates ShearQuery ("ShearQuery", "we"), and the agency accepting it ("you", "the Partner"). You accept it by selecting "I agree" on your ShearQuery agency page. It takes effect when ShearQuery approves your agency.`,
+      `This agreement is between Inner G Complete Agency, which operates ShearQuery ("ShearQuery", "we"), and the agency accepting it ("you", "the Partner"). You accept it by selecting "I agree" on your ShearQuery agency page. It takes effect when ShearQuery approves your agency.`,
     ],
   },
   {
@@ -60,7 +60,7 @@ export const AGREEMENT_SECTIONS: { title: string; body: string[] }[] = [
     body: [
       `You earn ${pct} of what each business credited to you actually pays ShearQuery for its subscription plan, for as long as it stays on a paid plan while this agreement is in effect.`,
       "Commission is calculated on the amount we actually receive, after any discounts and excluding taxes. Where a payment is refunded, the commission on it is reduced to match.",
-      `ShearQuery may change the commission rate. A new rate applies only to payments made after it takes effect, and we'll give you at least [30] days' written notice first. Commission already earned stays at the rate it was earned at.`,
+      `ShearQuery may change the commission rate. A new rate applies only to payments made after it takes effect, and we'll give you at least 30 days' written notice first. Commission already earned stays at the rate it was earned at.`,
     ],
   },
   {
@@ -116,14 +116,14 @@ export const AGREEMENT_SECTIONS: { title: string; body: string[] }[] = [
     title: "13. No guarantees, and limits",
     body: [
       "We don't guarantee any amount of referrals, signups or commission. ShearQuery is provided as it is, and we may change or stop features.",
-      "To the extent the law allows, neither of us is liable to the other for indirect or consequential losses, and ShearQuery's total liability under this agreement is limited to the commission paid or payable to you in the [12] months before the claim.",
+      "To the extent the law allows, neither of us is liable to the other for indirect or consequential losses, and ShearQuery's total liability under this agreement is limited to the commission paid or payable to you in the 12 months before the claim.",
     ],
   },
   {
     title: "14. General",
     body: [
-      "This agreement is governed by the laws of [STATE], and any dispute will be handled in the courts of [COUNTY, STATE].",
-      "It is the whole agreement between us about the partner program. If a part of it can't be enforced, the rest still applies. Notices to ShearQuery go to [NOTICE EMAIL]; notices to you go to your agency account's email.",
+      "This agreement is governed by the laws of the State of Georgia, and any dispute will be handled in the courts of Fulton County, Georgia.",
+      "It is the whole agreement between us about the partner program. If a part of it can't be enforced, the rest still applies. Notices to ShearQuery go to legal@innergcomplete.com; notices to you go to your agency account's email.",
     ],
   },
 ];
