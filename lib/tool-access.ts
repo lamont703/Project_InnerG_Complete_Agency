@@ -87,6 +87,10 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     note: "Approved agencies only; same limits as /account/agency (50/day, one per address per week). Sends a real email." },
   { id: "my_agency_payouts", label: "Agency payouts (Stripe)", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Returns a Stripe onboarding or Express dashboard link; bank/tax details never pass through the chat." },
+  { id: "client_support_view", label: "Client account health (shared)", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Read-only; only for clients who switched on sharing (agency_access_grants). Never the client's customers." },
+  { id: "request_client_access", label: "Ask a client to share", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "Sends a real email; once per 3 days per client." },
+  { id: "my_agency_access", label: "My agency's access", group: "Owner tools", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "The owner's switch for their credited agency's read-only view." },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

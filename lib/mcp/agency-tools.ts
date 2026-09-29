@@ -31,7 +31,7 @@ type Client = Awaited<ReturnType<typeof dashboard>>["clients"][number];
  * agency showing Claude to a prospect must never hear a sample described as
  * a business it signed.
  */
-function clientLines(clients: Client[]): string[] {
+function clientLines(clients: Client[], shared: Set<string> = new Set()): string[] {
   const shown = clients.slice(0, 25).map(
     (c) =>
       `  - ${c.isDemo ? "[SAMPLE — not a real business] " : ""}${c.name} (${c.type || "type not set"}), joined ${c.joinedAt.slice(0, 10)} by ${c.source}: ` +
@@ -40,7 +40,8 @@ function clientLines(clients: Client[]): string[] {
         c.googleConnected ? "Google connected" : "Google not connected",
         c.calendarLive ? "calendar live" : null,
         c.auditScore != null ? `audit ${c.auditScore}` : null,
-      ].filter(Boolean).join(", ")
+      ].filter(Boolean).join(", ") +
+      (c.isDemo ? "" : shared.has(c.memberId) ? " · SHARED: client_support_view works" : " · not shared")
   );
   if (clients.length > 25) shown.push(`  …and ${clients.length - 25} more on ${SITE_URL}/account/agency`);
   if (clients.some((c) => c.isDemo)) shown.push("  Samples show what each stage of setup looks like. They are never credited and never count toward commission.");
@@ -120,6 +121,8 @@ export const myAgencyTool: McpTool = {
     }
 
     const { clients, realCount, invites } = await dashboard(memberId);
+    const { sharedClientIds } = await import("@/lib/agency-support");
+    const shared = await sharedClientIds(memberId);
     out.push(
       "PARTNER STATUS: approved.",
       `  Referral link: ${SITE_URL}/join/${p.referral_code}`,
@@ -127,7 +130,7 @@ export const myAgencyTool: McpTool = {
       `  Invite a client by email with invite_client_to_shearquery (or at ${SITE_URL}/account/agency).`,
       "",
       `BUSINESSES CREDITED: ${realCount}`,
-      ...clientLines(clients),
+      ...clientLines(clients, shared),
       "",
       `INVITES (${invites.length}, ${invites.filter((i: any) => i.accepted_at).length} joined)`,
       ...(invites.length
@@ -256,4 +259,72 @@ export const agencyPayoutsTool: McpTool = {
   },
 };
 
-export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool];
+/** One of this agency's real clients, by name (or id) as the agency said it. */
+async function findClient(agencyMemberId: string, query: string): Promise<{ id: string; name: string } | { error: string }> {
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { data } = await (createAdminClient().from("agency_referrals") as any)
+    .select("client_member_id, member:community_members!agency_referrals_client_member_id_fkey(first_name, last_name)")
+    .eq("agency_member_id", agencyMemberId)
+    .limit(500);
+  const clients = (data || []).map((r: any) => ({ id: r.client_member_id as string, name: [r.member?.first_name, r.member?.last_name].filter(Boolean).join(" ") || "Client" }));
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return { error: "Say which client." };
+  const exact = clients.find((c: any) => c.id === q || c.name.toLowerCase() === q);
+  if (exact) return exact;
+  const matches = clients.filter((c: any) => c.name.toLowerCase().includes(q));
+  if (matches.length === 1) return matches[0];
+  if (matches.length > 1) return { error: `More than one client matches "${query}": ${matches.slice(0, 8).map((m: any) => m.name).join(", ")}. Say which.` };
+  return { error: `No client of this agency matches "${query}". my_agency lists them. (Sample clients have no support view.)` };
+}
+
+/**
+ * The support view: a client's account health, read-only, for clients who
+ * have shared it with this agency (lib/agency-support.ts). Never shows the
+ * client's own customers.
+ */
+export const clientSupportViewTool: McpTool = {
+  name: "client_support_view",
+  title: "A client's account health (with their permission)",
+  provides: "a client's account health — connections, stuck drafts, failures and where to help — for clients who shared it",
+  description:
+    "For an AGENCY: a read-only health check on one of its clients — Google connection, drafts waiting, changes that failed and why, plan and publishes left, Autopilot, calendar texts, Instagram, audit score — and where to help first. Only for clients who have switched on sharing with this agency; for others it says so, and request_client_access can ask them. Nothing here changes the client's account, and it never includes their customers' details.",
+  requiresIdentity: true,
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  inputSchema: { type: "object", properties: { client: { type: "string", description: "The client's name as shown in my_agency." } }, required: ["client"] },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
+    if (!(await isAgencyAccount(ctx.identity.memberId))) return NOT_AGENCY;
+    const found = await findClient(ctx.identity.memberId, args.client);
+    if ("error" in found) return found.error;
+    const { hasAccess, clientSupportReport, reportLines } = await import("@/lib/agency-support");
+    if (!(await hasAccess(ctx.identity.memberId, found.id))) {
+      return `${found.name} hasn't shared their account with this agency. Only they can switch it on. request_client_access emails them a request explaining exactly what the agency would and wouldn't see.`;
+    }
+    const report = await clientSupportReport(found.id);
+    if (!report) return "That client's account couldn't be read.";
+    return ["SUPPORT VIEW — read-only, shared by the client", "", ...reportLines(report)].join("\n");
+  },
+};
+
+export const requestClientAccessTool: McpTool = {
+  name: "request_client_access",
+  title: "Ask a client to share their account",
+  provides: "asking a client, by email, to share their account health with the agency",
+  description:
+    "For an AGENCY: email one of its clients asking them to let the agency see their account health, read-only. The email explains what the agency would and would never see, and links to the owner's switch. Sends a real email — confirm with the agency first. At most once every three days per client.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  inputSchema: { type: "object", properties: { client: { type: "string", description: "The client's name as shown in my_agency." } }, required: ["client"] },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
+    if (!(await isAgencyAccount(ctx.identity.memberId))) return NOT_AGENCY;
+    const found = await findClient(ctx.identity.memberId, args.client);
+    if ("error" in found) return found.error;
+    const { requestAccess } = await import("@/lib/agency-support");
+    const res = await requestAccess(ctx.identity.memberId, found.id);
+    return res.ok ? `Request sent to ${found.name}. Once they switch it on, client_support_view shows their account health.` : `Not sent: ${res.error}`;
+  },
+};
+
+export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool, clientSupportViewTool, requestClientAccessTool];

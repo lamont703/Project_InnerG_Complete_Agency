@@ -10,6 +10,8 @@ import { agencyEarnings } from "@/lib/commissions";
 import { COMMISSION_TERMS, dollars } from "@/lib/commission-rules";
 import { refreshPayoutStatus } from "@/lib/billing/connect";
 import { AgencyPayoutButton } from "@/components/account/agency-payout-button";
+import { sharedClientIds } from "@/lib/agency-support";
+import { RequestAccessButton } from "@/components/account/request-access-button";
 import { SITE_URL } from "@/lib/site";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 import { AgencyProfileForm } from "@/components/account/agency-profile-form";
@@ -45,6 +47,7 @@ export default async function AgencyPage() {
     : { data: null };
   const approved = status?.partner_status === "approved";
   const dash = isAgency ? await agencyDashboard(ctx.memberId) : null;
+  const shared = isAgency ? await sharedClientIds(ctx.memberId) : new Set<string>();
   const earnings = approved ? await agencyEarnings(ctx.memberId) : null;
   // Stripe payout account: re-read from Stripe while it isn't ready yet (they
   // may have just come back from onboarding), otherwise trust the saved flag.
@@ -180,7 +183,7 @@ export default async function AgencyPage() {
                       <tr>
                         <th className="py-2">Client</th><th>Type</th><th>Joined</th>
                         <th className="text-center">Listing claimed</th><th className="text-center">Google connected</th>
-                        <th className="text-center">Calendar live</th><th className="text-center">Audit score</th>
+                        <th className="text-center">Calendar live</th><th className="text-center">Audit score</th><th className="text-center">Support view</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -201,6 +204,11 @@ export default async function AgencyPage() {
                             <td className="text-center">{yes(c.googleConnected)}</td>
                             <td className="text-center">{yes(c.calendarLive)}</td>
                             <td className="text-center font-bold">{c.auditScore ?? <span className="text-slate-300">—</span>}</td>
+                            <td className="text-center text-xs">
+                              {c.isDemo ? <span className="text-slate-300">—</span>
+                                : shared.has(c.memberId) ? <Link href={`/account/agency/clients/${c.memberId}`} className="font-bold text-blue-700 underline">Open</Link>
+                                : <RequestAccessButton clientMemberId={c.memberId} />}
+                            </td>
                           </tr>
                         );
                       })}
