@@ -84,6 +84,8 @@ export interface AgencyRow extends AgencyProfile {
   partnerStatus: string;
   referralCode: string | null;
   clientCount: number;
+  /** The partner agreement version this agency accepted, if any. */
+  agreementVersion: string | null;
   email: string | null;
   name: string;
   hasDemo: boolean;
@@ -95,7 +97,7 @@ export interface AgencyRow extends AgencyProfile {
 export async function listAgencies(): Promise<AgencyRow[]> {
   const { data } = await db()
     .from("agency_profiles")
-    .select("community_member_id, agency_name, website, what_they_build, client_count, markets, demo_ready_at, created_at, partner_status, referral_code, member:community_members(email, first_name, last_name)")
+    .select("community_member_id, agency_name, website, what_they_build, client_count, markets, demo_ready_at, created_at, partner_status, referral_code, agreement_version, member:community_members(email, first_name, last_name)")
     .order("created_at", { ascending: false })
     .limit(200);
   const ids = (data || []).map((r: any) => r.community_member_id);
@@ -122,6 +124,7 @@ export async function listAgencies(): Promise<AgencyRow[]> {
     hasDemo: demoSet.has(r.community_member_id),
     partnerStatus: r.partner_status,
     referralCode: r.referral_code,
+    agreementVersion: r.agreement_version ?? null,
     clientCount: refCount.get(r.community_member_id) || 0,
     createdAt: r.created_at,
   }));
@@ -144,7 +147,7 @@ export async function listAgencies(): Promise<AgencyRow[]> {
       name: [m.first_name, m.last_name].filter(Boolean).join(" ") || "—",
       agency_name: "Details not filled in yet",
       website: null, what_they_build: null, client_count: null, markets: null, demo_ready_at: null,
-      hasDemo: false, partnerStatus: "pending", referralCode: null, clientCount: 0,
+      hasDemo: false, partnerStatus: "pending", referralCode: null, agreementVersion: null, clientCount: 0,
       createdAt: m.created_at,
     });
   }

@@ -47,6 +47,11 @@ export default async function AgencyPage() {
     : { data: null };
   const approved = status?.partner_status === "approved";
   const dash = isAgency ? await agencyDashboard(ctx.memberId) : null;
+  const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
+  const { data: agreementRow } = isAgency
+    ? await (createAdminClient().from("agency_profiles") as any).select("agreement_version").eq("community_member_id", ctx.memberId).maybeSingle()
+    : { data: null };
+  const needsAgreement = isAgency && agreementIsFinal() && agreementRow?.agreement_version !== PARTNER_AGREEMENT.version;
   const shared = isAgency ? await sharedClientIds(ctx.memberId) : new Set<string>();
   const earnings = approved ? await agencyEarnings(ctx.memberId) : null;
   // Stripe payout account: re-read from Stripe while it isn't ready yet (they
@@ -75,6 +80,15 @@ export default async function AgencyPage() {
           </p>
         ) : (
           <div className="mt-6 space-y-6">
+            {needsAgreement ? (
+              <section className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
+                <strong>Please review and accept the partner agreement.</strong> {agreementRow?.agreement_version ? "It has been updated since you last accepted it." : "We approve agencies once they've accepted it."}{" "}
+                <Link href="/account/agency/agreement" className="font-bold underline">Read and accept</Link>
+              </section>
+            ) : (
+              <p className="text-xs text-slate-500"><Link href="/account/agency/agreement" className="underline">The partner agreement</Link></p>
+            )}
+
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">About your agency</h2>
               <div className="mt-4"><AgencyProfileForm initial={profile} /></div>

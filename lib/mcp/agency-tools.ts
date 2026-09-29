@@ -99,6 +99,13 @@ export const myAgencyTool: McpTool = {
     }
 
     const missing = FIELDS.filter((f) => p[f] == null || p[f] === "");
+    const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
+    const { data: ag } = await (await db()).from("agency_profiles").select("agreement_version").eq("community_member_id", memberId).maybeSingle();
+    const agreementLine = !agreementIsFinal()
+      ? `PARTNER AGREEMENT: still a draft, not in effect yet — they can read it at ${SITE_URL}/account/agency/agreement.`
+      : ag?.agreement_version === PARTNER_AGREEMENT.version
+        ? "PARTNER AGREEMENT: accepted."
+        : `PARTNER AGREEMENT: NOT ACCEPTED${ag?.agreement_version ? " (it changed since they last accepted)" : ""} — approval waits on it. They read and accept it themselves at ${SITE_URL}/account/agency/agreement; it can't be accepted from Claude.`;
     const out: string[] = [
       `AGENCY: ${p.agency_name}`,
       `  Website: ${p.website || "not given"}`,
@@ -106,6 +113,7 @@ export const myAgencyTool: McpTool = {
       `  Clients now: ${p.client_count ?? "not given"}`,
       `  Markets: ${p.markets || "not given"}`,
       missing.length ? `  Still missing: ${missing.join(", ")} — ask, then update_my_agency_details.` : "",
+      agreementLine,
       "",
     ];
 

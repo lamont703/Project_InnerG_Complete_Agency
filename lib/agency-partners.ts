@@ -38,6 +38,16 @@ export async function reviewAgency(memberId: string, action: "approve" | "reject
     return { ok: true as const, code: null };
   }
 
+  // Once the partner agreement is final, nobody is approved without having
+  // accepted the current version of it.
+  const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
+  if (agreementIsFinal()) {
+    const { data: acc } = await db().from("agency_profiles").select("agreement_version").eq("community_member_id", memberId).maybeSingle();
+    if (acc?.agreement_version !== PARTNER_AGREEMENT.version) {
+      return { ok: false as const, error: "This agency hasn't accepted the current partner agreement yet." };
+    }
+  }
+
   let code: string = profile.referral_code;
   if (!code) {
     const { data: taken } = await db().from("agency_profiles").select("referral_code").not("referral_code", "is", null);
@@ -277,4 +287,21 @@ export async function agencyDashboard(agencyMemberId: string) {
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** An agency accepts the current partner agreement, typing its name as its signature. */
+export async function acceptPartnerAgreement(memberId: string, name: unknown, ip: string | null) {
+  const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
+  if (!agreementIsFinal()) return { ok: false as const, error: "The partner agreement isn't final yet, so it can't be accepted." };
+  const signed = String(name ?? "").replace(/[\u0000-\u001F\u007F]/g, " ").trim().slice(0, 120);
+  if (signed.length < 2) return { ok: false as const, error: "Type your full name to accept." };
+  const { data: profile } = await db().from("agency_profiles").select("community_member_id").eq("community_member_id", memberId).maybeSingle();
+  if (!profile) return { ok: false as const, error: "Add your agency's details first." };
+  const { error } = await db().from("agency_profiles").update({
+    agreement_version: PARTNER_AGREEMENT.version,
+    agreement_accepted_at: new Date().toISOString(),
+    agreement_accepted_by: signed,
+    agreement_accepted_ip: ip,
+  }).eq("community_member_id", memberId);
+  return error ? { ok: false as const, error: "Couldn't record that. Try again." } : { ok: true as const, version: PARTNER_AGREEMENT.version };
 }
