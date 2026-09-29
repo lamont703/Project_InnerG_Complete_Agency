@@ -25,7 +25,7 @@
  */
 
 import { COMMISSION_TERMS } from "@/lib/commission-rules";
-import { COMMISSION_RATE } from "@/lib/plans";
+import { COMMISSION_RATE, PRICES } from "@/lib/plans";
 
 export type AudienceId =
   | "student"
@@ -304,8 +304,8 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       },
       {
         icon: "check-circle",
-        title: "Free, Always",
-        body: "No credit card, no trial period, no upsell. Community membership stays free.",
+        title: "Free to start",
+        body: `Your listing, the verified badge and the full Google profile audit cost nothing, and there's no card to sign up. Optional plans — Manage from $${PRICES.barber!.manage} a month — add unlimited Google publishing and more.`,
       },
     ],
     ctaLabel: "Create my free account",
@@ -371,8 +371,8 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       },
       {
         icon: "check-circle",
-        title: "Free, Always",
-        body: "No credit card, no trial period, no upsell. Community membership stays free.",
+        title: "Free to start",
+        body: `Your listing, the verified badge and the full Google profile audit cost nothing, and there's no card to sign up. Optional plans — Manage from $${PRICES.barber!.manage} a month — add unlimited Google publishing and more.`,
       },
     ],
     ctaLabel: "Create my free account",

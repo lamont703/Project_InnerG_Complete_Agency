@@ -16,9 +16,9 @@ import { FREE_PUBLISHES_PER_MONTH, PLAN_LABEL, PLAN_PAGE, PRICES, checkoutIsOpen
  * feature open only to our test account must never read as available — and
  * one we open must not keep reading as "testing" either.
  *
- * Pricing is stated once, here, and the audiences' "Free, Always" benefit is
- * left out of the guide: paid tiers are decided (2026-09-28), so an agency
- * must not promise free forever, and no price is set to quote instead.
+ * Pricing is stated once, in pricingNote() and each type's plan prices
+ * (lib/plans.ts). The old "Free, Always" benefit was replaced on 2026-09-29;
+ * the filter below stays so it can never come back into the guide.
  */
 
 export type FeatureStatus = "live" | "testing";

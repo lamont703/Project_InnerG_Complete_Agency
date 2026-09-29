@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Check, CreditCard } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
@@ -82,7 +83,10 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
                   </ul>
                   <div className="mt-4">
                     {current ? (
-                      <p className="text-center text-xs font-black uppercase text-emerald-700">Your plan</p>
+                      <>
+                        <p className="text-center text-xs font-black uppercase text-emerald-700">Your plan</p>
+                        {p === "autopilot" && <Link href="/account/autopilot" className="mt-2 block text-center text-xs font-bold text-blue-700 underline">Autopilot settings</Link>}
+                      </>
                     ) : p === "free" ? (
                       live && canBuy ? <PlanButton action="portal" label="Cancel in billing" /> : null
                     ) : !canBuy ? (
