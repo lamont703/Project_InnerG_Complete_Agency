@@ -11,6 +11,8 @@ import { COMMISSION_TERMS, dollars } from "@/lib/commission-rules";
 import { refreshPayoutStatus } from "@/lib/billing/connect";
 import { AgencyPayoutButton } from "@/components/account/agency-payout-button";
 import { sharedClientIds } from "@/lib/agency-support";
+import { myProspects } from "@/lib/prospecting";
+import { STATUS_LABEL as PROSPECT_STATUS } from "@/lib/prospecting-rules";
 import { RequestAccessButton } from "@/components/account/request-access-button";
 import { SITE_URL } from "@/lib/site";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
@@ -53,6 +55,7 @@ export default async function AgencyPage() {
     : { data: null };
   const needsAgreement = isAgency && agreementIsFinal() && agreementRow?.agreement_version !== PARTNER_AGREEMENT.version;
   const shared = isAgency ? await sharedClientIds(ctx.memberId) : new Set<string>();
+  const prospects = isAgency && approved ? await myProspects(ctx.memberId).catch(() => []) : [];
   const earnings = approved ? await agencyEarnings(ctx.memberId) : null;
   // Stripe payout account: re-read from Stripe while it isn't ready yet (they
   // may have just come back from onboarding), otherwise trust the saved flag.
@@ -236,6 +239,26 @@ export default async function AgencyPage() {
             </section>
 
             <FeatureGuide />
+
+            {approved && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Your prospects ({prospects.length})</h2>
+                {prospects.length === 0 ? (
+                  <p className="mt-2 text-sm text-slate-600">
+                    In your Claude, ask &ldquo;find Houston barbershops that need help with Google&rdquo; — then save the ones you&apos;re pitching. They&apos;ll show here.
+                  </p>
+                ) : (
+                  <ul className="mt-3 divide-y divide-slate-100 text-sm">
+                    {prospects.slice(0, 25).map((p: any) => (
+                      <li key={p.id} className="flex flex-wrap justify-between gap-2 py-2">
+                        <span><span className="font-bold">{p.business_name}</span>{p.city ? <span className="text-slate-500"> · {p.city}</span> : null}{p.note ? <span className="block text-xs text-slate-500">{p.note}</span> : null}</span>
+                        <span className="text-xs font-bold text-slate-600">{PROSPECT_STATUS[p.status as keyof typeof PROSPECT_STATUS] ?? p.status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
 
             <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6 text-sm leading-relaxed text-slate-700">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">Use ShearQuery in your Claude</h2>

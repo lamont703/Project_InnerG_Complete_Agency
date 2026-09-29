@@ -23,6 +23,7 @@ import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
 import { DEMO_TOOLS } from "@/lib/mcp/demo-tools";
 import { AUTOPILOT_TOOLS } from "@/lib/mcp/autopilot-tools";
 import { myAgencyAccessTool } from "@/lib/mcp/agency-access-tool";
+import { PROSPECT_TOOLS } from "@/lib/mcp/prospect-tools";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
@@ -1206,6 +1207,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...DEMO_TOOLS,
   ...AUTOPILOT_TOOLS,
   myAgencyAccessTool,
+  ...PROSPECT_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

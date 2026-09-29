@@ -91,6 +91,11 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     note: "Read-only; only for clients who switched on sharing (agency_access_grants). Never the client's customers." },
   { id: "request_client_access", label: "Ask a client to share", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "Sends a real email; once per 3 days per client." },
   { id: "my_agency_access", label: "My agency's access", group: "Owner tools", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "The owner's switch for their credited agency's read-only view." },
+  { id: "find_prospects", label: "Find businesses to pitch", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "Directory data only; phone and website, never email." },
+  { id: "prospect_details", label: "Prospect audit and talking points", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
+  { id: "prospect_live_check", label: "Live Google check (5/day)", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "Places API, text fields only (no photos); writes back to the directory. OFF until PROSPECT_LIVE_CHECKS=on (Google billing not set up)." },
+  { id: "save_prospect", label: "Save or update a prospect", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
+  { id: "my_prospects", label: "Prospect pipeline", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---
