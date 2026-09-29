@@ -8,6 +8,8 @@ import { getAgencyProfile } from "@/lib/agency";
 import { agencyDashboard } from "@/lib/agency-partners";
 import { agencyEarnings } from "@/lib/commissions";
 import { COMMISSION_TERMS, dollars } from "@/lib/commission-rules";
+import { refreshPayoutStatus } from "@/lib/billing/connect";
+import { AgencyPayoutButton } from "@/components/account/agency-payout-button";
 import { SITE_URL } from "@/lib/site";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 import { AgencyProfileForm } from "@/components/account/agency-profile-form";
@@ -44,6 +46,16 @@ export default async function AgencyPage() {
   const approved = status?.partner_status === "approved";
   const dash = isAgency ? await agencyDashboard(ctx.memberId) : null;
   const earnings = approved ? await agencyEarnings(ctx.memberId) : null;
+  // Stripe payout account: re-read from Stripe while it isn't ready yet (they
+  // may have just come back from onboarding), otherwise trust the saved flag.
+  const { data: payoutRow } = approved
+    ? await (createAdminClient().from("agency_profiles") as any).select("stripe_account_id, payouts_ready").eq("community_member_id", ctx.memberId).maybeSingle()
+    : { data: null };
+  const payouts = !approved || !payoutRow?.stripe_account_id
+    ? { connected: false, ready: false }
+    : payoutRow.payouts_ready
+      ? { connected: true, ready: true }
+      : await refreshPayoutStatus(ctx.memberId).catch(() => ({ connected: true, ready: false }));
 
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">
@@ -102,6 +114,18 @@ export default async function AgencyPage() {
                         <p className="text-xs text-slate-500">{sub}</p>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-4">
+                    <p className="flex-1 text-sm text-slate-700">
+                      {payouts.ready
+                        ? "Payouts go straight to your bank through Stripe. Your payout history, bank details and tax forms are on your Stripe page."
+                        : payouts.connected
+                          ? "Your Stripe payout account isn't finished — Stripe needs a few more details before it can pay you."
+                          : "Set up payouts so we can send your commission straight to your bank. You'll enter your bank and tax details on Stripe's page — ShearQuery never sees them."}
+                    </p>
+                    {payouts.ready
+                      ? <AgencyPayoutButton action="dashboard" label="Open my Stripe page" />
+                      : <AgencyPayoutButton action="setup" label={payouts.connected ? "Finish payout setup" : "Set up payouts"} primary />}
                   </div>
                   {earnings!.lines.length === 0 ? (
                     <p className="mt-4 text-sm text-slate-600">Nothing earned yet. Commission starts when a business credited to you pays for a plan.</p>

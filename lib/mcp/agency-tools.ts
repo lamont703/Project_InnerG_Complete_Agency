@@ -217,4 +217,43 @@ export const inviteClientTool: McpTool = {
   },
 };
 
-export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool];
+/**
+ * The agency's Stripe payout account: where it stands, and a link to Stripe —
+ * onboarding if it isn't finished, the Express dashboard (payouts, bank
+ * details, tax forms) once it is. Bank and tax details are only ever entered
+ * on Stripe's page, never in the chat.
+ */
+export const agencyPayoutsTool: McpTool = {
+  name: "my_agency_payouts",
+  title: "Set up or open agency payouts",
+  provides: "the agency's Stripe payout setup and a link to finish it or see payouts and tax forms",
+  description:
+    "For an APPROVED agency: whether its commission payouts are set up with Stripe, and a link to open — Stripe's secure sign-up if it isn't finished, or its Stripe page (payout history, bank details, tax forms) if it is. Never ask for bank or tax details in the chat; they're entered on Stripe's page only.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  inputSchema: { type: "object", properties: {} },
+  handler: async (_args, ctx) => {
+    if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
+    if (!(await isAgencyAccount(ctx.identity.memberId))) return NOT_AGENCY;
+    const { refreshPayoutStatus, startPayoutSetup, payoutDashboardLink } = await import("@/lib/billing/connect");
+    const origin = ctx.origin || SITE_URL;
+    const status = await refreshPayoutStatus(ctx.identity.memberId);
+    if (status.ready) {
+      const link = await payoutDashboardLink(ctx.identity.memberId);
+      return link.ok
+        ? `Payouts are set up: commission goes straight to their bank through Stripe once it's ready.\nTheir Stripe page (payout history, bank details, tax forms) — the link works once, for a few minutes:\n${link.url}`
+        : link.error;
+    }
+    const link = await startPayoutSetup(ctx.identity.memberId, origin);
+    if (!link.ok) return link.error;
+    return [
+      status.connected ? "Payout setup was started but isn't finished — Stripe needs a few more details." : "Payouts aren't set up yet.",
+      "Send them this link to Stripe's secure page, where they enter their bank account and tax details (ShearQuery never sees either). It works once, for a few minutes:",
+      link.url,
+      "Don't ask for bank or tax details in this chat.",
+    ].join("\n");
+  },
+};
+
+export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool];

@@ -137,40 +137,75 @@ export async function payoutQueue(now = new Date()) {
   if (!byAgency.size) return [];
   const { data: agencies } = await db()
     .from("agency_profiles")
-    .select("community_member_id, agency_name, member:community_members(email)")
+    .select("community_member_id, agency_name, payouts_ready, stripe_account_id, member:community_members(email)")
     .in("community_member_id", [...byAgency.keys()]);
   const info = new Map((agencies || []).map((a: any) => [a.community_member_id, a]));
   return [...byAgency.entries()]
-    .map(([id, list]) => ({ agencyMemberId: id, name: (info.get(id) as any)?.agency_name ?? "Unknown agency", email: (info.get(id) as any)?.member?.email ?? null, ...summarize(list, now) }))
+    .map(([id, list]) => ({
+      agencyMemberId: id,
+      name: (info.get(id) as any)?.agency_name ?? "Unknown agency",
+      email: (info.get(id) as any)?.member?.email ?? null,
+      stripeReady: !!(info.get(id) as any)?.payouts_ready,
+      stripeConnected: !!(info.get(id) as any)?.stripe_account_id,
+      ...summarize(list, now),
+    }))
     .sort((a, b) => b.readyCents - a.readyCents);
 }
 
+export interface PayoutPlan {
+  ok: true;
+  amountCents: number;
+  rows: { stripe_invoice_id: string; commission_cents: number; paid_out_cents: number }[];
+  /** Which commissions, at what amounts — the idempotency key for a Stripe transfer. */
+  key: string;
+}
+
 /**
- * Record a payout an admin has just made by hand: everything past the refund
- * window and not yet paid, including anything a late refund takes back.
- * Refused below the minimum.
+ * What an agency is owed right now: every commission past the refund window
+ * and not yet paid, including anything a late refund takes back. Refused
+ * below the minimum.
  */
-export async function recordPayout(agencyMemberId: string, note: string | null, recordedBy: string | null): Promise<{ ok: true; amountCents: number } | { ok: false; error: string }> {
-  const now = new Date().toISOString();
+export async function preparePayout(agencyMemberId: string): Promise<PayoutPlan | { ok: false; error: string }> {
   const { data: rows } = await db()
     .from("agency_commissions")
     .select("stripe_invoice_id, commission_cents, paid_out_cents")
     .eq("agency_member_id", agencyMemberId)
-    .lte("payable_at", now);
+    .lte("payable_at", new Date().toISOString());
   const due = (rows || []).filter((r: any) => r.commission_cents !== r.paid_out_cents);
   const amount = due.reduce((s: number, r: any) => s + r.commission_cents - r.paid_out_cents, 0);
   if (amount < MIN_PAYOUT_CENTS) return { ok: false, error: `Only ${dollars(amount)} is ready; payouts start at ${dollars(MIN_PAYOUT_CENTS)}.` };
+  const { createHash } = await import("node:crypto");
+  const key = createHash("sha256").update(due.map((r: any) => `${r.stripe_invoice_id}:${r.commission_cents}:${r.paid_out_cents}`).sort().join("|")).digest("hex").slice(0, 32);
+  return { ok: true, amountCents: amount, rows: due, key };
+}
 
+/** Record a payout that has been made, and mark the commissions it covered as paid. */
+export async function commitPayout(
+  agencyMemberId: string,
+  plan: PayoutPlan,
+  meta: { note: string | null; recordedBy: string | null; method: "manual" | "stripe"; stripeTransferId?: string }
+): Promise<{ ok: true; amountCents: number } | { ok: false; error: string }> {
+  const now = new Date().toISOString();
   const { data: payout, error } = await db()
     .from("agency_payouts")
-    .insert({ agency_member_id: agencyMemberId, amount_cents: amount, note: note?.slice(0, 200) || null, recorded_by: recordedBy })
+    .insert({
+      agency_member_id: agencyMemberId, amount_cents: plan.amountCents, note: meta.note?.slice(0, 200) || null,
+      recorded_by: meta.recordedBy, method: meta.method, stripe_transfer_id: meta.stripeTransferId ?? null,
+    })
     .select("id")
     .single();
   if (error || !payout) return { ok: false, error: `Couldn't record the payout: ${error?.message}` };
-  for (const r of due) {
+  for (const r of plan.rows) {
     await db().from("agency_commissions")
       .update({ paid_out_cents: r.commission_cents, payout_id: payout.id, updated_at: now })
       .eq("stripe_invoice_id", r.stripe_invoice_id);
   }
-  return { ok: true, amountCents: amount };
+  return { ok: true, amountCents: plan.amountCents };
+}
+
+/** Record a payout an admin has just made by hand (bank transfer). */
+export async function recordPayout(agencyMemberId: string, note: string | null, recordedBy: string | null): Promise<{ ok: true; amountCents: number } | { ok: false; error: string }> {
+  const plan = await preparePayout(agencyMemberId);
+  if (!plan.ok) return plan;
+  return commitPayout(agencyMemberId, plan, { note, recordedBy, method: "manual" });
 }

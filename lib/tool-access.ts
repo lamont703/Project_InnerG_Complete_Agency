@@ -85,6 +85,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: "update_autopilot_settings", label: "Autopilot settings", group: "Owner: Autopilot", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "invite_client_to_shearquery", label: "Invite a client (email)", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Approved agencies only; same limits as /account/agency (50/day, one per address per week). Sends a real email." },
+  { id: "my_agency_payouts", label: "Agency payouts (Stripe)", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Returns a Stripe onboarding or Express dashboard link; bank/tax details never pass through the chat." },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

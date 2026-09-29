@@ -4,7 +4,7 @@ import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { payoutQueue } from "@/lib/commissions";
 import { COMMISSION_TERMS, dollars } from "@/lib/commission-rules";
-import { MarkPaidButton, ResyncButton } from "@/components/admin/payout-buttons";
+import { MarkPaidButton, PayViaStripeButton, ResyncButton } from "@/components/admin/payout-buttons";
 
 /**
  * Agency payouts, made by hand: what each agency is owed, and a button to
@@ -27,7 +27,7 @@ export default async function PayoutsAdminPage() {
         </div>
         <p className="mt-2 text-sm text-slate-600">{COMMISSION_TERMS}</p>
         <p className="mt-2 text-sm text-slate-600">
-          Send the money first (bank transfer or however you pay), then record it here. Recording pays out everything past the refund window, minus anything a later refund took back.
+          Agencies set up with Stripe are paid with one click. For the rest, send the money by hand first, then record it here. A payout covers everything past the refund window, minus anything a later refund took back.
         </p>
         {rows.length === 0 ? (
           <p className="mt-8 text-sm text-slate-500">No agency has earned anything yet.</p>
@@ -49,7 +49,16 @@ export default async function PayoutsAdminPage() {
                   {dollars(r.pendingCents)} in the refund window · {dollars(r.paidCents)} paid to date · {dollars(r.earnedCents)} earned in all
                 </p>
                 <div className="mt-3">
-                  {r.canPayOut ? <MarkPaidButton agencyMemberId={r.agencyMemberId} amount={dollars(r.readyCents)} /> : <p className="text-xs text-slate-500">Below the payout minimum.</p>}
+                  {!r.canPayOut ? (
+                    <p className="text-xs text-slate-500">Below the payout minimum.</p>
+                  ) : r.stripeReady ? (
+                    <PayViaStripeButton agencyMemberId={r.agencyMemberId} amount={dollars(r.readyCents)} />
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-slate-500">{r.stripeConnected ? "Their Stripe payout setup isn't finished — pay by hand, or wait for them to finish." : "They haven't set up Stripe payouts — pay by hand, then record it."}</p>
+                      <MarkPaidButton agencyMemberId={r.agencyMemberId} amount={dollars(r.readyCents)} />
+                    </div>
+                  )}
                 </div>
               </section>
             ))}
