@@ -44,7 +44,7 @@ export async function notifyBooked(args: { pro: BookablePro; appointment: Appoin
 
   const toClient = await sendText(
     args.clientPhone,
-    `You're booked with ${where(pro)}: ${a.service_name}, ${when}. View or cancel: ${args.manageUrl} Reply STOP to opt out.`
+    `You're booked with ${where(pro)}: ${a.service_name}, ${when}. View, reschedule or cancel: ${args.manageUrl} Reply STOP to opt out.`
   );
   if (toClient.ok) patch.client_notified_at = now;
   else errors.push(`client: ${toClient.error}`);

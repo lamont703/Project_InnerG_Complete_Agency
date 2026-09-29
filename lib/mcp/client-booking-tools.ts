@@ -6,12 +6,18 @@ import { parseDateKey, localDateKey, addDaysToKey, zonedToUtc, parseClock, forma
 import { windowKeys } from "@/lib/calendar/store";
 import {
   searchBookablePros, bookableProvider, clientOpenTimes, sendPhoneCode, checkPhoneCode,
-  getMemberPhone, setMemberPhone, clientBook, memberAppointments, clientCancel, CLIENT_LIMITS,
-  issueGuestPass, phoneFromGuestPass, upcomingForPhone, clientReschedule, appointmentByToken,
+  getMemberPhone, setMemberPhone, clientBook, memberAppointments, clientCancel, clientReschedule, CLIENT_LIMITS,
 } from "@/lib/calendar/client-booking";
 
 /**
  * Booking appointments as a CLIENT, from the client's own Claude.
+ *
+ * Finding pros and their open times is open to anyone. Booking, moving and
+ * cancelling need a free ShearQuery client account: the first booking tool a
+ * client's AI calls answers 401, Claude shows its Connect card, and the client
+ * signs in or signs up and comes straight back. That replaced guest booking by
+ * text code (2026-09-29): without an account, every change after the booking
+ * meant another code or a link, and the connector kept asking to sign in anyway.
  *
  * The client adds the same ShearQuery connector and signs in. Before the first
  * booking they prove a mobile number with a text code (verify_my_phone, then
@@ -60,14 +66,14 @@ const findPros: McpTool = {
   title: "Find barbers and stylists you can book on ShearQuery",
   provides: "barbers and stylists taking bookings on ShearQuery, with their services",
   description:
-    "Find barbers, stylists and shops that take real bookings on ShearQuery, by name, business name, or the booking handle from their \"Book me\" page (e.g. marcus-cuts) — or leave the search empty to list them. No ShearQuery account needed. Returns each pro's id, where they work, and their services with length and price.",
+    "Find barbers, stylists and shops that take real bookings on ShearQuery, by name, business name, or the booking handle from their \"Book me\" page (e.g. marcus-cuts) — or leave the search empty to list them. No ShearQuery account needed to look; booking needs the client to sign in (a free client account). Returns each pro's id, where they work, and their services with length and price.",
   annotations: READS,
   inputSchema: { type: "object", properties: { query: { type: "string" } } },
   handler: async (args, ctx) => {
     const byHandle = args.query ? await resolvePro(args.query) : null;
     const pros = byHandle ? [byHandle] : await searchBookablePros(String(args.query || ""), ctx.identity?.memberId ?? null);
     if (!pros.length) return "No one matching that takes bookings on ShearQuery yet. Booking is new and is opening to pros gradually.";
-    // Booking itself: request_booking_code then book_as_guest (no account), or book_with_pro for a signed-in client.
+    // Booking itself needs sign-in: book_with_pro (a free client account).
     const { ensureBookingHandle } = await import("@/lib/calendar/booking-handle");
     const handles = await Promise.all(pros.map((p) => ensureBookingHandle(p.provider.id)));
     return pros
@@ -154,7 +160,7 @@ const bookWithPro: McpTool = {
   title: "Book an appointment with a barber or stylist",
   provides: "booking appointments with a pro",
   description:
-    "Book the client an appointment with a pro (id from find_pros_to_book) at an open time from pro_open_times. Confirm the details with the client first. Needs a confirmed mobile number (verify_my_phone). The client gets a text confirmation with a link to view or cancel.",
+    "Book the client a NEW appointment with a pro (id or booking handle from find_pros_to_book) at an open time from pro_open_times. Confirm the details with the client first. Needs a confirmed mobile number (verify_my_phone). To CHANGE an existing booking, never book a second one: use reschedule_my_booking. The client gets a text confirmation with a link to view, reschedule or cancel.",
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: WRITES,
@@ -180,13 +186,8 @@ const bookWithPro: McpTool = {
     if (!service) return `No single service matches. They offer: ${pro.services.map((s) => s.name).join(", ")}.`;
 
     const tz = pro.provider.timezone;
-    const today = localDateKey(new Date(), tz);
-    const d = String(args.date || "").trim().toLowerCase();
-    const key = d === "today" ? today : d === "tomorrow" ? addDaysToKey(today, 1) : d;
-    const parts = parseDateKey(key);
-    const minute = parseClock(args.time);
-    if (!parts || minute == null) return 'Give the date as YYYY-MM-DD (or "today"/"tomorrow") and a time like "3pm".';
-    const start = zonedToUtc(parts.year, parts.month, parts.day, minute, tz);
+    const start = startFrom(tz, args.date, args.time);
+    if (!start) return 'Give the date as YYYY-MM-DD (or "today"/"tomorrow") and a time like "3pm".';
 
     let name = String(args.name || "").trim();
     if (!name) {
@@ -203,9 +204,10 @@ const bookWithPro: McpTool = {
       origin: ctx.origin || SITE_URL,
     });
     if (!res.ok) return res.reason;
+    await markAsClient(ctx.identity.memberId);
     return [
       `Booked: ${service.name} with ${pro.provider.display_name}${pro.listing ? ` at ${pro.listing}` : ""}, ${formatLocal(start, tz)} (${tz}).`,
-      `A confirmation was texted to ${phone} with a link to view or cancel. Appointment id ${res.appointment.id}.`,
+      `A confirmation was texted to ${phone} with a link to view, reschedule or cancel. Appointment id ${res.appointment.id}.`,
     ].join("\n");
   },
 };
@@ -214,7 +216,7 @@ const myBookings: McpTool = {
   name: "my_bookings",
   title: "Your upcoming and recent appointments",
   provides: "the appointments you booked as a client",
-  description: "List the appointments this client has booked with pros on ShearQuery — upcoming and the last 30 days — with ids for cancel_my_booking.",
+  description: "List the appointments this client has booked with pros on ShearQuery — upcoming and the last 30 days — with ids for reschedule_my_booking and cancel_my_booking. Includes bookings made on the website or before signing up, once the client's mobile number is confirmed.",
   requiresIdentity: true,
   annotations: READS,
   inputSchema: { type: "object", properties: {} },
@@ -257,179 +259,43 @@ function pickService(services: { id: string; name: string; duration_minutes: num
 }
 
 
-/**
- * GUEST BOOKING — from any AI assistant, with no ShearQuery account. The same
- * door the website's Book button uses (app/api/calendar/public/code and
- * /book): the client's phone is proven by a text code, and that code is
- * spent on exactly one booking. Same limits as the website — codes per phone
- * and per requester (here, the caller's IP), per-pro caps, the pro's hours,
- * notice and window. Deliberately without sign-in: asking a client to create
- * an account before booking a haircut is where they drop off.
- */
-const requestBookingCode: McpTool = {
-  name: "request_booking_code",
-  title: "Text a booking code to the client's phone",
-  provides: "texting a one-time code that lets a client book without a ShearQuery account",
-  description:
-    "Before book_as_guest: text a 6-digit code to the client's mobile number. No ShearQuery account needed. Ask the client for their number first, then ask them to read back the code from the text. Codes expire in 10 minutes and are limited per number, so don't resend unless they ask.",
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
-  inputSchema: { type: "object", properties: { phone: { type: "string", description: "The client's mobile number, with area code." } }, required: ["phone"] },
-  handler: async (args, ctx) => {
-    const r = await sendPhoneCode({ phone: args.phone, memberId: ctx.identity?.memberId ?? null, ip: ctx.clientIp ?? null, viaAi: true });
-    return r.ok ? "Code sent. Ask the client for the 6-digit code from the text, then book with book_as_guest." : r.reason;
-  },
-};
-
-const bookAsGuest: McpTool = {
-  name: "book_as_guest",
-  title: "Book an appointment for a client, with their text code",
-  provides: "booking an appointment with a pro using a client's phone code, no account needed",
-  description:
-    "Book the client a NEW appointment with a pro (id from find_pros_to_book, or their booking handle) at an open time from pro_open_times, using the code from request_booking_code — or a guest pass from an earlier step. No ShearQuery account needed. Confirm the service, day, time and name with the client first. To CHANGE an existing booking, never book a second one: use reschedule_booking_as_guest. The client gets a text confirmation with a link to view, reschedule or cancel.",
+const rescheduleMine: McpTool = {
+  name: "reschedule_my_booking",
+  title: "Move one of your appointments to another time",
+  provides: "moving your own appointments to another open time",
+  description: `Move one of the client's own appointments (id from my_bookings) to another open time for the same service. Check the new time with pro_open_times and confirm with the client first. This MOVES the booking; never book a second one to reschedule. Not possible within ${CLIENT_LIMITS.cancelCutoffMinutes / 60} hours of the time — then the client contacts the pro.`,
+  requiresIdentity: true,
+  requiresScope: "propose",
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   inputSchema: {
     type: "object",
     properties: {
-      pro_id: { type: "string", description: "Pro id or booking handle." },
-      service: { type: "string" },
-      date: { type: "string", description: 'YYYY-MM-DD, "today" or "tomorrow", in the pro\'s time zone.' },
-      time: { type: "string", description: 'e.g. "3pm", exactly as pro_open_times listed it.' },
-      name: { type: "string", description: "The client's name for the booking." },
-      phone: { type: "string" },
-      code: { type: "string", description: "The 6-digit code from the text." },
-      pass: { type: "string", description: "A guest pass from an earlier step, instead of a code." },
-      notes: { type: "string" },
-    },
-    required: ["pro_id", "service", "date", "time", "name", "phone"],
-  },
-  handler: async (args, ctx) => {
-    const pro = await resolvePro(args.pro_id);
-    if (!pro) return "That pro isn't taking bookings on ShearQuery.";
-    const service = pickService(pro.services, args.service);
-    if (!service) return `No single service matches. They offer: ${pro.services.map((s) => s.name).join(", ")}.`;
-    const tz = pro.provider.timezone;
-    const start = startFrom(tz, args.date, args.time);
-    if (!start) return 'Give the date as YYYY-MM-DD (or "today"/"tomorrow") and a time like "3pm".';
-    const name = String(args.name || "").trim();
-    if (!name) return "What name should the booking be under?";
-    // A pass from an earlier step, or a code checked now and spent on this booking.
-    const passPhone = args.pass ? await phoneFromGuestPass(args.pass) : null;
-    const verified = passPhone ? { ok: true as const, phone: passPhone } : args.code ? await checkPhoneCode(args.phone, args.code) : { ok: false as const, reason: "The client needs a code first: request_booking_code." };
-    if (!verified.ok) return verified.reason;
-    const pass = passPhone ? String(args.pass) : await issueGuestPass(verified.phone);
-    const res = await clientBook({
-      pro, service, start, name, phone: verified.phone,
-      memberId: ctx.identity?.memberId ?? null,
-      notes: args.notes ? String(args.notes).slice(0, 300) : null,
-      source: "client_claude",
-      origin: ctx.origin || SITE_URL,
-    });
-    if (!res.ok) return `${res.reason} (The code was used; the client can ask for a new one.)`;
-    return [
-      `Booked: ${service.name} with ${pro.provider.display_name}${pro.listing ? ` at ${pro.listing}` : ""}, ${formatLocal(start, tz)} (${tz}).`,
-      `A confirmation was texted to ${verified.phone} with a link to view, reschedule or cancel: ${res.manageUrl}`,
-      `Guest pass for the next ${CLIENT_LIMITS.guestPassMinutes} minutes (use it instead of a new code): ${pass}`,
-    ].join("\n");
-  },
-};
-
-/** A guest's booking by its confirmation link, or by ref + a guest pass. */
-async function guestBooking(booking: unknown, pass: unknown): Promise<{ providerId: string; appointmentId: string } | { error: string }> {
-  const raw = String(booking || "").trim();
-  const token = /\/appointments\/([A-Za-z0-9_-]{32})/.exec(raw)?.[1] ?? (/^[A-Za-z0-9_-]{32}$/.test(raw) ? raw : null);
-  if (token) {
-    const found = await appointmentByToken(token);
-    return found ? { providerId: found.providerId, appointmentId: found.appointment.id } : { error: "That confirmation link isn't valid." };
-  }
-  const phone = await phoneFromGuestPass(pass);
-  if (!phone) return { error: "Use the link from the client's confirmation text, or get a guest pass with find_my_bookings (their phone and a text code)." };
-  const ref = raw.toLowerCase();
-  const mine = (await upcomingForPhone(phone)).filter((a) => a.id.startsWith(ref));
-  if (mine.length !== 1) return { error: "No single upcoming booking matches that ref. find_my_bookings lists them." };
-  return { providerId: mine[0].provider_id, appointmentId: mine[0].id };
-}
-
-const findMyBookings: McpTool = {
-  name: "find_my_bookings",
-  title: "A client's upcoming bookings, by phone",
-  provides: "listing a client's upcoming bookings by phone and text code, with no account",
-  description:
-    "List the client's upcoming bookings with every pro, using their phone number and a code from request_booking_code (or a guest pass). No ShearQuery account needed. Returns each booking's ref for reschedule_booking_as_guest / cancel_booking_as_guest, and a guest pass for the next steps. If the client has their confirmation link, those tools take the link directly and need no code.",
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  inputSchema: {
-    type: "object",
-    properties: { phone: { type: "string" }, code: { type: "string" }, pass: { type: "string" } },
-    required: ["phone"],
-  },
-  handler: async (args) => {
-    const passPhone = args.pass ? await phoneFromGuestPass(args.pass) : null;
-    const verified = passPhone ? { ok: true as const, phone: passPhone } : args.code ? await checkPhoneCode(args.phone, args.code) : { ok: false as const, reason: "Send a code first with request_booking_code, then pass it here." };
-    if (!verified.ok) return verified.reason;
-    const pass = passPhone ? String(args.pass) : await issueGuestPass(verified.phone);
-    const list = await upcomingForPhone(verified.phone);
-    const pros = new Map<string, any>();
-    for (const a of list) if (!pros.has(a.provider_id)) pros.set(a.provider_id, await bookableProvider(a.provider_id));
-    return [
-      list.length ? `UPCOMING BOOKINGS (${list.length})` : "No upcoming bookings for that number.",
-      ...list.map((a) => {
-        const p = pros.get(a.provider_id);
-        const tz = p?.provider.timezone || "America/Chicago";
-        return `  - ref ${a.id.slice(0, 8)} · ${a.service_name} with ${p?.provider.display_name ?? "their pro"} · ${formatLocal(new Date(a.starts_at), tz)} (${tz})`;
-      }),
-      "",
-      `Guest pass for the next ${CLIENT_LIMITS.guestPassMinutes} minutes: ${pass}`,
-    ].join("\n");
-  },
-};
-
-const cancelAsGuest: McpTool = {
-  name: "cancel_booking_as_guest",
-  title: "Cancel a client's booking, no account needed",
-  provides: "cancelling a booking by its confirmation link or a guest pass",
-  description:
-    "Cancel one of the client's bookings — by the confirmation link from their text, or by a booking ref from find_my_bookings plus the guest pass. No ShearQuery account needed. Confirm with the client first. Not possible online within 2 hours of the appointment.",
-  annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
-  inputSchema: {
-    type: "object",
-    properties: { booking: { type: "string", description: "The confirmation link, or a ref from find_my_bookings." }, pass: { type: "string" } },
-    required: ["booking"],
-  },
-  handler: async (args) => {
-    const b = await guestBooking(args.booking, args.pass);
-    if ("error" in b) return b.error;
-    const res = await clientCancel({ providerId: b.providerId, appointmentId: b.appointmentId });
-    return res.ok ? "Cancelled. The pro has been told, and that time is open again." : res.reason!;
-  },
-};
-
-const rescheduleAsGuest: McpTool = {
-  name: "reschedule_booking_as_guest",
-  title: "Move a client's booking to another time, no account needed",
-  provides: "rescheduling a booking by its confirmation link or a guest pass",
-  description:
-    "Move one of the client's bookings to another open time for the same service — by the confirmation link from their text, or a ref from find_my_bookings plus the guest pass. No ShearQuery account needed. Check the new time with pro_open_times and confirm with the client first. This MOVES the booking; never book a second one to reschedule. Not possible online within 2 hours of the appointment.",
-  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
-  inputSchema: {
-    type: "object",
-    properties: {
-      booking: { type: "string", description: "The confirmation link, or a ref from find_my_bookings." },
-      pass: { type: "string" },
+      id: { type: "string" },
       date: { type: "string", description: 'YYYY-MM-DD, "today" or "tomorrow", in the pro\'s time zone.' },
       time: { type: "string", description: 'e.g. "3pm", as pro_open_times listed it.' },
     },
-    required: ["booking", "date", "time"],
+    required: ["id", "date", "time"],
   },
-  handler: async (args) => {
-    const b = await guestBooking(args.booking, args.pass);
-    if ("error" in b) return b.error;
-    const pro = await bookableProvider(b.providerId);
-    if (!pro) return "This calendar isn't taking bookings online right now. Contact them directly.";
-    const start = startFrom(pro.provider.timezone, args.date, args.time);
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return NO_IDENTITY;
+    const mine = (await memberAppointments(ctx.identity.memberId)).find((r: any) => r.id === String(args.id || ""));
+    if (!mine) return "That isn't one of your appointments. Check my_bookings.";
+    const tz = (mine as any).provider?.timezone || "America/Chicago";
+    const start = startFrom(tz, args.date, args.time);
     if (!start) return 'Give the date as YYYY-MM-DD (or "today"/"tomorrow") and a time like "3pm".';
-    const res = await clientReschedule({ providerId: b.providerId, appointmentId: b.appointmentId, start });
+    const res = await clientReschedule({ providerId: mine.provider_id, appointmentId: mine.id, start });
     if (!res.ok) return res.reason;
-    return `Moved: ${res.appointment.service_name} with ${pro.provider.display_name} is now ${formatLocal(start, pro.provider.timezone)} (${pro.provider.timezone}). The client and the pro have both been texted.`;
+    return `Moved: ${res.appointment.service_name} with ${res.pro.provider.display_name} is now ${formatLocal(start, tz)} (${tz}). The client and the pro have both been texted.`;
   },
 };
 
-export const CLIENT_BOOKING_TOOLS: McpTool[] = [requestBookingCode, bookAsGuest, findMyBookings, rescheduleAsGuest, cancelAsGuest, findPros, proOpenTimes, verifyPhone, confirmPhone, bookWithPro, myBookings, cancelMine];
+/**
+ * Someone who signed up from their AI to book has no account type yet. Booking
+ * makes them a client — only while the type is empty, so a business account
+ * booking a haircut stays a business account.
+ */
+async function markAsClient(memberId: string) {
+  await (createAdminClient().from("community_members") as any).update({ audience: "client" }).eq("id", memberId).is("audience", null);
+}
+
+export const CLIENT_BOOKING_TOOLS: McpTool[] = [findPros, proOpenTimes, verifyPhone, confirmPhone, bookWithPro, myBookings, rescheduleMine, cancelMine];
