@@ -15,6 +15,9 @@ import { createBrowserClient } from "@/lib/supabase/browser";
 import { toast } from "sonner";
 import { PagePanel } from "@/components/search/page-panel";
 
+/** A Confirm button from the site chat (lib/chat/account-tools.ts PendingAction). */
+interface ChatAction { token: string; tool: string; title: string; details: string[]; destructive: boolean }
+
 interface EmploymentMatchForVerification {
   professionalType: string;
   professionalId: string;
@@ -215,7 +218,9 @@ function SearchContent() {
   const [searchIntentType, setSearchIntentType] = useState("default");
   
   // AI Chat State
-  const [chatMessages, setChatMessages] = useState<{role: string, content: string, employmentMatches?: EmploymentMatchForVerification[]}[]>([]);
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string, employmentMatches?: EmploymentMatchForVerification[], actions?: ChatAction[]}[]>([]);
+  // The Confirm buttons' state, by action token (lib/chat/account-tools.ts).
+  const [actionState, setActionState] = useState<Record<string, { status: 'running' | 'done' | 'cancelled' | 'error'; error?: string }>>({});
   const [chatInput, setChatInput] = useState("");
   const [isAiLoading, setIsAiLoading] = useState(false);
   // Kept separate from chatMessages rather than pushed in as a fake
@@ -366,7 +371,7 @@ function SearchContent() {
           });
         }
       } else {
-        setChatMessages([...newHistory, { role: 'model', content: data.text, employmentMatches: data.employmentMatches }]);
+        setChatMessages([...newHistory, { role: 'model', content: data.text, employmentMatches: data.employmentMatches, actions: Array.isArray(data.actions) && data.actions.length ? data.actions : undefined }]);
         if (Array.isArray(data.employmentMatches)) {
           setVerificationRequested((s) => {
             const next = new Set(s);
@@ -385,6 +390,30 @@ function SearchContent() {
     } finally {
       setIsAiLoading(false);
     }
+  };
+
+  /*
+   * CONFIRM, THE SITE'S VERSION OF CLAUDE'S PERMISSION PROMPT. The model asked
+   * for something that changes the member's account and nothing ran; it runs
+   * now, on the member's tap (app/api/chat/action). The result joins the
+   * conversation, so the next message knows it happened.
+   */
+  const confirmChatAction = async (action: ChatAction) => {
+    setActionState((st) => ({ ...st, [action.token]: { status: 'running' } }));
+    try {
+      const r = await fetch('/api/chat/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: action.token }) });
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || 'That didn\'t go through.');
+      setActionState((st) => ({ ...st, [action.token]: { status: 'done' } }));
+      setChatMessages((msgs) => [...msgs, { role: 'model', content: j.text }]);
+      (window as any).innerG?.track?.('ai_chat_action_confirmed', { tool: action.tool });
+    } catch (e: any) {
+      setActionState((st) => ({ ...st, [action.token]: { status: 'error', error: e.message } }));
+    }
+  };
+  const cancelChatAction = (action: ChatAction) => {
+    setActionState((st) => ({ ...st, [action.token]: { status: 'cancelled' } }));
+    setChatMessages((msgs) => [...msgs, { role: 'user', content: `Cancel that — don't ${action.title.toLowerCase()}.` }]);
   };
 
   // Deliberately NOT tool calling — the model never decides to trigger
@@ -781,7 +810,9 @@ function SearchContent() {
   // whole point of grounding the model in tool URLs, so this can't just be
   // plain text.
   const renderChatContent = (content: string, keyPrefix: string) => {
-    const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*/g;
+    // A bare https link too: account tools answer with plain URLs (a booking
+    // page, a secure Stripe payment link), which must be tappable.
+    const pattern = /\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|(https?:\/\/[^\s)\]]+[^\s)\].,;])/g;
     const nodes: React.ReactNode[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -845,6 +876,19 @@ function SearchContent() {
         );
       } else if (match[3] !== undefined) {
         nodes.push(<strong key={`${keyPrefix}-${idx++}`}>{match[3]}</strong>);
+      } else if (match[4] !== undefined) {
+        const url = match[4];
+        let label = url;
+        try {
+          const u = new URL(url);
+          label = /stripe\.com$/.test(u.hostname) ? "Secure payment link" : `${u.hostname}${u.pathname.length > 1 ? u.pathname : ""}`.slice(0, 48);
+        } catch { /* keep the raw url as its own label */ }
+        nodes.push(
+          <a key={`${keyPrefix}-${idx++}`} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-blue-600 font-semibold underline decoration-blue-300 underline-offset-2 hover:text-blue-800 break-all">
+            {label}
+            <ArrowUpRight className="w-3 h-3 shrink-0" />
+          </a>
+        );
       }
 
       lastIndex = pattern.lastIndex;
@@ -1201,6 +1245,42 @@ function SearchContent() {
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-3 whitespace-pre-wrap ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-sm' : 'bg-white border border-slate-200 text-slate-800 shadow-sm rounded-tl-sm'}`}>
                       {msg.role === 'user' ? msg.content : renderChatContent(msg.content, `msg-${i}`)}
+                      {msg.role !== 'user' && msg.actions && msg.actions.map((action) => {
+                        const st = actionState[action.token];
+                        return (
+                          <div key={action.token} className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 whitespace-normal">
+                            <p className="text-sm font-bold text-slate-900">{action.title}</p>
+                            {action.details.length > 0 && (
+                              <ul className="mt-1 space-y-0.5 text-xs text-slate-600">
+                                {action.details.map((d) => <li key={d}>{d}</li>)}
+                              </ul>
+                            )}
+                            {st?.status === 'done' ? (
+                              <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700"><CheckCircle2 className="w-3.5 h-3.5" /> Done</p>
+                            ) : st?.status === 'cancelled' ? (
+                              <p className="mt-2 text-xs font-bold text-slate-500">Cancelled — nothing was changed.</p>
+                            ) : (
+                              <div className="mt-2 flex gap-2">
+                                <button
+                                  onClick={() => confirmChatAction(action)}
+                                  disabled={st?.status === 'running'}
+                                  className={`rounded-lg px-3 py-1.5 text-xs font-black text-white disabled:opacity-50 ${action.destructive ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900 hover:bg-slate-800'}`}
+                                >
+                                  {st?.status === 'running' ? 'Working…' : 'Confirm'}
+                                </button>
+                                <button
+                                  onClick={() => cancelChatAction(action)}
+                                  disabled={st?.status === 'running'}
+                                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-white disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                            {st?.status === 'error' && <p className="mt-2 text-xs font-semibold text-rose-700">{st.error}</p>}
+                          </div>
+                        );
+                      })}
                       {msg.role !== 'user' && msg.employmentMatches && msg.employmentMatches.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
                           {msg.employmentMatches.map((match, mi) => {
