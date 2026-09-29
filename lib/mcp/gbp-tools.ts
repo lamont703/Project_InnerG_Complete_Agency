@@ -1,4 +1,5 @@
 import "server-only";
+import { outboundFetch } from "@/lib/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/site";
 import type { McpTool, McpToolAnnotations } from "@/lib/mcp/tools";
@@ -150,7 +151,7 @@ const myReviews: McpTool = {
     if (!ctx.identity) return NO_IDENTITY;
     const g = await resolveOwnerGbp(ctx.identity.memberId, { account: true });
     if (!g.ok) return g.message;
-    const res = await fetch(`${V4}/${g.accountName}/${g.locationName}/reviews?pageSize=50`, {
+    const res = await outboundFetch(`${V4}/${g.accountName}/${g.locationName}/reviews?pageSize=50`, {
       headers: { Authorization: `Bearer ${g.token}` }, cache: "no-store",
     });
     if (!res.ok) return "Could not read reviews from Google.";
@@ -192,7 +193,7 @@ const myPosts: McpTool = {
     const g = await resolveOwnerGbp(ctx.identity.memberId, { account: true });
     if (!g.ok) return g.message;
     const [res, queued] = await Promise.all([
-      fetch(`${V4}/${g.accountName}/${g.locationName}/localPosts?pageSize=10`, {
+      outboundFetch(`${V4}/${g.accountName}/${g.locationName}/localPosts?pageSize=10`, {
         headers: { Authorization: `Bearer ${g.token}` }, cache: "no-store",
       }),
       (createAdminClient().from("gbp_scheduled_posts") as any)
@@ -235,7 +236,7 @@ const myPhotos: McpTool = {
       const url = new URL(`${V4}/${g.accountName}/${g.locationName}/media`);
       url.searchParams.set("pageSize", "100");
       if (pageToken) url.searchParams.set("pageToken", pageToken);
-      const r = await fetch(url.toString(), { headers: { Authorization: `Bearer ${g.token}` }, cache: "no-store" });
+      const r = await outboundFetch(url.toString(), { headers: { Authorization: `Bearer ${g.token}` }, cache: "no-store" });
       if (!r.ok) break;
       const body = await r.json();
       items.push(...(body.mediaItems || []));
@@ -276,7 +277,7 @@ const findCategories: McpTool = {
     url.searchParams.set("view", "BASIC");
     url.searchParams.set("filter", `displayName=${query}`);
     url.searchParams.set("pageSize", "50");
-    const res = await fetch(url.toString(), { headers: { Authorization: `Bearer ${g.token}` }, cache: "no-store" });
+    const res = await outboundFetch(url.toString(), { headers: { Authorization: `Bearer ${g.token}` }, cache: "no-store" });
     if (!res.ok) return "Google's category search failed.";
     const ranked = rankCategoryResults(query, (await res.json()).categories || []).slice(0, 15);
     return ranked.length

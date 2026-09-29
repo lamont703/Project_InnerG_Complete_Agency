@@ -6,6 +6,8 @@ import { upsertGhlContact, memberTags, isTestContact } from "@/lib/ghl-contacts"
 import { sendGhlEmail } from "@/lib/ghl-email";
 import { buildCommunityWelcomeEmail } from "@/lib/community-welcome-email";
 import { storedAudience } from "@/lib/audiences";
+import { cookies } from "next/headers";
+import { attributeSignup, ensureDemoClients, REF_COOKIE, INVITE_COOKIE } from "@/lib/agency-partners";
 
 // Deliberately much simpler than /api/barber/register — community members
 // get a search-visible directory profile, not a business dashboard, so
@@ -81,6 +83,25 @@ export async function POST(req: Request) {
       // email/user_id constraints without ever succeeding.
       await adminSupabase.auth.admin.deleteUser(authUser.id);
       throw memberError;
+    }
+
+    // AGENCY CREDIT, locked at signup: an invite they accepted, a code they
+    // typed, or the agency link they came through (lib/agency-partners.ts).
+    // Never fails the signup — attributeSignup swallows its own errors.
+    {
+      const jar = await cookies();
+      const { data: created } = await (adminSupabase.from("community_members") as any)
+        .select("id").eq("user_id", authUser.id).maybeSingle();
+      if (created?.id) {
+        await attributeSignup({
+          clientMemberId: created.id,
+          inviteToken: jar.get(INVITE_COOKIE)?.value ?? null,
+          typedCode: typeof body.agencyCode === "string" ? body.agencyCode : null,
+          linkCode: jar.get(REF_COOKIE)?.value ?? null,
+        });
+        // An agency starts with its sample barber, salon and school.
+        if (memberAudience === "agency") await ensureDemoClients(created.id);
+      }
     }
 
     // If they arrived from a "Claim your profile" CTA, link the entity now.

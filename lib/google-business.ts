@@ -1,3 +1,4 @@
+import { outboundFetch } from "@/lib/outbound";
 import { google } from "googleapis";
 import { CodeChallengeMethod } from "google-auth-library";
 import { createHash, randomBytes } from "node:crypto";
@@ -123,7 +124,7 @@ export async function gbpExchangeCode(origin: string, code: string, codeVerifier
  * revoked grant apart from a transient failure.
  */
 export async function gbpAccessToken(refreshToken: string): Promise<string> {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await outboundFetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -452,14 +453,14 @@ const GBP_LOCATION_READ_MASK =
 export async function gbpFetchLocations(accessToken: string): Promise<GbpLocation[]> {
   const auth = { Authorization: `Bearer ${accessToken}` };
 
-  const acctRes = await fetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", { headers: auth });
+  const acctRes = await outboundFetch("https://mybusinessaccountmanagement.googleapis.com/v1/accounts", { headers: auth });
   if (!acctRes.ok) throw new Error(`accounts ${acctRes.status}: ${(await acctRes.text()).slice(0, 200)}`);
   const accounts = (await acctRes.json()).accounts || [];
 
   const out: GbpLocation[] = [];
 
   for (const acct of accounts) {
-    const locRes = await fetch(
+    const locRes = await outboundFetch(
       `https://mybusinessbusinessinformation.googleapis.com/v1/${acct.name}/locations?readMask=${encodeURIComponent(GBP_LOCATION_READ_MASK)}&pageSize=100`,
       { headers: auth }
     );
@@ -540,7 +541,7 @@ export async function gbpFetchPhotos(
   limit = 10
 ): Promise<GbpMediaResult> {
   try {
-    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/media?pageSize=${Math.max(limit, 20)}`, {
+    const res = await outboundFetch(`${V4_BASE}/${accountName}/${locationName}/media?pageSize=${Math.max(limit, 20)}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (res.status === 403) return { photos: [], disabled: true, error: "Google My Business API is not enabled for this project." };
@@ -592,7 +593,7 @@ export async function cacheGbpPhotos(
   const cached: string[] = [];
   for (const [i, url] of urls.entries()) {
     try {
-      const res = await fetch(url);
+      const res = await outboundFetch(url);
       if (!res.ok) continue;
       const buffer = Buffer.from(await res.arrayBuffer());
       if (!buffer.length) continue;
@@ -623,7 +624,7 @@ export async function gbpFetchReviews(
   accountName: string
 ): Promise<GbpReviewsResult> {
   try {
-    const res = await fetch(`${V4_BASE}/${accountName}/${locationName}/reviews?pageSize=1`, {
+    const res = await outboundFetch(`${V4_BASE}/${accountName}/${locationName}/reviews?pageSize=1`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (res.status === 403) return { rating: null, count: null, disabled: true, error: "Google My Business API is not enabled for this project." };
@@ -688,7 +689,7 @@ export async function gbpFetchPerformance(
     params.set("dailyRange.end_date.month", String(e.month));
     params.set("dailyRange.end_date.day", String(e.day));
 
-    const res = await fetch(
+    const res = await outboundFetch(
       `https://businessprofileperformance.googleapis.com/v1/${locationName}:fetchMultiDailyMetricsTimeSeries?${params}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );

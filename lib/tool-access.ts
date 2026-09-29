@@ -69,8 +69,17 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: "audit_google_business_profile", label: "Audit a public Google profile", group: "Google Business Profile", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
   { id: "which_shearquery_account", label: "Which account to sign up for", group: "Getting started", implemented: ["mcp"], defaultMcp: true, defaultChat: false,
     note: "Built from lib/audiences.ts; asks before recommending, and gives no link for planned types." },
+  { id: "what_shearquery_does", label: "What each account type gets", group: "Getting started", implemented: ["mcp"], defaultMcp: true, defaultChat: false,
+    note: "Built from lib/account-features.ts; feature status follows the same switches the tools obey." },
   { id: "set_my_account_type", label: "Set my account type (once)", group: "Getting started", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Only fills an EMPTY type; never changes one already set." },
+  { id: "my_agency", label: "My agency partner account", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Agency accounts only. Status, referral link, credited businesses." },
+  { id: "update_my_agency_details", label: "Save agency details", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Agency accounts only. First save notifies the admin for approval." },
+  { id: "start_demo", label: "Start a demo as a made-up business", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Agency accounts and admins. Swaps owner tools onto a demo business (lib/demo/); its Google/Instagram/texts are fenced." },
+  { id: "stop_demo", label: "Leave demo mode", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

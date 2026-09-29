@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canUseCalendar } from "@/lib/calendar/access";
+import { isRunningDemoBusiness } from "@/lib/demo/core";
 
 /**
  * Who may use a private-testing feature: the allowlist in code, or a row in
@@ -10,6 +11,9 @@ import { canUseCalendar } from "@/lib/calendar/access";
  */
 export async function hasCalendarAccess(email?: string | null): Promise<boolean> {
   if (canUseCalendar(email)) return true;
+  // The demo business an agency is showing — only while that demo runs, so a
+  // cron never treats a demo calendar as live (lib/demo/core.ts).
+  if (isRunningDemoBusiness(email)) return true;
   if (!email) return false;
   const { data } = await (createAdminClient().from("feature_access") as any)
     .select("feature")

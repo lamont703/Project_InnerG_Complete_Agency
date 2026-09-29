@@ -168,7 +168,7 @@ export async function outreachSuggestions(): Promise<OutreachSuggestion[]> {
   const db = createAdminClient();
 
   const [membersRes, linksRes, gbpRes, threadsRes] = await Promise.all([
-    (db.from("community_members") as any).select("id, first_name, last_name, email, phone, contact_id, audience, created_at"),
+    (db.from("community_members") as any).select("id, first_name, last_name, email, phone, contact_id, audience, created_at").eq("is_demo", false),
     (db.from("community_member_entity_links") as any).select("community_member_id, entity_type, entity_id"),
     (db.from("gbp_connections") as any).select("community_member_id, status"),
     (db.from("member_agent_threads") as any).select("id, community_member_id"),

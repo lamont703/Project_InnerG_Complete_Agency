@@ -140,6 +140,10 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
     phone: "",
     password: "",
     confirmPassword: "",
+    // An agency partner's code: pre-filled from their /join/<CODE> link (?via=),
+    // or typed by someone an agency told about ShearQuery. Credit is decided
+    // server-side (lib/agency-partners.ts) — an unknown code is ignored.
+    agencyCode: searchParams.get("via") ?? "",
   })
 
   // ---- funnel instrumentation ------------------------------------------
@@ -437,6 +441,20 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
           onFocus={() => onFieldFocus("confirmPassword")}
           onInvalid={() => onFieldInvalid("confirmPassword")}
+          className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="cm-agency-code" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Agency code (optional)</label>
+        <input
+          id="cm-agency-code"
+          type="text"
+          autoCapitalize="characters"
+          maxLength={24}
+          placeholder="If an agency referred you"
+          value={formData.agencyCode}
+          onChange={(e) => setFormData({ ...formData, agencyCode: e.target.value })}
           className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-500 focus:ring-0 transition-all outline-none"
         />
       </div>

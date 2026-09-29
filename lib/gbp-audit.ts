@@ -153,7 +153,7 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
 
   const desc: string = loc.profile?.description || "";
   // 750 is Google's hard cap. The 250 target is ours: enough room to name the
-  // services and the neighbourhood without padding.
+  // services and the neighborhood without padding.
   add({
     id: "description", area: "Foundation", label: "Business description", weight: 8,
     earned: scaled(desc.length, 250, 8),
@@ -162,7 +162,7 @@ export function buildGbpAudit(input: GbpAuditInput): AuditReport {
       ? "Empty — no description at all."
       : `${desc.length} of 750 characters used.`,
     fix: desc.length >= 250 ? undefined
-      : "Write 250–750 characters covering the actual services and the neighbourhood. Keep it readable — keyword stuffing risks suspension.",
+      : "Write 250–750 characters covering the actual services and the neighborhood. Keep it readable — keyword stuffing risks suspension.",
   });
 
   const services: any[] = loc.serviceItems || [];

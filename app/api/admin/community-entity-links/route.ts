@@ -20,7 +20,7 @@ export async function GET() {
     { data: any[] | null; error: any },
     { data: any[] | null; error: any }
   ] = await Promise.all([
-    supabase.from("community_members").select("id, first_name, last_name, email").order("created_at", { ascending: false }) as any,
+    (supabase.from("community_members") as any).select("id, first_name, last_name, email").eq("is_demo", false).order("created_at", { ascending: false }),
     (supabase.from("community_member_entity_links") as any).select("id, community_member_id, entity_type, entity_id, linked_at"),
     (supabase.from("gbp_connections") as any).select("community_member_id, status, google_account_email, selected_location, locations"),
   ]);

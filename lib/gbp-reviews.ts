@@ -1,3 +1,4 @@
+import { outboundFetch } from "@/lib/outbound";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { gbpAccessToken, isGbpReconnectRequired, markGbpRevoked } from "@/lib/google-business";
 
@@ -127,7 +128,7 @@ export async function getGooglePostsForEntity(
     const conn = await resolveConnection(entityType, entityId);
     if (!conn) return [];
 
-    const res = await fetch(
+    const res = await outboundFetch(
       `${V4_BASE}/${conn.account}/${conn.location}/localPosts?pageSize=${limit}`,
       { headers: { Authorization: `Bearer ${conn.accessToken}` } }
     );
@@ -180,7 +181,7 @@ export async function getGoogleReviewsForEntity(
     if (!conn) return null;
     const { accessToken, mapsUri } = conn;
 
-    const res = await fetch(
+    const res = await outboundFetch(
       `${V4_BASE}/${conn.account}/${conn.location}/reviews?pageSize=${limit}&orderBy=updateTime desc`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );

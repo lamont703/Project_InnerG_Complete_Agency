@@ -1,6 +1,7 @@
 import { SITE_URL } from "@/lib/site";
 import type { McpTool } from "@/lib/mcp/tools";
 import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/lib/audiences";
+import { GUIDE_TYPES, PRICING_NOTE, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
 
 /**
  * Which ShearQuery account someone needs — for Claude to work out by asking.
@@ -39,7 +40,7 @@ function line(id: AudienceId): string {
     return `${header}\n  No signup needed: the account is made when they book an appointment, on a listing's Book button or with the booking tools in Claude.`;
   }
   const gets = a.benefits.map((b) => b.title).join("; ");
-  const note = id === "agency" ? "\n  The partner program (managing clients' accounts, commission) is being built and is NOT open; never quote its terms." : "";
+  const note = id === "agency" ? "\n  Referral credit starts once ShearQuery approves them. Managing clients' accounts and commission terms are NOT available yet; never quote them." : "";
   return `${header}\n  Gets: ${gets}\n  Or sign up on the website: ${SITE_URL}${membershipPath(id)}${note}`;
 }
 
@@ -93,7 +94,7 @@ const NEXT_STEP: Record<AudienceId, string> = {
   salon: `Next: claim the salon's listing at ${SITE_URL}/search, then my_shearquery_account shows what's connected.`,
   supply_store: `Next: claim the store's listing at ${SITE_URL}/search.`,
   school: `Next: claim the school's listing at ${SITE_URL}/search so tour requests reach them.`,
-  agency: `Next: tell ShearQuery about the agency at ${SITE_URL}/account/agency — that is what gets their demo shop set up. The partner program is NOT open; never quote its terms.`,
+  agency: `Next: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link and code. Managing clients' accounts and commission terms are NOT available yet; never quote them.`,
 };
 
 /**
@@ -142,6 +143,51 @@ export const setMyAccountTypeTool: McpTool = {
         ? `Their account is already a ${AUDIENCES[current].label} account, and Claude can't change a type once it's set. If it's wrong, they can contact ShearQuery to change it.`
         : "Couldn't set the type. Try again.";
     }
+    if (id === "agency") await (await import("@/lib/agency-partners")).ensureDemoClients(ctx.identity.memberId);
     return `Done — this is now a ${AUDIENCES[id].label} account.\n${NEXT_STEP[id]}`;
+  },
+};
+
+/**
+ * What ShearQuery does for each account type, and what is actually open —
+ * built from lib/account-features.ts. Public: an agency uses it before a
+ * pitch, and a business uses it before signing up.
+ */
+export const featureGuideTool: McpTool = {
+  name: "what_shearquery_does",
+  title: "What ShearQuery does for each account type",
+  description:
+    "What a ShearQuery account gets, per account type (barbershop, salon, barber, cosmetologist, school, supply store, student, client): what's on the website, what they can do in Claude, and whether each Claude feature is AVAILABLE NOW or still IN TESTING. Use it when an agency is pitching ShearQuery to a business, or when anyone asks what an account does. Repeat the status with each feature; never present an in-testing feature as available.",
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  inputSchema: {
+    type: "object",
+    properties: {
+      account_type: { type: "string", enum: GUIDE_TYPES, description: "One type in detail. Leave out for all of them." },
+    },
+  },
+  handler: async (args) => {
+    const chosen = args.account_type ? storedAudience(String(args.account_type)) : null;
+    const guides = chosen && GUIDE_TYPES.includes(chosen) ? [typeGuide(chosen)] : featureGuide();
+    const out: string[] = [
+      "WHAT SHEARQUERY DOES, BY ACCOUNT TYPE",
+      `Pricing: ${PRICING_NOTE}`,
+      "Statuses are live: 'In testing' means only ShearQuery's own test account can use it today. Say so when you mention one.",
+      "",
+    ];
+    for (const g of guides) {
+      out.push(`${g.label.toUpperCase()} [${g.id}] — "${g.who}"`);
+      if (g.website.length) {
+        out.push("  On the website:");
+        for (const w of g.website) out.push(`    - ${w.title}: ${w.body}`);
+      }
+      out.push("  In Claude:");
+      for (const c of g.claude) {
+        out.push(`    - ${c.title} [${STATUS_LABEL[c.status].toUpperCase()}]: ${c.what}`);
+        if (c.needs) out.push(`      Needs: ${c.needs}`);
+      }
+      out.push(g.signupPath ? `  Sign up: ${SITE_URL}${g.signupPath}` : g.id === "client" ? "  No signup: a client account is made when they book." : "");
+      out.push("");
+    }
+    return out.join("\n").trim();
   },
 };

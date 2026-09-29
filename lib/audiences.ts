@@ -703,17 +703,18 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
 
   agency: {
     id: "agency",
-    // LIVE since 2026-09-28, with benefits limited to what ships: ShearQuery in
-    // their own Claude, and a demo shop an admin sets up from /admin/agencies.
-    // The partner program (managing clients' accounts, commission) is NOT
-    // built, and nothing here promises its terms.
+    // LIVE since 2026-09-28. What ships: ShearQuery in their own Claude, and —
+    // once an admin approves them — a referral link and code, email invites,
+    // credit for every business that joins through them (locked at signup),
+    // and a dashboard of those clients. Managing clients' accounts and the
+    // commission itself are NOT built, and nothing here promises their terms.
     status: "live",
     label: "Agency",
     who: "I run an agency that builds AI agents or marketing for barbers and stylists",
     eyebrow: "Free — for agencies",
     headline: "Build for barbers and stylists on ShearQuery",
     subhead:
-      "Try ShearQuery's tools in your own Claude, with a demo shop to test the appointment tools on, and help shape the partner program we're building for agencies.",
+      "Bring your barber and salon clients onto ShearQuery, get credit for every one, and see where each of them is up to.",
     benefits: [
       {
         icon: "sparkles",
@@ -721,31 +722,31 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
         body: "Industry data and a Google Business Profile audit on any listing, from your own Claude — useful for scoping a prospective client before the first call.",
       },
       {
-        icon: "calendar",
-        title: "A demo shop to test on",
-        body: "We set up a demo barbershop in your account — a calendar with made-up clients and bookings — so you can try the appointment tools in Claude without touching anyone's real business.",
+        icon: "badge-check",
+        title: "Credit for every business you bring",
+        body: "Once we approve your agency you get a referral link and code, and can invite clients by email. Every business that joins through you is credited to you — first agency wins, for good.",
       },
       {
         icon: "users",
-        title: "In early on the partner program",
-        body: "We're building a partner program for agencies. It isn't open and its terms aren't set, and the agencies here now are the ones we're building it with.",
+        title: "Your clients in one place",
+        body: "See each client you brought in, and whether they've claimed their listing, connected Google and turned on their calendar — so you know who to help next.",
       },
     ],
     ctaLabel: "Create my agency account",
     agentBrief:
-      "You are talking to an AGENCY that builds AI agents, automations or marketing for barbers, stylists and shops. What they have today: the ShearQuery MCP connector in their own Claude (industry data, the public Google profile audit on any listing) and, once an admin sets it up, a demo shop in their account for trying the calendar tools. " +
-      "ShearQuery's partner program — managing their clients' accounts with permission, and earning for the businesses they bring — is being built and is NOT open. Never quote commission rates, prices, terms or dates, and never say they can manage a client's account yet. If they ask, say it's being built with the agencies who join now.",
+      "You are talking to an AGENCY that builds AI agents, automations or marketing for barbers, stylists and shops. What they have today: the ShearQuery MCP connector in their own Claude (industry data, the public Google profile audit on any listing); and, once ShearQuery approves their agency, a referral link and code, email invites to their clients, credit for every business that joins through them, and a dashboard of those clients at /account/agency. " +
+      "Managing their clients' accounts from ShearQuery, and the commission itself, are being built and are NOT available. Never quote commission rates, prices, terms or dates, and never say they can manage a client's account yet.",
     lifecycleTrack: null,
     collectsJourney: false,
     landing: {
       path: "agencies",
       metaTitle: "ShearQuery for Agencies — AI and Marketing for Barbers & Stylists",
       metaDescription:
-        "A free ShearQuery account for agencies that build AI agents and marketing for barbers, stylists and shops. Try the tools in your own Claude with a demo shop.",
+        "A free ShearQuery account for agencies that build AI agents and marketing for barbers, stylists and shops. Bring your clients on, get credit for each one, and track their progress.",
       faqs: [
         {
           q: "What can we do today?",
-          a: "Use ShearQuery in your own Claude — industry data and a Google profile audit on any listing — and try the appointment tools on a demo shop we set up in your account after you sign up.",
+          a: "Use ShearQuery in your own Claude — industry data and a Google profile audit on any listing. Once we approve your agency, you get a referral link and code, can invite your clients by email, and see every business credited to you.",
         },
         {
           q: "Can we manage our clients' accounts?",
@@ -753,7 +754,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
         },
         {
           q: "Is there a commission?",
-          a: "The partner program will include earning for the businesses you bring to ShearQuery. Its terms aren't set yet, so we're not quoting any.",
+          a: "Every business that joins through you is credited to you from day one, and commission will be paid on that credit. Its terms aren't set yet, so we're not quoting any.",
         },
       ],
       nextLinks: [
