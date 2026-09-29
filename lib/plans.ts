@@ -46,6 +46,23 @@ export const PRICES: Partial<Record<AudienceId, { manage: number; autopilot: num
 /** Whether an account type can be on a paid plan at all. Students, clients and agencies can't. */
 export const hasPaidPlans = (type: AudienceId | null | undefined) => !!type && !!PRICES[type];
 
+/**
+ * What each plan includes, in the words the plan page and /pricing both use.
+ * "(when it opens)" follows the same switches the calendar and Instagram tools
+ * obey, so a public price list can't keep calling a live feature unopened —
+ * or call a testing one available.
+ */
+export function planIncludes(plan: Plan): string[] {
+  const soon = (open: boolean) => (open ? "" : " (when it opens)");
+  const calendar = process.env.CALENDAR_OPEN === "true";
+  const instagram = process.env.INSTAGRAM_MEMBER_CONNECT_OPEN === "true";
+  return {
+    free: ["Your listing and verified badge", "The full Google profile audit", "Claude drafts any fix to your profile", `${FREE_PUBLISHES_PER_MONTH} Google publishes a month`],
+    manage: ["Everything in Free", "Unlimited Google publishing, from Claude or the website", `The appointment book, run from Claude${soon(calendar)}`, `Instagram insights in Claude${soon(instagram)}`],
+    autopilot: ["Everything in Manage", "Replies to your 4 and 5 star reviews, in your voice", "One Google post a week — you see it a day ahead", "A Monday report and a daily digest"],
+  }[plan];
+}
+
 export type PlanFeature = "unlimited_publishing" | "calendar" | "instagram" | "autopilot";
 
 export const FEATURE_PLAN: Record<PlanFeature, Plan> = {

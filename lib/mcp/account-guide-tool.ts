@@ -125,25 +125,15 @@ export const setMyAccountTypeTool: McpTool = {
   },
   handler: async (args, ctx) => {
     if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
-    const id = storedAudience(String(args.account_type || ""));
-    if (!id || AUDIENCES[id].status !== "live") return `"${String(args.account_type)}" isn't an account type that's open. Use which_shearquery_account.`;
-
-    const db = (await import("@/lib/supabase/admin")).createAdminClient() as any;
-    // Conditional on the column being empty, in the database: a type that is
-    // already set cannot be overwritten, even by two calls racing.
-    const { data: updated } = await db
-      .from("community_members")
-      .update({ audience: id })
-      .eq("id", ctx.identity.memberId)
-      .is("audience", null)
-      .select("id");
-    if (!updated?.length) {
-      const { data } = await db.from("community_members").select("audience").eq("id", ctx.identity.memberId).maybeSingle();
-      const current = storedAudience(data?.audience);
-      return current
-        ? `Their account is already a ${AUDIENCES[current].label} account, and Claude can't change a type once it's set. If it's wrong, they can contact ShearQuery to change it.`
-        : "Couldn't set the type. Try again.";
+    if (String(args.account_type) === "client") return `"client" isn't chosen — a client account is made when someone books.`;
+    const { setAccountTypeOnce } = await import("@/lib/account-type");
+    const res = await setAccountTypeOnce(ctx.identity.memberId, args.account_type);
+    if (!res.ok) {
+      return res.current
+        ? `Their account is already a ${AUDIENCES[res.current].label} account, and Claude can't change a type once it's set. If it's wrong, they can contact ShearQuery to change it.`
+        : `${res.error} Use which_shearquery_account.`;
     }
+    const id = res.type;
     if (id === "agency") await (await import("@/lib/agency-partners")).ensureDemoClients(ctx.identity.memberId);
     return `Done — this is now a ${AUDIENCES[id].label} account.\n${NEXT_STEP[id]}`;
   },
