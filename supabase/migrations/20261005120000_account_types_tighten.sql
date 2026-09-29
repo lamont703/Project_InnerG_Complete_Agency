@@ -1,5 +1,6 @@
--- APPLY ONLY AFTER the account-type code (lib/audiences.ts, 2026-09-28) is
--- deployed to production. Rename to .sql to activate.
+-- Applied after the account-type code (cbd015da) was confirmed live in
+-- production on 2026-09-28: /membership/barbers served 200 and
+-- /membership/professionals redirected with 308.
 --
 -- Removes the retired names that 20261004120000_account_types.sql kept
 -- allowed during the transition, after moving any row written by the old

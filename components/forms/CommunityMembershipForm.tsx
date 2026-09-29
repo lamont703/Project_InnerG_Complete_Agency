@@ -105,13 +105,32 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
    */
   const signupSource = searchParams.get("src") ?? source
   const wantsConnect = nextIntent === "connect"
+  /*
+   * SIGNING UP IN THE MIDDLE OF CONNECTING CLAUDE. Claude's Connect sends a
+   * new person to /login?redirect=/oauth/authorize?…; with no account they
+   * sign up here, and the form used to ignore that redirect and land them on
+   * /search — so their Claude never got its Allow screen and the connection
+   * silently never finished. Same whitelist rule as above: only the consent
+   * page, only as a same-site path, never "whatever the query string says".
+   */
+  const oauthReturn = (() => {
+    const r = source === "login" ? searchParams.get("redirect") : null
+    return r && r.startsWith("/oauth/authorize?") && !r.startsWith("//") ? r : null
+  })()
   const destination = (fallback: string) =>
-    wantsConnect ? "/api/google-business/start" : fallback
+    wantsConnect ? "/api/google-business/start" : oauthReturn ?? fallback
 
   // Which audience's copy they read on the way in. Resolved through the
   // registry so an unknown or not-yet-launched value can't be written to the
   // member row straight from a query string.
-  const signupAudience = audienceFromParam(searchParams.get("for") ?? audience)
+  // On /login with nothing said about who they are, leave the type EMPTY
+  // rather than defaulting to barber: a school or agency signing up on the
+  // way to connecting Claude would otherwise be stamped barber, and Claude's
+  // set_my_account_type only fills an empty type. Everywhere else keeps the
+  // default, because those pages showed barber copy to the person signing up.
+  const explicitAudience = searchParams.get("for") ?? audience
+  const signupAudience: AudienceId | null =
+    explicitAudience ? audienceFromParam(explicitAudience) : source === "login" ? null : audienceFromParam(undefined)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({

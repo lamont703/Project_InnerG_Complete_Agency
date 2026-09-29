@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertNotImpersonating } from "@/lib/account/view-as";
+import { bookingEntityType } from "@/lib/account/booking-requests";
 import {
   resolveOwnedBookingContext,
   OWNER_SETTABLE_STATUSES,
@@ -73,7 +74,7 @@ export async function PATCH(req: NextRequest) {
   const { data, error } = await (admin.from("booking_requests") as any)
     .update(patch)
     .eq("id", id)
-    .eq("entity_type", ctx.link.entityType)
+    .eq("entity_type", bookingEntityType(ctx.link.entityType))
     .eq("entity_id", ctx.link.entityId)
     .select("id, status");
 

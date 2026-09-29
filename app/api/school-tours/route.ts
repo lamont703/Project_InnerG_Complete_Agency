@@ -228,6 +228,42 @@ export async function POST(request: NextRequest) {
   }
 
   /**
+   * A SCHOOL THAT HAS CLAIMED ITS LISTING HEARS ABOUT IT DIRECTLY.
+   *
+   * The header above is still true for the other 1,180-odd schools: there is
+   * no channel that reaches them, so a person calls. A claimed school is the
+   * exception — its owner signed up, so there is an email to send to, and the
+   * request is waiting on their /account/booking-requests page. The email
+   * carries no student contact details: that page decides what to reveal,
+   * based on whether ownership is verified. The phone-call queue is unchanged;
+   * this is additive, not a replacement.
+   */
+  try {
+    const { data: link } = await db
+      .from("community_member_entity_links")
+      .select("community_member_id, member:community_members(email, first_name)")
+      .in("entity_type", ["barber_school", "cosmetology_school"])
+      .eq("entity_id", String(school.id))
+      .limit(1)
+      .maybeSingle();
+    const owner = (link as any)?.member;
+    if (owner?.email) {
+      await sendGhlEmail({
+        email: owner.email,
+        name: owner.first_name || undefined,
+        subject: `New tour request — ${school.school_name ?? "your school"}`,
+        html: `
+          <p>Hi ${owner.first_name || "there"},</p>
+          <p>A prospective student asked to tour <strong>${school.school_name ?? "your school"}</strong> on ${requestedDate} at ${requestedTime}.</p>
+          <p><a href="${SITE_URL}/account/booking-requests">See the request and mark what happened</a>.</p>
+        `,
+      });
+    }
+  } catch (e) {
+    console.error("[school-tours] claimed-school email failed:", e);
+  }
+
+  /**
    * The visitor's confirmation. Sent after the row exists, and a failure here
    * is recorded rather than surfaced — the request is safe either way, and
    * telling someone their request failed when it did not is the worse error.

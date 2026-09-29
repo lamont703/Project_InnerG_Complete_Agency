@@ -6,8 +6,8 @@ import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/li
  * Which ShearQuery account someone needs — for Claude to work out by asking.
  *
  * Built from lib/audiences.ts, never restated, so an account type added or
- * changed there reaches Claude on the next request. Planned types (school,
- * agency today) are described honestly as not open yet, with no signup link:
+ * changed there reaches Claude on the next request. A planned type is
+ * described honestly as not open yet, with no signup link:
  * a link to a page with no benefits is a promise nobody made.
  *
  * Public: choosing an account is what someone does BEFORE they have one.
@@ -33,13 +33,14 @@ function line(id: AudienceId): string {
   const a = AUDIENCES[id];
   const header = `${a.label.toUpperCase()} [${id}] — "${a.who}"`;
   if (a.status !== "live") {
-    return `${header}\n  Not open yet. ${id === "agency" ? "The partner program is being built; do not quote commission, prices or terms. Ask what they build and for whom, and point them to ShearQuery directly." : "It isn't open for signup yet; say so plainly."}`;
+    return `${header}\n  Not open for signup yet; say so plainly.`;
   }
   if (id === "client") {
     return `${header}\n  No signup needed: the account is made when they book an appointment, on a listing's Book button or with the booking tools in Claude.`;
   }
   const gets = a.benefits.map((b) => b.title).join("; ");
-  return `${header}\n  Gets: ${gets}\n  Sign up: ${SITE_URL}${membershipPath(id)}`;
+  const note = id === "agency" ? "\n  The partner program (managing clients' accounts, commission) is being built and is NOT open; never quote its terms." : "";
+  return `${header}\n  Gets: ${gets}\n  Sign up: ${SITE_URL}${membershipPath(id)}${note}`;
 }
 
 export const accountGuideTool: McpTool = {
@@ -69,5 +70,68 @@ export const accountGuideTool: McpTool = {
       "THE TYPES:",
       ...ORDER.map(line),
     ].join("\n");
+  },
+};
+
+/** What to do right after the type is set, per type. Pages that exist today. */
+const NEXT_STEP: Record<AudienceId, string> = {
+  client: "They can book with a pro now — use find_pros_to_book.",
+  student: `Next: set up their licence journey at ${SITE_URL}/account/journey — state, licence track, school and exam date.`,
+  barber: `Next: find and claim their profile at ${SITE_URL}/search for the verified badge.`,
+  cosmetologist: `Next: find and claim their profile at ${SITE_URL}/search for the verified badge.`,
+  barbershop: `Next: claim the shop's listing at ${SITE_URL}/search, then my_shearquery_account shows what's connected.`,
+  salon: `Next: claim the salon's listing at ${SITE_URL}/search, then my_shearquery_account shows what's connected.`,
+  supply_store: `Next: claim the store's listing at ${SITE_URL}/search.`,
+  school: `Next: claim the school's listing at ${SITE_URL}/search so tour requests reach them.`,
+  agency: `Next: tell ShearQuery about the agency at ${SITE_URL}/account/agency — that is what gets their demo shop set up. The partner program is NOT open; never quote its terms.`,
+};
+
+/**
+ * Set the signed-in person's account type — ONLY while it is empty.
+ *
+ * Someone who signs up on the login screen on the way to connecting Claude
+ * gets no type (components/forms/CommunityMembershipForm: /login leaves it
+ * empty rather than guessing). This lets Claude settle it by asking the
+ * which_shearquery_account questions. It will never change a type already
+ * set: the type decides plans, emails and, later, agency commission, so a
+ * change is a deliberate act on the account, not something a conversation
+ * does in passing.
+ */
+export const setMyAccountTypeTool: McpTool = {
+  name: "set_my_account_type",
+  title: "Set your ShearQuery account type",
+  provides: "setting their account type, once, when it is empty",
+  description:
+    "Set the signed-in person's ShearQuery account type when it hasn't been set yet (my_shearquery_account shows it). Ask the which_shearquery_account questions first and confirm the answer with them. Refuses if a type is already set.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  inputSchema: {
+    type: "object",
+    properties: { account_type: { type: "string", enum: ORDER } },
+    required: ["account_type"],
+  },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
+    const id = storedAudience(String(args.account_type || ""));
+    if (!id || AUDIENCES[id].status !== "live") return `"${String(args.account_type)}" isn't an account type that's open. Use which_shearquery_account.`;
+
+    const db = (await import("@/lib/supabase/admin")).createAdminClient() as any;
+    // Conditional on the column being empty, in the database: a type that is
+    // already set cannot be overwritten, even by two calls racing.
+    const { data: updated } = await db
+      .from("community_members")
+      .update({ audience: id })
+      .eq("id", ctx.identity.memberId)
+      .is("audience", null)
+      .select("id");
+    if (!updated?.length) {
+      const { data } = await db.from("community_members").select("audience").eq("id", ctx.identity.memberId).maybeSingle();
+      const current = storedAudience(data?.audience);
+      return current
+        ? `Their account is already a ${AUDIENCES[current].label} account, and Claude can't change a type once it's set. If it's wrong, they can contact ShearQuery to change it.`
+        : "Couldn't set the type. Try again.";
+    }
+    return `Done — this is now a ${AUDIENCES[id].label} account.\n${NEXT_STEP[id]}`;
   },
 };

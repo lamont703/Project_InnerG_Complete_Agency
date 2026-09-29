@@ -601,23 +601,73 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
 
   school: {
     id: "school",
-    // PLANNED. A school administrator can already be recognised by the agent,
-    // and the data to serve them exists (pass rates, penalties, placement),
-    // but nothing here is packaged as a membership benefit yet — so it stays
-    // off /membership rather than making a promise.
-    status: "planned",
-    label: "School or instructor",
-    who: "I teach at, or run, a barber or cosmetology school",
-    eyebrow: "Coming soon — for schools",
-    headline: "See how your graduates actually do",
+    // LIVE since 2026-09-28. Every benefit below ships: tour requests (and,
+    // from the same change, a claimed school now actually SEES them — they
+    // were filtered by the claim key "barber_school"/"cosmetology_school"
+    // while tours are stored as "school"), claiming, the pass-rate data, and
+    // Google tools. Enrollment advertising is the paid product and is named as
+    // optional, never as a condition.
+    status: "live",
+    label: "School",
+    who: "I run, or teach at, a barber or cosmetology school",
+    eyebrow: "Free — for schools",
+    headline: "Get your school in front of the students choosing one",
     subhead:
-      "Pass rates against the state, campus by campus, and where your graduates end up working.",
-    benefits: [],
-    ctaLabel: "Create my free account",
+      "Claim your school's listing, see every tour request from prospective students, and — in Texas and California — see your pass rates next to the state's.",
+    benefits: [
+      {
+        icon: "calendar",
+        title: "Tour requests, in one place",
+        body: "Prospective students request a campus tour from your school's page. Once you claim it, every request lands in your account and you get an email when one arrives.",
+      },
+      {
+        icon: "badge-check",
+        title: "Claim and verify your listing",
+        body: "The verified badge on your school's page — a signal to the students comparing schools that it's current and owner-verified.",
+      },
+      {
+        icon: "bar-chart",
+        title: "Your pass rates, next to the state's",
+        body: "For Texas and California schools: first-attempt licensing exam pass rates against the statewide figure, from published state exam results — the numbers students are already comparing you on.",
+      },
+      {
+        icon: "sparkles",
+        title: "Google Business Profile tools",
+        body: "Connect your school's profile for an audit, review replies, posts and hours fixes.",
+      },
+    ],
+    ctaLabel: "Claim my school",
     agentBrief:
-      "You are talking to a barber/cosmetology SCHOOL administrator or instructor asking about their own institution — pass rates against the statewide benchmark, testing volume, and graduate outcomes. Be precise about what is and is not known: per-school placement rate is NOT supported, and saying so plainly is the correct answer.",
+      "You are talking to a barber or cosmetology SCHOOL owner, administrator or instructor about their own school — enrollment, tour requests, pass rates against the statewide benchmark, and how their listing looks to students comparing schools. " +
+      "They can claim their school's listing, see tour requests from prospective students in their account, and connect Google Business Profile — help with those when asked. ShearQuery also sells enrollment advertising; mention it only if they ask about reaching more students, never as a condition of anything. " +
+      "Be precise about what is and is not known: per-school job placement rate is NOT supported, and saying so plainly is the correct answer.",
     lifecycleTrack: null,
     collectsJourney: false,
+    landing: {
+      path: "schools",
+      metaTitle: "Free Account for Barber & Cosmetology Schools — Claim Your Listing",
+      metaDescription:
+        "A free ShearQuery account for barber and cosmetology schools. Claim your listing, see tour requests from prospective students, and compare your pass rates with the state's.",
+      faqs: [
+        {
+          q: "How do tour requests reach us?",
+          a: "A prospective student requests a tour from your school's page. Once you've claimed the listing, the request shows up in your account and we email you. We also call schools about new requests, because most schools haven't claimed their listing yet.",
+        },
+        {
+          q: "Where do the pass rates come from?",
+          a: "Published state licensing exam results, for Texas and California schools today. They're first-attempt pass rates, which is the figure that tells a student how likely they are to pass on their first try.",
+        },
+        {
+          q: "Does claiming our listing cost anything?",
+          a: "No. Enrollment advertising is a separate, optional product, and it's never a condition of claiming your school or receiving tour requests.",
+        },
+      ],
+      nextLinks: [
+        { href: "/compare-schools", label: "Compare schools", body: "See your school next to the others students are considering." },
+        { href: "/texas-school-leaderboard", label: "Texas school pass rates", body: "First-attempt pass rates for every Texas school." },
+        { href: "/media-kit", label: "Enrollment advertising", body: "Optional placements for reaching students who are choosing a school." },
+      ],
+    },
   },
 
   supply_store: {
@@ -653,22 +703,64 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
 
   agency: {
     id: "agency",
-    // PLANNED. The partner program — agency accounts, managing clients'
-    // businesses with their permission, referral commission — is designed but
-    // not built. The agent can recognise an agency and say something true;
-    // nothing public promises terms that do not exist yet.
-    status: "planned",
-    label: "Agency partner",
+    // LIVE since 2026-09-28, with benefits limited to what ships: ShearQuery in
+    // their own Claude, and a demo shop an admin sets up from /admin/agencies.
+    // The partner program (managing clients' accounts, commission) is NOT
+    // built, and nothing here promises its terms.
+    status: "live",
+    label: "Agency",
     who: "I run an agency that builds AI agents or marketing for barbers and stylists",
-    eyebrow: "Coming soon — for agencies",
-    headline: "Bring ShearQuery to the shops you serve",
-    subhead: "A partner program for agencies that build AI and marketing for barbers, stylists and shops.",
-    benefits: [],
-    ctaLabel: "Tell us about your agency",
+    eyebrow: "Free — for agencies",
+    headline: "Build for barbers and stylists on ShearQuery",
+    subhead:
+      "Try ShearQuery's tools in your own Claude, with a demo shop to test the appointment tools on, and help shape the partner program we're building for agencies.",
+    benefits: [
+      {
+        icon: "sparkles",
+        title: "ShearQuery in your Claude",
+        body: "Industry data and a Google Business Profile audit on any listing, from your own Claude — useful for scoping a prospective client before the first call.",
+      },
+      {
+        icon: "calendar",
+        title: "A demo shop to test on",
+        body: "We set up a demo barbershop in your account — a calendar with made-up clients and bookings — so you can try the appointment tools in Claude without touching anyone's real business.",
+      },
+      {
+        icon: "users",
+        title: "In early on the partner program",
+        body: "We're building a partner program for agencies. It isn't open and its terms aren't set, and the agencies here now are the ones we're building it with.",
+      },
+    ],
+    ctaLabel: "Create my agency account",
     agentBrief:
-      "You are talking to an AGENCY that builds AI agents, automations or marketing for barbers, stylists and shops. ShearQuery's partner program for agencies is being built and is not open yet. Be exact about that: do not quote commission rates, prices, terms or dates, and do not promise that they can manage their clients' accounts yet. What is true today: the ShearQuery MCP connector and its tools work in Claude, a demo appointment book can be set up for them to try, and ShearQuery wants to hear from them — ask what they build and for whom, and point them to ShearQuery directly to talk.",
+      "You are talking to an AGENCY that builds AI agents, automations or marketing for barbers, stylists and shops. What they have today: the ShearQuery MCP connector in their own Claude (industry data, the public Google profile audit on any listing) and, once an admin sets it up, a demo shop in their account for trying the calendar tools. " +
+      "ShearQuery's partner program — managing their clients' accounts with permission, and earning for the businesses they bring — is being built and is NOT open. Never quote commission rates, prices, terms or dates, and never say they can manage a client's account yet. If they ask, say it's being built with the agencies who join now.",
     lifecycleTrack: null,
     collectsJourney: false,
+    landing: {
+      path: "agencies",
+      metaTitle: "ShearQuery for Agencies — AI and Marketing for Barbers & Stylists",
+      metaDescription:
+        "A free ShearQuery account for agencies that build AI agents and marketing for barbers, stylists and shops. Try the tools in your own Claude with a demo shop.",
+      faqs: [
+        {
+          q: "What can we do today?",
+          a: "Use ShearQuery in your own Claude — industry data and a Google profile audit on any listing — and try the appointment tools on a demo shop we set up in your account after you sign up.",
+        },
+        {
+          q: "Can we manage our clients' accounts?",
+          a: "Not yet. That's the partner program we're building: agencies working on a business's ShearQuery account with that owner's permission. It isn't open, and we'd rather tell you that than promise a date.",
+        },
+        {
+          q: "Is there a commission?",
+          a: "The partner program will include earning for the businesses you bring to ShearQuery. Its terms aren't set yet, so we're not quoting any.",
+        },
+      ],
+      nextLinks: [
+        { href: "/google-business-profile-audit", label: "Google profile audit", body: "Score any barbershop or salon's Google profile — the same audit your Claude can run." },
+        { href: "/compare-shops", label: "Compare shops", body: "Booth rent and chair availability by city, from real listings." },
+      ],
+    },
   },
 };
 
@@ -696,8 +788,8 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
  * everyone who kept the query form.
  *
  * Degrades to `?for=` for an audience with no landing page, so a caller cannot
- * produce a 404 by asking for one that does not exist yet — `school`,
- * `supply_store` and `agency` today.
+ * produce a 404 by asking for one that does not exist yet — `supply_store`
+ * today.
  */
 export function membershipPath(id: AudienceId, extra?: Record<string, string>): string {
   const a = AUDIENCES[id];
@@ -728,6 +820,8 @@ export const LIVE_AUDIENCES: Audience[] = [
   AUDIENCES.barbershop,
   AUDIENCES.salon,
   AUDIENCES.supply_store,
+  AUDIENCES.school,
+  AUDIENCES.agency,
 ];
 
 /**

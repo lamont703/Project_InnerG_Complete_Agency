@@ -17,7 +17,8 @@ import { GBP_TOOLS } from "@/lib/mcp/gbp-tools";
 import { INSTAGRAM_TOOLS } from "@/lib/mcp/instagram-tools";
 import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
-import { accountGuideTool } from "@/lib/mcp/account-guide-tool";
+import { accountGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
+import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
  * Tools exposed over MCP at /mcp.
@@ -764,7 +765,7 @@ const myAccount: McpTool = {
 
     const [{ data: member }, { data: link }, { data: conn }] = await Promise.all([
       (admin.from("community_members") as any)
-        .select("first_name, last_name")
+        .select("first_name, last_name, audience")
         .eq("id", identity.memberId)
         .maybeSingle(),
       (admin.from("community_member_entity_links") as any)
@@ -789,8 +790,12 @@ const myAccount: McpTool = {
      * paragraph break and returned the whole account summary as one block of
      * text. It read as a wall and nothing errored.
      */
+    const type = storedAudience(member.audience);
     const lines: (string | null)[] = [
       `Connection: ShearQuery account for ${safeEcho(who, 60)} (key ${identity.keyPrefix}…).`,
+      type
+        ? `Account type: ${AUDIENCES[type].label}.`
+        : "Account type: NOT SET. Ask the which_shearquery_account questions, confirm with them, then call set_my_account_type.",
       "",
     ];
 
@@ -1169,6 +1174,7 @@ export const MCP_TOOLS: McpTool[] = [
   verifyLicense,
   boothRentForCity,
   accountGuideTool,
+  setMyAccountTypeTool,
   myAccount,
   myProfileAudit,
   myPhotoCoverage,

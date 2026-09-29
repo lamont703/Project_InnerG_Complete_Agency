@@ -301,7 +301,11 @@ export async function POST(req: Request) {
         claimRedirect ||
         (memberAudience === "student"
           ? "/account/journey?welcome=1"
-          : "/search?welcome=1"),
+          // An agency's next step is telling us who they are, which is what
+          // gets their demo shop set up — not searching the directory.
+          : memberAudience === "agency"
+            ? "/account/agency?welcome=1"
+            : "/search?welcome=1"),
     });
   } catch (error: any) {
     console.error("[CommunityRegister] Error:", error);

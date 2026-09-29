@@ -29,6 +29,19 @@ import { LEAD_LISTING_BY_CLAIM_KEY } from "@/lib/account/listing-leads";
  * number.
  */
 
+/**
+ * The entity_type booking_requests stores for a claimed listing.
+ *
+ * WHY THIS EXISTS: school tour requests are written with entity_type
+ * "school" (app/api/school-tours), but a school is claimed as
+ * "barber_school" or "cosmetology_school". Filtering by the claim key found
+ * nothing, so a school that claimed its listing never saw a single tour
+ * request. Found 2026-09-28 while making "school" a live account type.
+ */
+export function bookingEntityType(claimKey: string): string {
+  return claimKey === "barber_school" || claimKey === "cosmetology_school" ? "school" : claimKey;
+}
+
 /** The statuses an owner is allowed to set, and what each means. */
 export const OWNER_SETTABLE_STATUSES = ["contacted", "booked", "declined"] as const;
 export type OwnerSettableStatus = (typeof OWNER_SETTABLE_STATUSES)[number];
@@ -148,7 +161,7 @@ export async function fetchOwnerBookingView(): Promise<
         "customer_name, customer_phone, customer_email, customer_notes"
     )
     // Scoped by the SERVER-DERIVED pair, never by anything from the client.
-    .eq("entity_type", resolved.link.entityType)
+    .eq("entity_type", bookingEntityType(resolved.link.entityType))
     .eq("entity_id", resolved.link.entityId)
     .order("requested_date", { ascending: false })
     .limit(200);
