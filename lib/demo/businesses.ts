@@ -34,6 +34,8 @@ export async function ensureDemoBusiness(ownerMemberId: string, type: DemoType):
       email: `${type}.${randomBytes(6).toString("hex")}@${DEMO_EMAIL_DOMAIN}`,
       audience: type,
       is_demo: true,
+      plan: "autopilot",
+      plan_source: "admin",
     })
     .select("id")
     .single();

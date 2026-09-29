@@ -947,6 +947,19 @@ export async function publishChange(args: {
     return { ok: false, text: `This account has published ${count} changes from Claude in the last 24 hours, which is the daily limit. It resets on a rolling basis.` };
   }
 
+  // The plan's allowance (lib/plans.ts): Free publishes FREE_PUBLISHES_PER_MONTH
+  // a month, from Claude or the website alike, since both publish through here.
+  const { getMemberPlan, publishesThisMonth } = await import("@/lib/member-plan");
+  const { publishAllowance, planSummary } = await import("@/lib/plans");
+  const mp = await getMemberPlan(args.memberId);
+  const used = await publishesThisMonth(args.memberId);
+  if (!publishAllowance(mp.plan, used).allowed) {
+    return {
+      ok: false,
+      text: `Not published: ${planSummary(mp.plan, mp.type, used)}\n\nNothing on Google changed. Drafts expire after 24 hours, so once the allowance resets, draft it again.`,
+    };
+  }
+
   const g = await resolveOwnerGbp(args.memberId, { account: spec.needsAccount });
   if (!g.ok) return { ok: false, text: g.message };
   if (g.locationName !== row.location_name) {

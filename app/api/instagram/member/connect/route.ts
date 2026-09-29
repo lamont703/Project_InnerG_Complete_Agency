@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { instagramAuthUrl } from "@/lib/instagram-oauth";
 import { createServerClient } from "@/lib/supabase/server";
 import { resolveMemberContext } from "@/lib/account/view-as";
-import { canConnectInstagram, MEMBER_IG_SCOPES } from "@/lib/instagram-member";
+import { MEMBER_IG_SCOPES } from "@/lib/instagram-member";
+import { hasInstagramAccess } from "@/lib/feature-access";
 
 /**
  * Start connecting a MEMBER'S Instagram — their own account, for their Claude
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(`${origin}/login?redirect=${encodeURIComponent("/account/instagram")}`);
-  if (!canConnectInstagram(user.email)) {
+  if (!(await hasInstagramAccess(user.email))) {
     return NextResponse.redirect(`${origin}/account/instagram?ig=not_available`);
   }
 

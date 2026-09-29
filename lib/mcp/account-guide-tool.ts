@@ -180,9 +180,10 @@ export const featureGuideTool: McpTool = {
         out.push("  On the website:");
         for (const w of g.website) out.push(`    - ${w.title}: ${w.body}`);
       }
+      out.push(g.prices ? `  Plans: Free · Manage $${g.prices.manage}/month · Autopilot $${g.prices.autopilot}/month` : "  Plans: always free");
       out.push("  In Claude:");
       for (const c of g.claude) {
-        out.push(`    - ${c.title} [${STATUS_LABEL[c.status].toUpperCase()}]: ${c.what}`);
+        out.push(`    - ${c.title} [${STATUS_LABEL[c.status].toUpperCase()} · ${c.plan} plan]: ${c.what}`);
         if (c.needs) out.push(`      Needs: ${c.needs}`);
       }
       out.push(g.signupPath ? `  Sign up: ${SITE_URL}${g.signupPath}` : g.id === "client" ? "  No signup: a client account is made when they book." : "");

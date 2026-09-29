@@ -799,6 +799,7 @@ const myAccount: McpTool = {
       type
         ? `Account type: ${AUDIENCES[type].label}.${type === "agency" ? " Call my_agency for their partner status, details and referral link." : ""}`
         : "Account type: NOT SET. Ask the which_shearquery_account questions, confirm with them, then call set_my_account_type.",
+      await planLine(identity.memberId, type),
       "",
     ];
 
@@ -1172,6 +1173,15 @@ const myPhotoCoverage: McpTool = {
     return out.filter((l) => l !== null).join("\n");
   },
 };
+
+/** "Plan: Free — 2 of 3 free publishes left…", or null for types that are always free. */
+async function planLine(memberId: string, type: ReturnType<typeof storedAudience>): Promise<string | null> {
+  const { hasPaidPlans, planSummary } = await import("@/lib/plans");
+  if (!hasPaidPlans(type)) return null;
+  const { getMemberPlan, publishesThisMonth } = await import("@/lib/member-plan");
+  const [mp, used] = await Promise.all([getMemberPlan(memberId), publishesThisMonth(memberId)]);
+  return `Plan: ${planSummary(mp.plan, type, used)}`;
+}
 
 export const MCP_TOOLS: McpTool[] = [
   compareSchools,

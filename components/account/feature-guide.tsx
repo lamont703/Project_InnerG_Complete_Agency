@@ -24,6 +24,9 @@ export function FeatureGuide() {
               <span className="text-slate-400 group-open:rotate-90">›</span>
             </summary>
             <div className="mt-3 space-y-4 text-sm">
+              <p className="text-xs font-bold text-slate-700">
+                {g.prices ? `Free · Manage $${g.prices.manage}/month · Autopilot $${g.prices.autopilot}/month` : "Always free"}
+              </p>
               {g.website.length > 0 && (
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">On the website</p>
@@ -42,6 +45,7 @@ export function FeatureGuide() {
                       <span className={`mr-2 rounded-full px-2 py-0.5 text-[10px] font-black uppercase ${c.status === "live" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
                         {STATUS_LABEL[c.status]}
                       </span>
+                      <span className="mr-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase text-slate-600">{c.plan}</span>
                       <strong>{c.title}.</strong> <span className="text-slate-600">{c.what}</span>
                       {c.needs && <p className="mt-0.5 text-xs text-slate-500">Needs: {c.needs}</p>}
                     </li>

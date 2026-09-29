@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { exchangeCodeForLongLivedToken, IG_GRAPH, IG_SCOPES } from "@/lib/instagram-oauth";
-import { canConnectInstagram, memberEmail, storeMemberInstagram } from "@/lib/instagram-member";
+import { memberEmail, storeMemberInstagram } from "@/lib/instagram-member";
+import { hasInstagramAccess } from "@/lib/feature-access";
 
 /**
  * Finish the authorisation and store a LONG-lived token.
@@ -131,7 +132,7 @@ async function finishMemberConnect(args: {
   if (!expectedState || !memberId || expectedState !== state) return back("bad_state");
 
   // The allowlist is checked again here, not only when the flow started.
-  if (!canConnectInstagram(await memberEmail(memberId))) return back("not_available");
+  if (!(await hasInstagramAccess(await memberEmail(memberId)))) return back("not_available");
 
   const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID;
   const clientSecret = process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET;
