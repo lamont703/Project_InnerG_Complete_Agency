@@ -63,6 +63,9 @@ export const SITEMAP_EXCLUDE_PREFIXES = [
   // A client's appointment, reached only from their confirmation text; the
   // token in the URL is the credential.
   '/appointments',
+  // A business's audit page an agency shares with that one business
+  // (lib/audit-share.ts). Personal to the recipient; never for an index.
+  '/audit',
   // OAuth callback shims. Each of these directories contains nothing but a
   // `callback` child — there is no /discord or /x page, which is why those
   // paths 404. The callbacks themselves are redirect handlers with no reader.

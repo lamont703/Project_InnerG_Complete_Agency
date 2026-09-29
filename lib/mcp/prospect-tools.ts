@@ -174,15 +174,50 @@ export const myProspectsTool: McpTool = {
     if (blocked) return blocked;
     const { myProspects } = await import("@/lib/prospecting");
     const list = await myProspects(ctx.identity.memberId, args.status as PipelineStatus | undefined);
+    const { shareActivity } = await import("@/lib/audit-share");
+    const activity = await shareActivity(ctx.identity.memberId);
     if (!list.length) return args.status ? `No prospects marked ${STATUS_LABEL[args.status as PipelineStatus]}.` : "The pipeline is empty — find_prospects, then save_prospect.";
     const days = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400_000);
     const counts = PIPELINE_STATUSES.map((s) => [s, list.filter((p: any) => p.status === s).length] as const).filter(([, n]) => n);
     return [
       `PIPELINE (${list.length}): ${counts.map(([s, n]) => `${STATUS_LABEL[s]} ${n}`).join(" · ")}`,
       "",
-      ...list.map((p: any) => `- ${p.business_name}${p.city ? `, ${p.city}` : ""} — ${STATUS_LABEL[p.status as PipelineStatus]}, last touched ${days(p.updated_at)} day${days(p.updated_at) === 1 ? "" : "s"} ago · id ${p.entity_type}:${p.slug}${p.note ? `\n    note: ${p.note}` : ""}`),
+      ...list.map((p: any) => {
+        const k = `${p.entity_type}:${p.entity_id}`;
+        const v = activity.views.get(k);
+        const seen = v ? ` · opened their audit ${v.views}× (last ${days(v.last)} day${days(v.last) === 1 ? "" : "s"} ago)` : "";
+        const asked = activity.requested.has(k) ? " · ASKED FOR A REVIEW" : "";
+        return `- ${p.business_name}${p.city ? `, ${p.city}` : ""} — ${STATUS_LABEL[p.status as PipelineStatus]}, last touched ${days(p.updated_at)} day${days(p.updated_at) === 1 ? "" : "s"} ago${seen}${asked} · id ${p.entity_type}:${p.slug}${p.note ? `\n    note: ${p.note}` : ""}`;
+      }),
     ].join("\n");
   },
 };
 
-export const PROSPECT_TOOLS: McpTool[] = [findProspectsTool, prospectDetailsTool, prospectLiveCheckTool, saveProspectTool, myProspectsTool];
+export const shareAuditLinkTool: McpTool = {
+  ...common,
+  name: "share_audit_link",
+  title: "A shareable audit page for a prospect",
+  provides: "a link to a business's own Google audit page that credits the agency when they join",
+  description:
+    "For an APPROVED agency: a link to a page showing that business its own free Google profile check, with 'Shared with you by <agency>', a 'Get started free' button that credits the business to this agency when it joins, and a 'Request a free profile review' form that records the business's permission to be contacted. The AGENCY sends the link from its own email, DMs or in person — ShearQuery sends nothing. Also adds the business to the pipeline. my_prospects shows whether they opened it. Offer a short message to go with it, written from the audit findings (prospect_details), without exact counts that may have moved.",
+  requiresScope: "propose",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  inputSchema: { type: "object", properties: { prospect: { type: "string" } }, required: ["prospect"] },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return "This needs the agency to be signed in.";
+    const blocked = await approvedAgency(ctx.identity.memberId);
+    if (blocked) return blocked;
+    const { shareAuditLink } = await import("@/lib/audit-share");
+    const r: any = await shareAuditLink(ctx.identity.memberId, args.prospect);
+    if (r.error) return r.error;
+    return [
+      `AUDIT LINK for ${r.name}${r.city ? ` (${r.city})` : ""}:`,
+      r.url,
+      "",
+      "Send it from the agency's own email, DMs or in person — ShearQuery doesn't send it. It's in the pipeline now; my_prospects shows when it's opened and whether they ask for a review.",
+      "Suggest a short, friendly message to go with it, based on the real findings (prospect_details). Don't quote exact review counts — the data has a date.",
+    ].join("\n");
+  },
+};
+
+export const PROSPECT_TOOLS: McpTool[] = [findProspectsTool, prospectDetailsTool, prospectLiveCheckTool, saveProspectTool, myProspectsTool, shareAuditLinkTool];

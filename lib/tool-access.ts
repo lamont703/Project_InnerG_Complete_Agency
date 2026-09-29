@@ -96,6 +96,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: "prospect_live_check", label: "Live Google check (5/day)", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "Places API, text fields only (no photos); writes back to the directory. OFF until PROSPECT_LIVE_CHECKS=on (Google billing not set up)." },
   { id: "save_prospect", label: "Save or update a prospect", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "my_prospects", label: "Prospect pipeline", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
+  { id: "share_audit_link", label: "Shareable audit page", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "The agency sends it; ShearQuery sends nothing. Joining credits the agency." },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---
