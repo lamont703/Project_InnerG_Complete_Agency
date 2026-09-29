@@ -85,7 +85,7 @@ export default async function AgencyPage() {
           <div className="mt-6 space-y-6">
             {needsAgreement ? (
               <section className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
-                <strong>Please review and accept the partner agreement.</strong> {agreementRow?.agreement_version ? "It has been updated since you last accepted it." : "We approve agencies once they've accepted it."}{" "}
+                <strong>Please review and accept the partner agreement.</strong> {agreementRow?.agreement_version ? "It has been updated since you last accepted it." : "We can't pay you commission until you've accepted it."}{" "}
                 <Link href="/account/agency/agreement" className="font-bold underline">Read and accept</Link>
               </section>
             ) : (
@@ -103,7 +103,7 @@ export default async function AgencyPage() {
                 <span>
                   {status?.partner_status === "rejected"
                     ? "Your partner application wasn't approved. Contact ShearQuery if you think that's a mistake."
-                    : "We're reviewing your agency. Once you're approved you'll get your referral link and code, and can invite your clients — every business that joins through you is credited to you."}
+                    : "Save your agency's details above and you're approved straight away — you'll get your referral link and code, and can invite your clients. Every business that joins through you is credited to you."}
                 </span>
               </section>
             ) : (

@@ -9,9 +9,13 @@ import { makeReferralCode, normaliseReferralCode, pickReferralSignal, isEmail, t
  * Agency partners: approval, referral codes, email invites, and CREDIT — which
  * agency brought which business to ShearQuery.
  *
- * THE RULES, decided by the product owner on 2026-09-28:
- *  - Only APPROVED agencies earn credit. The account type is self-selected at
- *    signup, so approval is what stops anyone claiming commission.
+ * THE RULES, decided by the product owner on 2026-09-28, revised 2026-09-29:
+ *  - Only APPROVED agencies earn credit. Approval is AUTOMATIC when an agency
+ *    first saves its details (lib/agency.ts); an admin can still reject.
+ *  - The partner agreement gates PAYMENT, not approval: commission accrues
+ *    from day one, but no payout is set up or sent until the current version
+ *    is accepted (agreementAccepted, checked in lib/billing/connect.ts and
+ *    lib/commissions.ts).
  *  - Credit is locked at signup, one agency per client, first one wins — the
  *    primary key on agency_referrals.client_member_id enforces it.
  *  - Invites are email only for now.
@@ -38,16 +42,6 @@ export async function reviewAgency(memberId: string, action: "approve" | "reject
     return { ok: true as const, code: null };
   }
 
-  // Once the partner agreement is final, nobody is approved without having
-  // accepted the current version of it.
-  const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
-  if (agreementIsFinal()) {
-    const { data: acc } = await db().from("agency_profiles").select("agreement_version").eq("community_member_id", memberId).maybeSingle();
-    if (acc?.agreement_version !== PARTNER_AGREEMENT.version) {
-      return { ok: false as const, error: "This agency hasn't accepted the current partner agreement yet." };
-    }
-  }
-
   let code: string = profile.referral_code;
   if (!code) {
     const { data: taken } = await db().from("agency_profiles").select("referral_code").not("referral_code", "is", null);
@@ -68,12 +62,27 @@ export async function reviewAgency(memberId: string, action: "approve" | "reject
         subject: "You're approved as a ShearQuery partner",
         html: `<p>Hi ${m.first_name || "there"},</p>
 <p>${escapeHtml(profile.agency_name)} is approved as a ShearQuery partner. Your referral code is <strong>${code}</strong>, and your link is <a href="${SITE_URL}/join/${code}">${SITE_URL}/join/${code}</a>.</p>
-<p>Businesses that join through your link, your code or an invite you send are credited to you. <a href="${SITE_URL}/account/agency">Open your agency page</a> to invite your clients and see who's joined.</p>`,
+<p>Businesses that join through your link, your code or an invite you send are credited to you. <a href="${SITE_URL}/account/agency">Open your agency page</a> to invite your clients and see who's joined.</p>
+<p>Before we can pay you commission, <a href="${SITE_URL}/account/agency/agreement">read and accept the partner agreement</a>.</p>`,
       }).catch(() => {});
     }
   }
   return { ok: true as const, code };
 }
+
+/**
+ * Whether this agency may be PAID: it has accepted the current partner
+ * agreement. While the agreement is a draft nothing can be accepted, so
+ * nothing is required.
+ */
+export async function agreementAccepted(memberId: string): Promise<boolean> {
+  const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
+  if (!agreementIsFinal()) return true;
+  const { data } = await db().from("agency_profiles").select("agreement_version").eq("community_member_id", memberId).maybeSingle();
+  return data?.agreement_version === PARTNER_AGREEMENT.version;
+}
+
+export const AGREEMENT_NEEDED_FOR_PAYOUT = "Accept the partner agreement before payouts can be set up or sent.";
 
 export async function approvedAgencyByCode(code: string): Promise<{ memberId: string; name: string } | null> {
   const c = normaliseReferralCode(code);

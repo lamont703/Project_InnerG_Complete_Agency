@@ -5,7 +5,8 @@ import { SITE_URL } from "@/lib/site";
 import { seedDemoCalendar } from "@/lib/calendar/demo";
 
 /**
- * Agency accounts, as they exist before the partner program.
+ * Agency accounts: the profile an agency fills in, which approves it as a
+ * partner automatically on first save (lib/agency-partners.ts).
  *
  * An agency signs up (account type "agency"), tells us who they are on
  * /account/agency, and an admin sets up their demo shop from /admin/agencies —
@@ -63,16 +64,21 @@ export async function saveAgencyProfile(memberId: string, input: Record<string, 
   );
   if (error) return { ok: false, error: "Couldn't save that. Try again." };
 
-  // First save only: tell the admin a new agency is waiting for approval.
+  // First save only: approve automatically (decided 2026-09-29 — no manual
+  // review queue; the partner agreement gates payment instead), then tell the
+  // admin, who can still reject from /admin/agencies.
   if (!existing) {
+    const { reviewAgency } = await import("@/lib/agency-partners");
+    const approval = await reviewAgency(memberId, "approve").catch((e) => ({ ok: false as const, error: String(e?.message || e) }));
+    if (!approval.ok) console.error("[agency] auto-approval failed:", approval.error);
     const to = process.env.ADMIN_ALERT_EMAIL || process.env.OUTREACH_ALERT_EMAIL;
     if (to) {
       await sendGhlEmail({
         email: to,
         subject: `New agency on ShearQuery: ${agency_name}`,
-        html: `<p><strong>${escapeHtml(agency_name)}</strong> signed up as an agency${website ? ` (${escapeHtml(website)})` : ""}.</p>
+        html: `<p><strong>${escapeHtml(agency_name)}</strong> signed up as an agency${website ? ` (${escapeHtml(website)})` : ""} and was ${approval.ok ? "approved automatically" : "NOT approved — auto-approval failed"}.</p>
 <p>What they build: ${escapeHtml(clean(input.what_they_build, 1000) || "not said")}<br/>Clients: ${count ?? "not said"} · Markets: ${escapeHtml(clean(input.markets, 300) || "not said")}</p>
-<p><a href="${SITE_URL}/admin/agencies">Review and approve them</a></p>`,
+<p><a href="${SITE_URL}/admin/agencies">Review agencies</a> — you can still reject one.</p>`,
       }).catch(() => {});
     }
   }
