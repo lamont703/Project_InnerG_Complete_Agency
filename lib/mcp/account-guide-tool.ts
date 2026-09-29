@@ -1,6 +1,7 @@
 import { SITE_URL } from "@/lib/site";
 import type { McpTool } from "@/lib/mcp/tools";
 import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/lib/audiences";
+import { GUIDE_TYPES, PRICING_NOTE, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
 
 /**
  * Which ShearQuery account someone needs — for Claude to work out by asking.
@@ -144,5 +145,49 @@ export const setMyAccountTypeTool: McpTool = {
     }
     if (id === "agency") await (await import("@/lib/agency-partners")).ensureDemoClients(ctx.identity.memberId);
     return `Done — this is now a ${AUDIENCES[id].label} account.\n${NEXT_STEP[id]}`;
+  },
+};
+
+/**
+ * What ShearQuery does for each account type, and what is actually open —
+ * built from lib/account-features.ts. Public: an agency uses it before a
+ * pitch, and a business uses it before signing up.
+ */
+export const featureGuideTool: McpTool = {
+  name: "what_shearquery_does",
+  title: "What ShearQuery does for each account type",
+  description:
+    "What a ShearQuery account gets, per account type (barbershop, salon, barber, cosmetologist, school, supply store, student, client): what's on the website, what they can do in Claude, and whether each Claude feature is AVAILABLE NOW or still IN TESTING. Use it when an agency is pitching ShearQuery to a business, or when anyone asks what an account does. Repeat the status with each feature; never present an in-testing feature as available.",
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  inputSchema: {
+    type: "object",
+    properties: {
+      account_type: { type: "string", enum: GUIDE_TYPES, description: "One type in detail. Leave out for all of them." },
+    },
+  },
+  handler: async (args) => {
+    const chosen = args.account_type ? storedAudience(String(args.account_type)) : null;
+    const guides = chosen && GUIDE_TYPES.includes(chosen) ? [typeGuide(chosen)] : featureGuide();
+    const out: string[] = [
+      "WHAT SHEARQUERY DOES, BY ACCOUNT TYPE",
+      `Pricing: ${PRICING_NOTE}`,
+      "Statuses are live: 'In testing' means only ShearQuery's own test account can use it today. Say so when you mention one.",
+      "",
+    ];
+    for (const g of guides) {
+      out.push(`${g.label.toUpperCase()} [${g.id}] — "${g.who}"`);
+      if (g.website.length) {
+        out.push("  On the website:");
+        for (const w of g.website) out.push(`    - ${w.title}: ${w.body}`);
+      }
+      out.push("  In Claude:");
+      for (const c of g.claude) {
+        out.push(`    - ${c.title} [${STATUS_LABEL[c.status].toUpperCase()}]: ${c.what}`);
+        if (c.needs) out.push(`      Needs: ${c.needs}`);
+      }
+      out.push(g.signupPath ? `  Sign up: ${SITE_URL}${g.signupPath}` : g.id === "client" ? "  No signup: a client account is made when they book." : "");
+      out.push("");
+    }
+    return out.join("\n").trim();
   },
 };

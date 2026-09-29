@@ -99,7 +99,7 @@ export const myAgencyTool: McpTool = {
           : "PARTNER STATUS: waiting for ShearQuery to approve. Nothing is credited until then, and there's no referral link yet. They get an email with their link when approved."
       );
       const { clients } = await dashboard(memberId);
-      out.push("", "CLIENT LIST (samples only until approved):", ...clientLines(clients));
+      out.push("", "CLIENT LIST (samples only until approved):", ...clientLines(clients), "", "PITCHING A BUSINESS: what_shearquery_does shows what each account type gets and what is available now versus in testing.");
       return out.join("\n");
     }
 
@@ -115,7 +115,8 @@ export const myAgencyTool: McpTool = {
       "",
       `INVITES SENT: ${invites.length}, joined ${invites.filter((i: any) => i.accepted_at).length}.`,
       "",
-      "Commission terms and managing clients' accounts are NOT available yet; never quote them."
+      "Commission terms and managing clients' accounts are NOT available yet; never quote them.",
+      "PITCHING A BUSINESS: what_shearquery_does shows what each account type gets and what is available now versus in testing."
     );
     return out.join("\n");
   },

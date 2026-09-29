@@ -11,6 +11,7 @@ import { AUDIENCES, storedAudience } from "@/lib/audiences";
 import { AgencyProfileForm } from "@/components/account/agency-profile-form";
 import { AgencyInviteForm } from "@/components/account/agency-invite-form";
 import { CopyField } from "@/components/account/copy-field";
+import { FeatureGuide } from "@/components/account/feature-guide";
 
 /**
  * An agency's home on ShearQuery: who they are, whether they're an approved
@@ -149,6 +150,8 @@ export default async function AgencyPage() {
                 Next for each client: claim their listing, connect Google, then turn on their calendar. The gaps above are who to nudge.
               </p>
             </section>
+
+            <FeatureGuide />
 
             <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6 text-sm leading-relaxed text-slate-700">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">Use ShearQuery in your Claude</h2>

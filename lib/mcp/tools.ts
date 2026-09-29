@@ -17,7 +17,7 @@ import { GBP_TOOLS } from "@/lib/mcp/gbp-tools";
 import { INSTAGRAM_TOOLS } from "@/lib/mcp/instagram-tools";
 import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
-import { accountGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
+import { accountGuideTool, featureGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
 import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
@@ -1175,6 +1175,7 @@ export const MCP_TOOLS: McpTool[] = [
   verifyLicense,
   boothRentForCity,
   accountGuideTool,
+  featureGuideTool,
   setMyAccountTypeTool,
   myAccount,
   myProfileAudit,
