@@ -78,3 +78,12 @@ describe("private surfaces stay out of the sitemap and the .md layer", () => {
     expect(isMarkdownEligible("/school/clock")).toBe(false);
   });
 });
+
+describe("shared audit pages", () => {
+  it("are kept out of the sitemap and the .md layer — each is personal to one business", async () => {
+    const { isExcludedFromSitemap, isMarkdownEligible } = await import("./public-routes");
+    const page = "/audit/shop/marcus-cuts-houston-1a2b";
+    expect(isExcludedFromSitemap(page)).toBe(true);
+    expect(isMarkdownEligible(page)).toBe(false);
+  });
+});
