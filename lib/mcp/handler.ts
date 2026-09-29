@@ -238,7 +238,9 @@ const PUBLIC_INSTRUCTIONS =
   "public Google Business Profile audit for any listed business. Figures come from state " +
   "licensing records and owner-reported listings, and each response states its own coverage — " +
   "quote those caveats when citing a number. When someone wants to sign up or isn't sure which " +
-  "ShearQuery account fits them, call which_shearquery_account and ask its questions before giving a link.";
+  "ShearQuery account fits them, call which_shearquery_account and ask its questions. To sign them up " +
+  "in Claude, call my_shearquery_account — that shows the Connect button, they create the account and " +
+  "come straight back — then set their type with set_my_account_type. A website signup link is the fallback, not the first answer.";
 
 /**
  * On the sign-in endpoint, before sign-in. The owner tools are listed so
