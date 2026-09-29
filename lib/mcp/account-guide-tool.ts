@@ -1,7 +1,8 @@
 import { SITE_URL } from "@/lib/site";
 import type { McpTool } from "@/lib/mcp/tools";
 import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/lib/audiences";
-import { GUIDE_TYPES, PRICING_NOTE, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
+import { COMMISSION_TERMS } from "@/lib/commission-rules";
+import { GUIDE_TYPES, pricingNote, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
 
 /**
  * Which ShearQuery account someone needs — for Claude to work out by asking.
@@ -40,7 +41,7 @@ function line(id: AudienceId): string {
     return `${header}\n  No signup needed: the account is made when they book an appointment, on a listing's Book button or with the booking tools in Claude.`;
   }
   const gets = a.benefits.map((b) => b.title).join("; ");
-  const note = id === "agency" ? "\n  Referral credit starts once ShearQuery approves them. Managing clients' accounts and commission terms are NOT available yet; never quote them." : "";
+  const note = id === "agency" ? `\n  Referral credit starts once ShearQuery approves them. Commission: ${COMMISSION_TERMS} Managing clients' accounts is NOT available yet.` : "";
   return `${header}\n  Gets: ${gets}\n  Or sign up on the website: ${SITE_URL}${membershipPath(id)}${note}`;
 }
 
@@ -94,7 +95,7 @@ const NEXT_STEP: Record<AudienceId, string> = {
   salon: `Next: claim the salon's listing at ${SITE_URL}/search, then my_shearquery_account shows what's connected.`,
   supply_store: `Next: claim the store's listing at ${SITE_URL}/search.`,
   school: `Next: claim the school's listing at ${SITE_URL}/search so tour requests reach them.`,
-  agency: `Next: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link and code. Managing clients' accounts and commission terms are NOT available yet; never quote them.`,
+  agency: `Next: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link, code and earnings. Managing clients' accounts is NOT available yet.`,
 };
 
 /**
@@ -170,7 +171,7 @@ export const featureGuideTool: McpTool = {
     const guides = chosen && GUIDE_TYPES.includes(chosen) ? [typeGuide(chosen)] : featureGuide();
     const out: string[] = [
       "WHAT SHEARQUERY DOES, BY ACCOUNT TYPE",
-      `Pricing: ${PRICING_NOTE}`,
+      `Pricing: ${pricingNote()}`,
       "Statuses are live: 'In testing' means only ShearQuery's own test account can use it today. Say so when you mention one.",
       "",
     ];
@@ -180,9 +181,10 @@ export const featureGuideTool: McpTool = {
         out.push("  On the website:");
         for (const w of g.website) out.push(`    - ${w.title}: ${w.body}`);
       }
+      out.push(g.prices ? `  Plans: Free · Manage $${g.prices.manage}/month · Autopilot $${g.prices.autopilot}/month` : "  Plans: always free");
       out.push("  In Claude:");
       for (const c of g.claude) {
-        out.push(`    - ${c.title} [${STATUS_LABEL[c.status].toUpperCase()}]: ${c.what}`);
+        out.push(`    - ${c.title} [${STATUS_LABEL[c.status].toUpperCase()} · ${c.plan} plan]: ${c.what}`);
         if (c.needs) out.push(`      Needs: ${c.needs}`);
       }
       out.push(g.signupPath ? `  Sign up: ${SITE_URL}${g.signupPath}` : g.id === "client" ? "  No signup: a client account is made when they book." : "");

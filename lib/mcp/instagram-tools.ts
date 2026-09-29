@@ -1,11 +1,11 @@
 import "server-only";
+import { hasInstagramAccess } from "@/lib/feature-access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SITE_URL } from "@/lib/site";
 import { isAdminEmail } from "@/lib/admin-allowlist";
 import { PUBLIC_ENTITY_TYPES } from "@/lib/gbp-audit-public";
 import type { McpTool, McpToolContext } from "@/lib/mcp/tools";
 import {
-  canConnectInstagram,
   memberEmail,
   getMemberInstagram,
   fetchIgProfile,
@@ -19,7 +19,7 @@ import {
 /**
  * Instagram over MCP — the owner's own account, read-only.
  *
- * PRIVATE TESTING. Every handler checks canConnectInstagram before anything
+ * PRIVATE TESTING. Every handler checks hasInstagramAccess (lib/feature-access.ts) before anything
  * else, so an owner outside the allowlist gets a plain "not yet" rather than a
  * connect link that would fail at Instagram's consent screen. The tools are
  * still listed for everyone, which is the one rough edge of testing in
@@ -42,7 +42,7 @@ const NO_IDENTITY = "This tool needs an owner connection and this connection has
 async function gate(ctx: McpToolContext): Promise<{ ok: true; token: string; email: string | null; username: string | null } | { ok: false; text: string }> {
   if (!ctx.identity) return { ok: false, text: NO_IDENTITY };
   const email = await memberEmail(ctx.identity.memberId);
-  if (!canConnectInstagram(email)) return { ok: false, text: NOT_AVAILABLE };
+  if (!(await hasInstagramAccess(email))) return { ok: false, text: NOT_AVAILABLE };
   const conn = await getMemberInstagram(ctx.identity.memberId, ctx.origin || SITE_URL);
   if (!conn.ok) return { ok: false, text: conn.message };
   return { ok: true, token: conn.token, email, username: conn.username };

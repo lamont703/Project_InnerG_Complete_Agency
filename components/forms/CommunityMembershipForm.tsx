@@ -476,7 +476,7 @@ export function CommunityMembershipForm({ source, audience }: CommunityMembershi
         )}
       </Button>
       <p className="text-[11px] text-slate-400 text-center leading-relaxed">
-        Free, always. No credit card required.
+        Free to join. No credit card required.
       </p>
     </form>
   )

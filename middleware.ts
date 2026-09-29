@@ -69,6 +69,12 @@ const INTERNAL_TOOL_ROUTES = [
     // lifetime spend, so the page re-checks isAdmin() itself — this entry is
     // defence in depth, because this middleware fails OPEN on an auth exception.
     "/admin/rebooking",
+    // Sets members' plans by hand, and the agency partner review. Both re-check
+    // isAdmin() themselves; listed here as defence in depth.
+    "/admin/plans",
+    "/api/admin/plans",
+    "/admin/agencies",
+    "/api/admin/agencies",
     // The school console. THE KIOSK IS DELIBERATELY NOT LISTED: /school/clock
     // and /api/school/clock are used by students at a door, unauthenticated, by
     // design — a blanket "/school" prefix here would lock the school out of its

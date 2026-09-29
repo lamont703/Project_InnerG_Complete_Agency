@@ -113,7 +113,7 @@ export async function auditPublicEntity(
       photos: photoCount(row, cfg),
       reviews: Number(row[cfg.reviewField] || 0),
       rating: row.rating != null ? Number(row.rating) : null,
-      hasHours: hasHours(row),
+      hasHours: cfg.hoursCollected ? hasHours(row) : null,
       website: row.website || null,
       phone: row.phone || null,
     },

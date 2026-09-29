@@ -21,6 +21,9 @@ import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
 import { accountGuideTool, featureGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
 import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
 import { DEMO_TOOLS } from "@/lib/mcp/demo-tools";
+import { AUTOPILOT_TOOLS } from "@/lib/mcp/autopilot-tools";
+import { myAgencyAccessTool } from "@/lib/mcp/agency-access-tool";
+import { PROSPECT_TOOLS } from "@/lib/mcp/prospect-tools";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
@@ -799,6 +802,7 @@ const myAccount: McpTool = {
       type
         ? `Account type: ${AUDIENCES[type].label}.${type === "agency" ? " Call my_agency for their partner status, details and referral link." : ""}`
         : "Account type: NOT SET. Ask the which_shearquery_account questions, confirm with them, then call set_my_account_type.",
+      await planLine(identity.memberId, type),
       "",
     ];
 
@@ -1173,6 +1177,15 @@ const myPhotoCoverage: McpTool = {
   },
 };
 
+/** "Plan: Free — 2 of 3 free publishes left…", or null for types that are always free. */
+async function planLine(memberId: string, type: ReturnType<typeof storedAudience>): Promise<string | null> {
+  const { hasPaidPlans, planSummary } = await import("@/lib/plans");
+  if (!hasPaidPlans(type)) return null;
+  const { getMemberPlan, publishesThisMonth } = await import("@/lib/member-plan");
+  const [mp, used] = await Promise.all([getMemberPlan(memberId), publishesThisMonth(memberId)]);
+  return `Plan: ${planSummary(mp.plan, type, used)}`;
+}
+
 export const MCP_TOOLS: McpTool[] = [
   compareSchools,
   compareShops,
@@ -1192,6 +1205,9 @@ export const MCP_TOOLS: McpTool[] = [
   ...CLIENT_BOOKING_TOOLS,
   ...AGENCY_TOOLS,
   ...DEMO_TOOLS,
+  ...AUTOPILOT_TOOLS,
+  myAgencyAccessTool,
+  ...PROSPECT_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

@@ -96,4 +96,4 @@ export const stopDemoTool: McpTool = {
 export const DEMO_TOOLS: McpTool[] = [startDemoTool, stopDemoTool];
 
 /** Tools that always see the real signed-in member, even during a demo. */
-export const DEMO_EXEMPT = new Set(["start_demo", "stop_demo", "my_agency", "update_my_agency_details"]);
+export const DEMO_EXEMPT = new Set(["start_demo", "stop_demo", "my_agency", "update_my_agency_details", "invite_client_to_shearquery", "my_agency_payouts", "client_support_view", "request_client_access", "find_prospects", "prospect_details", "prospect_live_check", "save_prospect", "my_prospects"]);

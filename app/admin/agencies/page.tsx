@@ -3,6 +3,7 @@ import { Briefcase } from "lucide-react";
 import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { listAgencies } from "@/lib/agency";
+import { PARTNER_AGREEMENT, agreementIsFinal } from "@/lib/partner-agreement";
 import { AgencyDemoButton } from "@/components/admin/agency-demo-button";
 import { AgencyReviewButtons } from "@/components/admin/agency-review-buttons";
 
@@ -48,6 +49,13 @@ export default async function AgenciesAdminPage() {
                     )}
                   </div>
                 </div>
+                <p className={`mt-2 text-xs font-bold ${r.agreementVersion === PARTNER_AGREEMENT.version ? "text-emerald-700" : agreementIsFinal() ? "text-amber-700" : "text-slate-400"}`}>
+                  {r.agreementVersion === PARTNER_AGREEMENT.version
+                    ? "Partner agreement accepted"
+                    : agreementIsFinal()
+                      ? `Hasn't accepted the partner agreement${r.agreementVersion ? " (accepted an older version)" : ""} — approval waits on it`
+                      : "Partner agreement is still a draft — not required yet"}
+                </p>
                 <p className="mt-3 text-sm text-slate-700">{r.what_they_build || "—"}</p>
                 <p className="mt-1 text-xs text-slate-500">
                   <strong>{r.clientCount} credited</strong> · {r.client_count != null ? `${r.client_count} clients (their estimate)` : "clients not said"} · {r.markets || "markets not said"} · joined {new Date(r.createdAt).toLocaleDateString()}

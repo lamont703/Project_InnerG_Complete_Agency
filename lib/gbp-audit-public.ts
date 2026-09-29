@@ -27,6 +27,13 @@ export interface PublicEntityConfig {
    *  photo check entirely there rather than report zero photos, which would be
    *  a false finding about the business rather than a gap in our data. */
   imagesField: string | null;
+  /**
+   * Whether this table's scrape collected opening hours at all. Shops, salons
+   * and stores never did (google_hours is empty on every row, measured
+   * 2026-09-29), so "no hours" there is a gap in OUR data, not theirs — and the
+   * check is marked unavailable rather than failed. Schools did collect them.
+   */
+  hoursCollected: boolean;
   /** Singular noun for the UI. */
   label: string;
   /** Public profile route prefix. */
@@ -36,27 +43,27 @@ export interface PublicEntityConfig {
 export const PUBLIC_ENTITY_TYPES: Record<string, PublicEntityConfig> = {
   shop: {
     table: "agent_barbershop_leads", nameField: "shop_name", reviewField: "total_reviews",
-    imagesField: "google_images", label: "barbershop", route: "/shop",
+    imagesField: "google_images", hoursCollected: false, label: "barbershop", route: "/shop",
   },
   salon: {
     table: "agent_salon_leads", nameField: "shop_name", reviewField: "total_reviews",
-    imagesField: "google_images", label: "salon", route: "/salons",
+    imagesField: "google_images", hoursCollected: false, label: "salon", route: "/salons",
   },
   barber_school: {
     table: "agent_barber_school_leads", nameField: "school_name", reviewField: "google_review_count",
-    imagesField: null, label: "barber school", route: "/schools",
+    imagesField: null, hoursCollected: true, label: "barber school", route: "/schools",
   },
   cosmetology_school: {
     table: "agent_cosmetology_school_leads", nameField: "school_name", reviewField: "google_review_count",
-    imagesField: null, label: "cosmetology school", route: "/schools",
+    imagesField: null, hoursCollected: true, label: "cosmetology school", route: "/schools",
   },
   barber_store: {
     table: "agent_barber_supply_store_leads", nameField: "name", reviewField: "total_reviews",
-    imagesField: "google_images", label: "barber supply store", route: "/stores",
+    imagesField: "google_images", hoursCollected: false, label: "barber supply store", route: "/stores",
   },
   beauty_store: {
     table: "agent_beauty_supply_store_leads", nameField: "name", reviewField: "total_reviews",
-    imagesField: "google_images", label: "beauty supply store", route: "/stores",
+    imagesField: "google_images", hoursCollected: false, label: "beauty supply store", route: "/stores",
   },
 };
 
@@ -140,7 +147,8 @@ export interface PublicEntityFacts {
   photos: number | null; // null when the source has no photo data at all
   reviews: number;
   rating: number | null;
-  hasHours: boolean;
+  /** null when this kind of listing has no hours data at all — see hoursCollected. */
+  hasHours: boolean | null;
   website: string | null;
   phone: string | null;
 }
@@ -197,12 +205,19 @@ export function buildPublicAudit(
       : "Ask every satisfied client. Review count is one of the few ranking inputs you can influence directly.",
   });
 
-  checks.push({
-    id: "hours", label: "Opening hours", weight: 15, earned: facts.hasHours ? 15 : 0,
-    status: facts.hasHours ? "pass" : "fail",
-    detail: facts.hasHours ? "Hours are published." : "No opening hours published.",
-    fix: facts.hasHours ? undefined : "Add hours — without them you disappear from “open now” searches.",
-  });
+  if (facts.hasHours === null) {
+    checks.push({
+      id: "hours", label: "Opening hours", status: "unavailable", weight: 0, earned: 0,
+      detail: "We don't hold opening hours for this type of listing — connect Google to include it.",
+    });
+  } else {
+    checks.push({
+      id: "hours", label: "Opening hours", weight: 15, earned: facts.hasHours ? 15 : 0,
+      status: facts.hasHours ? "pass" : "fail",
+      detail: facts.hasHours ? "Hours are published." : "No opening hours published.",
+      fix: facts.hasHours ? undefined : "Add hours — without them you disappear from “open now” searches.",
+    });
+  }
 
   checks.push({
     id: "website", label: "Website link", weight: 15, earned: facts.website ? 15 : 0,

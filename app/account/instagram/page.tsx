@@ -4,7 +4,8 @@ import { Instagram, Lock } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { canConnectInstagram, memberEmail } from "@/lib/instagram-member";
+import { memberEmail } from "@/lib/instagram-member";
+import { hasInstagramAccess } from "@/lib/feature-access";
 import { DisconnectInstagramButton } from "@/components/account/disconnect-instagram-button";
 
 /**
@@ -43,7 +44,7 @@ export default async function InstagramPage({ searchParams }: { searchParams: Pr
     return null;
   }
 
-  const allowed = canConnectInstagram(await memberEmail(ctx.memberId));
+  const allowed = await hasInstagramAccess(await memberEmail(ctx.memberId));
   const { data: conn } = await (createAdminClient().from("member_instagram_connections") as any)
     .select("username, account_type, status, expires_at, updated_at")
     .eq("community_member_id", ctx.memberId)

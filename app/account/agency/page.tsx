@@ -6,6 +6,14 @@ import { resolveMemberContext } from "@/lib/account/view-as";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAgencyProfile } from "@/lib/agency";
 import { agencyDashboard } from "@/lib/agency-partners";
+import { agencyEarnings } from "@/lib/commissions";
+import { COMMISSION_TERMS, dollars } from "@/lib/commission-rules";
+import { refreshPayoutStatus } from "@/lib/billing/connect";
+import { AgencyPayoutButton } from "@/components/account/agency-payout-button";
+import { sharedClientIds } from "@/lib/agency-support";
+import { myProspects } from "@/lib/prospecting";
+import { STATUS_LABEL as PROSPECT_STATUS } from "@/lib/prospecting-rules";
+import { RequestAccessButton } from "@/components/account/request-access-button";
 import { SITE_URL } from "@/lib/site";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 import { AgencyProfileForm } from "@/components/account/agency-profile-form";
@@ -18,8 +26,8 @@ import { FeatureGuide } from "@/components/account/feature-guide";
  * partner, their referral link and code, invites to their clients, and every
  * business credited to them with where each one is up to.
  *
- * Credit is recorded from approval onward (lib/agency-partners.ts). Commission
- * needs billing and is not shown — nothing here promises an amount.
+ * Credit is recorded from approval onward (lib/agency-partners.ts), and
+ * commission on what credited clients pay is in lib/commissions.ts.
  */
 
 export const dynamic = "force-dynamic";
@@ -41,6 +49,24 @@ export default async function AgencyPage() {
     : { data: null };
   const approved = status?.partner_status === "approved";
   const dash = isAgency ? await agencyDashboard(ctx.memberId) : null;
+  const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
+  const { data: agreementRow } = isAgency
+    ? await (createAdminClient().from("agency_profiles") as any).select("agreement_version").eq("community_member_id", ctx.memberId).maybeSingle()
+    : { data: null };
+  const needsAgreement = isAgency && agreementIsFinal() && agreementRow?.agreement_version !== PARTNER_AGREEMENT.version;
+  const shared = isAgency ? await sharedClientIds(ctx.memberId) : new Set<string>();
+  const prospects = isAgency && approved ? await myProspects(ctx.memberId).catch(() => []) : [];
+  const earnings = approved ? await agencyEarnings(ctx.memberId) : null;
+  // Stripe payout account: re-read from Stripe while it isn't ready yet (they
+  // may have just come back from onboarding), otherwise trust the saved flag.
+  const { data: payoutRow } = approved
+    ? await (createAdminClient().from("agency_profiles") as any).select("stripe_account_id, payouts_ready").eq("community_member_id", ctx.memberId).maybeSingle()
+    : { data: null };
+  const payouts = !approved || !payoutRow?.stripe_account_id
+    ? { connected: false, ready: false }
+    : payoutRow.payouts_ready
+      ? { connected: true, ready: true }
+      : await refreshPayoutStatus(ctx.memberId).catch(() => ({ connected: true, ready: false }));
 
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">
@@ -57,6 +83,15 @@ export default async function AgencyPage() {
           </p>
         ) : (
           <div className="mt-6 space-y-6">
+            {needsAgreement ? (
+              <section className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
+                <strong>Please review and accept the partner agreement.</strong> {agreementRow?.agreement_version ? "It has been updated since you last accepted it." : "We approve agencies once they've accepted it."}{" "}
+                <Link href="/account/agency/agreement" className="font-bold underline">Read and accept</Link>
+              </section>
+            ) : (
+              <p className="text-xs text-slate-500"><Link href="/account/agency/agreement" className="underline">The partner agreement</Link></p>
+            )}
+
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">About your agency</h2>
               <div className="mt-4"><AgencyProfileForm initial={profile} /></div>
@@ -82,6 +117,53 @@ export default async function AgencyPage() {
                     <CopyField label="Link" value={`${SITE_URL}/join/${status!.referral_code}`} />
                     <CopyField label="Code" value={status!.referral_code} />
                   </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Your earnings</h2>
+                  <p className="mt-2 text-sm text-slate-600">{COMMISSION_TERMS}</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {[
+                      ["Ready to pay out", earnings!.summary.readyCents, earnings!.summary.canPayOut ? "Paid out by hand, monthly" : "Below the payout minimum"],
+                      ["Waiting out the refund window", earnings!.summary.pendingCents, "Payable 30 days after each payment"],
+                      ["Paid to you so far", earnings!.summary.paidCents, `${earnings!.payouts.length} payout${earnings!.payouts.length === 1 ? "" : "s"}`],
+                    ].map(([label, cents, sub]) => (
+                      <div key={label as string} className="rounded-xl bg-slate-50 p-4">
+                        <p className="text-xs font-bold text-slate-500">{label}</p>
+                        <p className="mt-1 text-xl font-black">{dollars(cents as number)}</p>
+                        <p className="text-xs text-slate-500">{sub}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-4">
+                    <p className="flex-1 text-sm text-slate-700">
+                      {payouts.ready
+                        ? "Payouts go straight to your bank through Stripe. Your payout history, bank details and tax forms are on your Stripe page."
+                        : payouts.connected
+                          ? "Your Stripe payout account isn't finished — Stripe needs a few more details before it can pay you."
+                          : "Set up payouts so we can send your commission straight to your bank. You'll enter your bank and tax details on Stripe's page — ShearQuery never sees them."}
+                    </p>
+                    {payouts.ready
+                      ? <AgencyPayoutButton action="dashboard" label="Open my Stripe page" />
+                      : <AgencyPayoutButton action="setup" label={payouts.connected ? "Finish payout setup" : "Set up payouts"} primary />}
+                  </div>
+                  {earnings!.lines.length === 0 ? (
+                    <p className="mt-4 text-sm text-slate-600">Nothing earned yet. Commission starts when a business credited to you pays for a plan.</p>
+                  ) : (
+                    <ul className="mt-4 divide-y divide-slate-100 text-sm">
+                      {earnings!.lines.map((l) => (
+                        <li key={l.invoiceId} className="flex flex-wrap justify-between gap-2 py-2">
+                          <span>{new Date(l.earnedAt).toLocaleDateString()} · {l.clientName} paid {dollars(l.paidCents - l.refundedCents)}{l.refundedCents ? " (after a refund)" : ""}</span>
+                          <span className="font-bold">
+                            {dollars(l.commissionCents)}
+                            <span className="ml-2 text-xs font-normal text-slate-500">
+                              {l.paidOutCents === l.commissionCents && l.commissionCents > 0 ? "paid" : new Date(l.payableAt) > new Date() ? `payable ${new Date(l.payableAt).toLocaleDateString()}` : "ready"}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </section>
 
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -118,7 +200,7 @@ export default async function AgencyPage() {
                       <tr>
                         <th className="py-2">Client</th><th>Type</th><th>Joined</th>
                         <th className="text-center">Listing claimed</th><th className="text-center">Google connected</th>
-                        <th className="text-center">Calendar live</th><th className="text-center">Audit score</th>
+                        <th className="text-center">Calendar live</th><th className="text-center">Audit score</th><th className="text-center">Support view</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -139,6 +221,11 @@ export default async function AgencyPage() {
                             <td className="text-center">{yes(c.googleConnected)}</td>
                             <td className="text-center">{yes(c.calendarLive)}</td>
                             <td className="text-center font-bold">{c.auditScore ?? <span className="text-slate-300">—</span>}</td>
+                            <td className="text-center text-xs">
+                              {c.isDemo ? <span className="text-slate-300">—</span>
+                                : shared.has(c.memberId) ? <Link href={`/account/agency/clients/${c.memberId}`} className="font-bold text-blue-700 underline">Open</Link>
+                                : <RequestAccessButton clientMemberId={c.memberId} />}
+                            </td>
                           </tr>
                         );
                       })}
@@ -153,13 +240,33 @@ export default async function AgencyPage() {
 
             <FeatureGuide />
 
+            {approved && (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Your prospects ({prospects.length})</h2>
+                {prospects.length === 0 ? (
+                  <p className="mt-2 text-sm text-slate-600">
+                    In your Claude, ask &ldquo;find Houston barbershops that need help with Google&rdquo; — then save the ones you&apos;re pitching. They&apos;ll show here.
+                  </p>
+                ) : (
+                  <ul className="mt-3 divide-y divide-slate-100 text-sm">
+                    {prospects.slice(0, 25).map((p: any) => (
+                      <li key={p.id} className="flex flex-wrap justify-between gap-2 py-2">
+                        <span><span className="font-bold">{p.business_name}</span>{p.city ? <span className="text-slate-500"> · {p.city}</span> : null}{p.note ? <span className="block text-xs text-slate-500">{p.note}</span> : null}</span>
+                        <span className="text-xs font-bold text-slate-600">{PROSPECT_STATUS[p.status as keyof typeof PROSPECT_STATUS] ?? p.status}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
+
             <section className="rounded-2xl border border-slate-200 bg-slate-100 p-6 text-sm leading-relaxed text-slate-700">
               <h2 className="text-sm font-black uppercase tracking-wide text-slate-600">Use ShearQuery in your Claude</h2>
               <p className="mt-2">
                 Add <code className="rounded bg-white px-1 font-mono text-[12px]">https://shearquery.com/mcp</code> as a connector in Claude for industry data and a Google profile audit on any listing — useful before a first call with a prospect.
               </p>
               <p className="mt-3 text-xs text-slate-500">
-                Managing your clients&apos; accounts from ShearQuery, with their permission, is being built. Commission terms aren&apos;t set yet.
+                Managing your clients&apos; accounts from ShearQuery, with their permission, is being built.
               </p>
             </section>
           </div>
