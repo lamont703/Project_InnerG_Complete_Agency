@@ -35,6 +35,17 @@ const SCOPE_TEXT: Record<string, string> = {
   propose: "Draft changes to your Google profile for you to review. A draft changes nothing on Google.",
 };
 
+/**
+ * With no business on the account — a client booking a haircut from their AI,
+ * most often — the Google profile wording above describes nothing they have.
+ * The scopes granted are the same; this says what they mean for this person.
+ */
+const CLIENT_TEXT = [
+  "Find barbers and stylists and see their open times.",
+  "Book, move and cancel your own appointments, after you confirm your mobile number with a text code.",
+  "See the appointments you've booked.",
+];
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">
@@ -120,7 +131,7 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
         {business ? (
           <>It will act for <strong className="font-black text-slate-900">{business}</strong>.</>
         ) : (
-          <>You haven&apos;t claimed a business yet, so it will only be able to look things up until you do.</>
+          <>No business is linked to this account, so it can look things up and manage your own appointments. If you own a business, claim it on ShearQuery and this connection can help run its Google profile too.</>
         )}
       </p>
 
@@ -152,11 +163,11 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">It will be able to</h2>
           <ul className="mt-3 space-y-2 text-sm leading-relaxed text-slate-700">
-            {req.scopes.filter((s) => s !== "publish").map((s) => (
-              <li key={s} className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{SCOPE_TEXT[s]}</li>
+            {(business ? req.scopes.filter((s) => s !== "publish").map((s) => SCOPE_TEXT[s]) : CLIENT_TEXT).map((line) => (
+              <li key={line} className="flex gap-2"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{line}</li>
             ))}
           </ul>
-          {wantsPublish && (
+          {wantsPublish && business && (
             <label className="mt-4 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
               <input type="checkbox" name="publish" value="yes" defaultChecked className="mt-1 h-4 w-4 shrink-0 accent-slate-900" />
               <span>
@@ -167,7 +178,7 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
             </label>
           )}
           <p className="mt-4 text-xs text-slate-500">
-            It can&apos;t change your business name, address or main category, or see your password or payment details.
+            {business ? "It can't change your business name, address or main category, or see your password or payment details." : "It can't see your password or payment details."}
           </p>
         </section>
 

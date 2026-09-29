@@ -59,6 +59,10 @@ function LoginContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const redirectTo = searchParams.get("redirect") || "/api/auth/provision"
+    // Sent here by Claude or another AI app mid-connection — often a client who
+    // wants to book a haircut, for whom "school portal" and "dashboard" say
+    // nothing. The form is the same; the words say what happens next.
+    const fromApp = redirectTo.startsWith("/oauth/authorize")
 
     const {
         register,
@@ -123,16 +127,20 @@ function LoginContent() {
                     <div className="inline-flex items-center gap-2 rounded-full glass-panel px-4 py-1.5 mb-4 border-white/5">
                         <Sparkles className="h-4 w-4 text-primary" />
                         <span className="text-[10px] font-black text-primary uppercase tracking-widest">
-                            {isRegisterView ? "Institutional Enrollment" : "Professional Access"}
+                            {fromApp ? "Connect your AI" : isRegisterView ? "Institutional Enrollment" : "Professional Access"}
                         </span>
                     </div>
                     <h1 className="text-3xl font-black text-foreground tracking-tighter uppercase italic">
-                        {isRegisterView ? "Join Your Program" : "Sign In"}
+                        {isRegisterView ? (fromApp ? "Create your free account" : "Join Your Program") : "Sign In"}
                     </h1>
                     <p className="mt-2 text-muted-foreground text-sm font-medium tracking-tight">
-                        {isRegisterView 
-                            ? "Complete your professional profile to unlock your dashboard access." 
-                            : "Enter your account details to access your tools and school portal."
+                        {fromApp
+                            ? isRegisterView
+                                ? "It takes a minute, and you'll go straight back to your AI."
+                                : "Sign in to connect ShearQuery to your AI. New here? Create a free account below."
+                            : isRegisterView
+                                ? "Complete your professional profile to unlock your dashboard access."
+                                : "Enter your account details to access your tools and school portal."
                         }
                     </p>
                 </div>
@@ -199,7 +207,7 @@ function LoginContent() {
                                     </>
                                 ) : (
                                     <>
-                                        Access My Dashboard
+                                        {fromApp ? "Sign In" : "Access My Dashboard"}
                                         <ArrowRight className="ml-2 h-4 w-4" />
                                     </>
                                 )}
@@ -215,12 +223,12 @@ function LoginContent() {
                             >
                                 {isRegisterView 
                                     ? "Already have an account? Sign In" 
-                                    : "Need to join a school? Register Now"
+                                    : fromApp ? "New to ShearQuery? Create a free account" : "Need to join a school? Register Now"
                                 }
                             </button>
                             <p className="text-[10px] text-muted-foreground font-bold tracking-tight uppercase px-8 opacity-50">
                                 {isRegisterView 
-                                    ? "Registration provides immediate access to your portal materials." 
+                                    ? fromApp ? "Free for clients. You'll go back to your AI when you're done." : "Registration provides immediate access to your portal materials." 
                                     : "Secure access is provided by Inner G Complete Agency."
                                 }
                             </p>

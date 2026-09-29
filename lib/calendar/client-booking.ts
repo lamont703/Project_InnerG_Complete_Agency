@@ -33,16 +33,6 @@ export const CLIENT_LIMITS = {
   codeMaxAttempts: 5,
   codesPerPhonePerHour: 3,
   codesPerRequesterPerHour: 6,
-  /**
-   * Codes per hour from one AI assistant's server address. A guest booking
-   * from Claude or ChatGPT reaches us from THEIR servers, shared by all their
-   * users, so the website's per-visitor 6 would let the seventh person on
-   * ChatGPT that hour be refused. The per-phone limit is unchanged, so no one
-   * number can be spammed either way.
-   */
-  codesPerAiServerPerHour: 60,
-  /** How long a guest pass lasts after one verified code. */
-  guestPassMinutes: 30,
 } as const;
 
 const db = () => createAdminClient() as any;
@@ -129,7 +119,7 @@ export type CodeSend = { ok: true } | { ok: false; reason: string };
  * Send a 6-digit code. Rate-limited per phone and per requester (member or
  * IP), so the endpoint cannot be used to text a stranger repeatedly.
  */
-export async function sendPhoneCode(args: { phone: unknown; memberId?: string | null; ip?: string | null; viaAi?: boolean }): Promise<CodeSend> {
+export async function sendPhoneCode(args: { phone: unknown; memberId?: string | null; ip?: string | null }): Promise<CodeSend> {
   const phone = normalisePhone(args.phone);
   if (!phone) return { ok: false, reason: "That doesn't look like a full mobile number with area code." };
   const hourAgo = new Date(Date.now() - 3600_000).toISOString();
@@ -137,14 +127,11 @@ export async function sendPhoneCode(args: { phone: unknown; memberId?: string | 
   const { count: perPhone } = await db().from("calendar_phone_codes").select("id", { count: "exact", head: true }).eq("phone", phone).gte("created_at", hourAgo);
   if ((perPhone ?? 0) >= CLIENT_LIMITS.codesPerPhonePerHour) return { ok: false, reason: "Too many codes sent to that number. Try again in an hour." };
 
-  // AI guest requests are counted under their own key, since the address is
-  // the AI provider's server, not the client's.
-  const requester = args.viaAi ? `ai:${args.ip || "unknown"}` : args.ip || "unknown";
-  const cap = args.memberId ? CLIENT_LIMITS.codesPerRequesterPerHour : args.viaAi ? CLIENT_LIMITS.codesPerAiServerPerHour : CLIENT_LIMITS.codesPerRequesterPerHour;
+  const requester = args.ip || "unknown";
   let q = db().from("calendar_phone_codes").select("id", { count: "exact", head: true }).gte("created_at", hourAgo);
   q = args.memberId ? q.eq("community_member_id", args.memberId) : q.eq("requester_ip", requester);
   const { count: perRequester } = await q;
-  if ((perRequester ?? 0) >= cap) return { ok: false, reason: "Too many codes requested. Try again in an hour." };
+  if ((perRequester ?? 0) >= CLIENT_LIMITS.codesPerRequesterPerHour) return { ok: false, reason: "Too many codes requested. Try again in an hour." };
 
   const code = String(randomInt(0, 1_000_000)).padStart(6, "0");
   const { error } = await db().from("calendar_phone_codes").insert({
@@ -315,46 +302,6 @@ export async function clientCancel(args: { providerId: string; appointmentId: st
 }
 
 export { normalisePhone };
-
-// ── guests managing their own bookings, without an account ─────────────────
-
-/** After one verified code: a pass the client's AI can use for the next steps. */
-export async function issueGuestPass(phone: string): Promise<string> {
-  const token = randomBytes(24).toString("base64url");
-  await db().from("calendar_guest_passes").insert({
-    token_hash: sha(token), phone, expires_at: new Date(Date.now() + CLIENT_LIMITS.guestPassMinutes * 60_000).toISOString(),
-  });
-  return token;
-}
-
-/** The verified phone behind a live pass, or null. */
-export async function phoneFromGuestPass(token: unknown): Promise<string | null> {
-  const t = String(token ?? "");
-  if (!/^[A-Za-z0-9_-]{32}$/.test(t)) return null;
-  const { data } = await db().from("calendar_guest_passes").select("phone, expires_at").eq("token_hash", sha(t)).maybeSingle();
-  return data && new Date(data.expires_at) > new Date() ? data.phone : null;
-}
-
-/** A client's upcoming live bookings, across every pro, by their verified phone. */
-export async function upcomingForPhone(phone: string) {
-  const { data: clients } = await db().from("calendar_clients").select("id, provider_id").eq("phone", phone);
-  if (!clients?.length) return [];
-  const { data } = await db()
-    .from("calendar_appointments")
-    .select("id, provider_id, starts_at, status, service_name, price_cents, client_id")
-    .in("client_id", clients.map((c: any) => c.id))
-    .in("status", ["booked", "confirmed"])
-    .gte("starts_at", new Date().toISOString())
-    .order("starts_at")
-    .limit(20);
-  return (data || []) as { id: string; provider_id: string; starts_at: string; status: string; service_name: string; price_cents: number | null; client_id: string }[];
-}
-
-/** Whether this appointment belongs to that phone — the check before a guest acts on it. */
-export async function appointmentBelongsToPhone(appointmentId: string, phone: string): Promise<string | null> {
-  const { data } = await db().from("calendar_appointments").select("provider_id, client:calendar_clients(phone)").eq("id", appointmentId).maybeSingle();
-  return data?.client?.phone === phone ? data.provider_id : null;
-}
 
 /**
  * Move a client's own booking to another open time, for the same service.

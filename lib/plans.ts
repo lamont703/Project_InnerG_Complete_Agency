@@ -62,7 +62,7 @@ export function planIncludes(plan: Plan): string[] {
       "Everything in Free",
       "Unlimited Google publishing, from Claude or the website",
       `The appointment book, run from Claude${soon(calendar)}`,
-      `Clients book you from their own AI — Claude or ChatGPT — or your booking page and QR code, no account needed${soon(calendar)}`,
+      `Clients book you from their own AI — Claude or ChatGPT — with a free client account, or from your booking page and QR code with no account${soon(calendar)}`,
       `Instagram insights in Claude${soon(instagram)}`,
     ],
     autopilot: ["Everything in Manage", "Replies to your 4 and 5 star reviews, in your voice", "One Google post a week — you see it a day ahead", "A Monday report and a daily digest"],
