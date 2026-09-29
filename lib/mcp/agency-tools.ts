@@ -125,6 +125,7 @@ export const myAgencyTool: McpTool = {
       );
       const { clients } = await dashboard(memberId);
       out.push("", "CLIENT LIST (samples only until approved):", ...clientLines(clients), "", "PITCHING A BUSINESS: what_shearquery_does shows what each account type gets and what is available now versus in testing.");
+      { const m = await import("@/lib/agency-next-actions"); out.push("", ...m.actionLines(await m.agencyNextActions(memberId))); }
       return out.join("\n");
     }
 
@@ -147,6 +148,8 @@ export const myAgencyTool: McpTool = {
       "",
       ...(await earningsLines(memberId)),
       "Managing clients' accounts from ShearQuery is NOT available yet; never say it is.",
+      "",
+      ...(await (async () => { const m = await import("@/lib/agency-next-actions"); return m.actionLines(await m.agencyNextActions(memberId)); })()),
       "PITCHING A BUSINESS: what_shearquery_does shows what each account type gets and what is available now versus in testing."
     );
     return out.join("\n");

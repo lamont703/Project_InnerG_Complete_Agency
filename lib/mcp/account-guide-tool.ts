@@ -95,7 +95,7 @@ const NEXT_STEP: Record<AudienceId, string> = {
   salon: `Next: claim the salon's listing at ${SITE_URL}/search, then my_shearquery_account shows what's connected.`,
   supply_store: `Next: claim the store's listing at ${SITE_URL}/search.`,
   school: `Next: claim the school's listing at ${SITE_URL}/search so tour requests reach them.`,
-  agency: `Next: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link, code and earnings. Managing clients' accounts is NOT available yet.`,
+  agency: `Next: call my_shearquery_account — it lists the agency's next actions. First among them: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link, code and earnings. Managing clients' accounts is NOT available yet.`,
 };
 
 /**

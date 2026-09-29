@@ -806,6 +806,13 @@ const myAccount: McpTool = {
       "",
     ];
 
+    // ── an agency: its next actions, not an owner's listing ──
+    if (type === "agency") {
+      const { agencyNextActions, actionLines } = await import("@/lib/agency-next-actions");
+      lines.push(...actionLines(await agencyNextActions(identity.memberId)), "", "my_agency has the full picture: clients, invites, earnings and payouts.");
+      return lines.filter((l) => l !== null).join("\n");
+    }
+
     // ── the claimed listing ──
     if (member.is_demo) {
       // A demo business (lib/demo/) has a Google profile but no directory
