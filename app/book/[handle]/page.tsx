@@ -90,11 +90,14 @@ export default async function BookPage({ params }: Params) {
           <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-500"><Bot className="h-4 w-4" /> Or book from your AI</h2>
           <p className="mt-2 text-sm text-slate-600">Ask your own AI assistant to book it. You don&apos;t need a ShearQuery account — it texts you a code to confirm your number.</p>
           <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
-            <li><strong>Claude:</strong> Settings → Connectors → Add custom connector, and paste <code className="rounded bg-slate-100 px-1">{SITE_URL}/mcp</code>.</li>
+            <li>
+              <strong>Claude:</strong> Customize → Connectors → Add custom connector, and paste <code className="rounded bg-slate-100 px-1">{SITE_URL}/mcp</code>.
+              If it asks how to sign in, choose <strong>Sign in when needed</strong>. You don&apos;t need to click Connect or make a ShearQuery account to book.
+            </li>
             <li><strong>ChatGPT:</strong> Settings → Apps → Advanced settings, turn on Developer mode, then add a connector with the same address.</li>
             <li>Then say: <span className="font-bold">&ldquo;{phrase}&rdquo;</span></li>
           </ol>
-          <p className="mt-2 text-xs text-slate-500">Adding a connector needs a paid Claude or ChatGPT plan.</p>
+          <p className="mt-2 text-xs text-slate-500">Claude&apos;s Free plan can add one custom connector. ChatGPT needs a paid plan for Developer mode.</p>
         </section>
 
         <section className="mt-4 flex flex-wrap items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
