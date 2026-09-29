@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe, syncSubscription, recordInvoicePaid, recordRefund } from "@/lib/billing/stripe";
+import { accrueForInvoice } from "@/lib/commissions";
 
 /**
  * Stripe's notifications. The ONLY place a payment changes anything here.
@@ -44,10 +45,15 @@ export async function POST(req: Request) {
         break;
       case "invoice.paid":
         await recordInvoicePaid(event.data.object);
+        // The agency's commission on it, if the client was credited to one.
+        if (event.data.object.id) await accrueForInvoice(event.data.object.id);
         break;
-      case "charge.refunded":
-        await recordRefund(event.data.object);
+      case "charge.refunded": {
+        const invoiceId = await recordRefund(event.data.object);
+        // A refund lowers the commission, or takes it back from the next payout.
+        if (invoiceId) await accrueForInvoice(invoiceId);
         break;
+      }
       default:
         break;
     }

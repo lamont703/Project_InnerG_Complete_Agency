@@ -6,6 +6,8 @@ import { resolveMemberContext } from "@/lib/account/view-as";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAgencyProfile } from "@/lib/agency";
 import { agencyDashboard } from "@/lib/agency-partners";
+import { agencyEarnings } from "@/lib/commissions";
+import { COMMISSION_TERMS, dollars } from "@/lib/commission-rules";
 import { SITE_URL } from "@/lib/site";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 import { AgencyProfileForm } from "@/components/account/agency-profile-form";
@@ -18,8 +20,8 @@ import { FeatureGuide } from "@/components/account/feature-guide";
  * partner, their referral link and code, invites to their clients, and every
  * business credited to them with where each one is up to.
  *
- * Credit is recorded from approval onward (lib/agency-partners.ts). Commission
- * needs billing and is not shown — nothing here promises an amount.
+ * Credit is recorded from approval onward (lib/agency-partners.ts), and
+ * commission on what credited clients pay is in lib/commissions.ts.
  */
 
 export const dynamic = "force-dynamic";
@@ -41,6 +43,7 @@ export default async function AgencyPage() {
     : { data: null };
   const approved = status?.partner_status === "approved";
   const dash = isAgency ? await agencyDashboard(ctx.memberId) : null;
+  const earnings = approved ? await agencyEarnings(ctx.memberId) : null;
 
   return (
     <div className="min-h-screen light bg-slate-50 text-slate-900">
@@ -82,6 +85,41 @@ export default async function AgencyPage() {
                     <CopyField label="Link" value={`${SITE_URL}/join/${status!.referral_code}`} />
                     <CopyField label="Code" value={status!.referral_code} />
                   </div>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Your earnings</h2>
+                  <p className="mt-2 text-sm text-slate-600">{COMMISSION_TERMS}</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {[
+                      ["Ready to pay out", earnings!.summary.readyCents, earnings!.summary.canPayOut ? "Paid out by hand, monthly" : "Below the payout minimum"],
+                      ["Waiting out the refund window", earnings!.summary.pendingCents, "Payable 30 days after each payment"],
+                      ["Paid to you so far", earnings!.summary.paidCents, `${earnings!.payouts.length} payout${earnings!.payouts.length === 1 ? "" : "s"}`],
+                    ].map(([label, cents, sub]) => (
+                      <div key={label as string} className="rounded-xl bg-slate-50 p-4">
+                        <p className="text-xs font-bold text-slate-500">{label}</p>
+                        <p className="mt-1 text-xl font-black">{dollars(cents as number)}</p>
+                        <p className="text-xs text-slate-500">{sub}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {earnings!.lines.length === 0 ? (
+                    <p className="mt-4 text-sm text-slate-600">Nothing earned yet. Commission starts when a business credited to you pays for a plan.</p>
+                  ) : (
+                    <ul className="mt-4 divide-y divide-slate-100 text-sm">
+                      {earnings!.lines.map((l) => (
+                        <li key={l.invoiceId} className="flex flex-wrap justify-between gap-2 py-2">
+                          <span>{new Date(l.earnedAt).toLocaleDateString()} · {l.clientName} paid {dollars(l.paidCents - l.refundedCents)}{l.refundedCents ? " (after a refund)" : ""}</span>
+                          <span className="font-bold">
+                            {dollars(l.commissionCents)}
+                            <span className="ml-2 text-xs font-normal text-slate-500">
+                              {l.paidOutCents === l.commissionCents && l.commissionCents > 0 ? "paid" : new Date(l.payableAt) > new Date() ? `payable ${new Date(l.payableAt).toLocaleDateString()}` : "ready"}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </section>
 
                 <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -159,7 +197,7 @@ export default async function AgencyPage() {
                 Add <code className="rounded bg-white px-1 font-mono text-[12px]">https://shearquery.com/mcp</code> as a connector in Claude for industry data and a Google profile audit on any listing — useful before a first call with a prospect.
               </p>
               <p className="mt-3 text-xs text-slate-500">
-                Managing your clients&apos; accounts from ShearQuery, with their permission, is being built. Commission terms aren&apos;t set yet.
+                Managing your clients&apos; accounts from ShearQuery, with their permission, is being built.
               </p>
             </section>
           </div>

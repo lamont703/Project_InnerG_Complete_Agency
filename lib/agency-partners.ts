@@ -16,7 +16,7 @@ import { makeReferralCode, normaliseReferralCode, pickReferralSignal, isEmail, t
  *    primary key on agency_referrals.client_member_id enforces it.
  *  - Invites are email only for now.
  *  - An agency cannot credit itself or another agency account.
- * Commission needs billing and is computed later FROM this credit.
+ * Commission is computed FROM this credit, in lib/commissions.ts.
  */
 
 const db = () => createAdminClient() as any;

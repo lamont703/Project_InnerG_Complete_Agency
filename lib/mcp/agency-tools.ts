@@ -47,6 +47,21 @@ function clientLines(clients: Client[]): string[] {
   return shown;
 }
 
+/** The agency's commission, in the words and numbers it can repeat. */
+async function earningsLines(memberId: string): Promise<string[]> {
+  const [{ agencyEarnings }, { COMMISSION_TERMS, dollars }] = await Promise.all([import("@/lib/commissions"), import("@/lib/commission-rules")]);
+  const { summary: e, lines } = await agencyEarnings(memberId);
+  return [
+    "EARNINGS",
+    `  Terms: ${COMMISSION_TERMS}`,
+    lines.length
+      ? `  Ready to pay out: ${dollars(e.readyCents)}${e.canPayOut ? "" : " (below the payout minimum)"} · waiting out the refund window: ${dollars(e.pendingCents)} · paid so far: ${dollars(e.paidCents)}`
+      : "  Nothing earned yet — commission starts when a business credited to them pays for a plan.",
+    ...lines.slice(0, 10).map((l) => `  - ${l.earnedAt.slice(0, 10)} · ${l.clientName} paid ${dollars(l.paidCents - l.refundedCents)} → ${dollars(l.commissionCents)}`),
+    "",
+  ];
+}
+
 const FIELDS = ["agency_name", "website", "what_they_build", "client_count", "markets"] as const;
 
 export const myAgencyTool: McpTool = {
@@ -115,7 +130,8 @@ export const myAgencyTool: McpTool = {
       "",
       `INVITES SENT: ${invites.length}, joined ${invites.filter((i: any) => i.accepted_at).length}.`,
       "",
-      "Commission terms and managing clients' accounts are NOT available yet; never quote them.",
+      ...(await earningsLines(memberId)),
+      "Managing clients' accounts from ShearQuery is NOT available yet; never say it is.",
       "PITCHING A BUSINESS: what_shearquery_does shows what each account type gets and what is available now versus in testing."
     );
     return out.join("\n");

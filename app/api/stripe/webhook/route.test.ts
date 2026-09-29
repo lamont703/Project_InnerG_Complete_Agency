@@ -7,6 +7,7 @@ vi.mock("@/lib/billing/stripe", () => ({
   recordInvoicePaid: vi.fn(),
   recordRefund: vi.fn(),
 }));
+vi.mock("@/lib/commissions", () => ({ accrueForInvoice: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from: () => ({

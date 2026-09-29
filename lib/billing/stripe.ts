@@ -256,12 +256,13 @@ export async function recordInvoicePaid(invoice: Stripe.Invoice) {
 }
 
 /** A refund: record it against the invoice it paid, so commission can be taken back. */
-export async function recordRefund(charge: Stripe.Charge) {
+export async function recordRefund(charge: Stripe.Charge): Promise<string | null> {
   const pi = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
-  if (!pi) return;
+  if (!pi) return null;
   const payments = await stripe().invoicePayments.list({ payment: { type: "payment_intent", payment_intent: pi }, limit: 1 });
   const inv = payments.data[0]?.invoice;
   const invoiceId = typeof inv === "string" ? inv : inv?.id;
-  if (!invoiceId) return;
+  if (!invoiceId) return null;
   await db().from("billing_payments").update({ amount_refunded_cents: charge.amount_refunded }).eq("stripe_invoice_id", invoiceId);
+  return invoiceId;
 }

@@ -24,6 +24,9 @@
  * the signup route, the chat route and the lifecycle emails alike.
  */
 
+import { COMMISSION_TERMS } from "@/lib/commission-rules";
+import { COMMISSION_RATE } from "@/lib/plans";
+
 export type AudienceId =
   | "student"
   | "barber"
@@ -706,8 +709,9 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     // LIVE since 2026-09-28. What ships: ShearQuery in their own Claude, and —
     // once an admin approves them — a referral link and code, email invites,
     // credit for every business that joins through them (locked at signup),
-    // and a dashboard of those clients. Managing clients' accounts and the
-    // commission itself are NOT built, and nothing here promises their terms.
+    // a dashboard of those clients, and commission on what those clients pay
+    // (COMMISSION_TERMS, lib/commission-rules.ts). Managing clients' accounts
+    // is NOT built, and nothing here promises it.
     status: "live",
     label: "Agency",
     who: "I run an agency that builds AI agents or marketing for barbers and stylists",
@@ -724,7 +728,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
       {
         icon: "badge-check",
         title: "Credit for every business you bring",
-        body: "Once we approve your agency you get a referral link and code, and can invite clients by email. Every business that joins through you is credited to you — first agency wins, for good.",
+        body: `Once we approve your agency you get a referral link and code, and can invite clients by email. Every business that joins through you is credited to you — first agency wins, for good — and you earn ${Math.round(COMMISSION_RATE * 100)}% of what it pays, every month it stays.`,
       },
       {
         icon: "users",
@@ -735,7 +739,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
     ctaLabel: "Create my agency account",
     agentBrief:
       "You are talking to an AGENCY that builds AI agents, automations or marketing for barbers, stylists and shops. What they have today: the ShearQuery MCP connector in their own Claude (industry data, the public Google profile audit on any listing); and, once ShearQuery approves their agency, a referral link and code, email invites to their clients, credit for every business that joins through them, and a dashboard of those clients at /account/agency. " +
-      "Managing their clients' accounts from ShearQuery, and the commission itself, are being built and are NOT available. Never quote commission rates, prices, terms or dates, and never say they can manage a client's account yet.",
+      `Commission, which you may quote exactly as written: ${COMMISSION_TERMS} Managing their clients' accounts from ShearQuery is being built and is NOT available; never say they can, and never promise payout dates.`,
     lifecycleTrack: null,
     collectsJourney: false,
     landing: {
@@ -754,7 +758,7 @@ export const AUDIENCES: Record<AudienceId, Audience> = {
         },
         {
           q: "Is there a commission?",
-          a: "Every business that joins through you is credited to you from day one, and commission will be paid on that credit. Its terms aren't set yet, so we're not quoting any.",
+          a: `Yes. Every business that joins through you is credited to you from day one. ${COMMISSION_TERMS} Your earnings are on your agency page.`,
         },
       ],
       nextLinks: [

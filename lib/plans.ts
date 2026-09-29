@@ -28,6 +28,10 @@ export const isPlan = (p: unknown): p is Plan => typeof p === "string" && (PLANS
 
 export const FREE_PUBLISHES_PER_MONTH = 3;
 export const COMMISSION_RATE = 0.25;
+/** Commission is payable this long after the payment, so a refund in that window just lowers it. */
+export const COMMISSION_HOLD_DAYS = 30;
+/** Payouts wait until at least this much is ready. */
+export const MIN_PAYOUT_CENTS = 5000;
 
 /** Monthly price in US dollars, by account type. Types not listed are always free. */
 export const PRICES: Partial<Record<AudienceId, { manage: number; autopilot: number }>> = {

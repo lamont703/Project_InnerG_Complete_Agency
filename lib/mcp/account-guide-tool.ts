@@ -1,6 +1,7 @@
 import { SITE_URL } from "@/lib/site";
 import type { McpTool } from "@/lib/mcp/tools";
 import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/lib/audiences";
+import { COMMISSION_TERMS } from "@/lib/commission-rules";
 import { GUIDE_TYPES, pricingNote, STATUS_LABEL, featureGuide, typeGuide } from "@/lib/account-features";
 
 /**
@@ -40,7 +41,7 @@ function line(id: AudienceId): string {
     return `${header}\n  No signup needed: the account is made when they book an appointment, on a listing's Book button or with the booking tools in Claude.`;
   }
   const gets = a.benefits.map((b) => b.title).join("; ");
-  const note = id === "agency" ? "\n  Referral credit starts once ShearQuery approves them. Managing clients' accounts and commission terms are NOT available yet; never quote them." : "";
+  const note = id === "agency" ? `\n  Referral credit starts once ShearQuery approves them. Commission: ${COMMISSION_TERMS} Managing clients' accounts is NOT available yet.` : "";
   return `${header}\n  Gets: ${gets}\n  Or sign up on the website: ${SITE_URL}${membershipPath(id)}${note}`;
 }
 
@@ -94,7 +95,7 @@ const NEXT_STEP: Record<AudienceId, string> = {
   salon: `Next: claim the salon's listing at ${SITE_URL}/search, then my_shearquery_account shows what's connected.`,
   supply_store: `Next: claim the store's listing at ${SITE_URL}/search.`,
   school: `Next: claim the school's listing at ${SITE_URL}/search so tour requests reach them.`,
-  agency: `Next: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link and code. Managing clients' accounts and commission terms are NOT available yet; never quote them.`,
+  agency: `Next: ask for the agency's details (name, website, what it builds, roughly how many clients, markets) and save them with update_my_agency_details — ShearQuery reviews them for partner approval. Once approved, my_agency shows their referral link, code and earnings. Managing clients' accounts is NOT available yet.`,
 };
 
 /**
