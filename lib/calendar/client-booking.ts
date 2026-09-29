@@ -6,6 +6,7 @@ import {
   getHours, listServices, findOpenTimes, upsertClient, bookAppointment, getAppointment, setAppointmentStatus, moveAppointment,
   normalisePhone, listingName, type Provider, type Service, type Appointment,
 } from "@/lib/calendar/store";
+import { amountDueCents, clientMayChange, policyFrom, HOLD_MINUTES, type PaymentMode } from "@/lib/calendar/policy";
 import { localDateKey } from "@/lib/calendar/time";
 import { notifyBooked, notifyCancelled, sendText } from "@/lib/calendar/notify";
 
@@ -27,8 +28,6 @@ import { notifyBooked, notifyCancelled, sendText } from "@/lib/calendar/notify";
 export const CLIENT_LIMITS = {
   /** Live upcoming appointments one client may hold with one pro. */
   maxUpcomingPerPro: 2,
-  /** Inside this, a client calls the shop instead of cancelling here. */
-  cancelCutoffMinutes: 120,
   codeTtlMinutes: 10,
   codeMaxAttempts: 5,
   codesPerPhonePerHour: 3,
@@ -106,6 +105,9 @@ export async function searchBookablePros(query: string, viewerMemberId?: string 
 
 export async function clientOpenTimes(pro: BookablePro, service: Service, fromKey: string, toKey: string, limit = 40) {
   const { provider } = pro;
+  // A time held for a client who never paid is free again once its hold runs out.
+  const { releaseExpiredHolds } = await import("@/lib/calendar/payments");
+  await releaseExpiredHolds(provider.id).catch((e) => console.error("[calendar] hold release failed:", e?.message));
   const lastKey = localDateKey(new Date(Date.now() + provider.booking_window_days * 86400_000), provider.timezone);
   if (fromKey > lastKey) return [];
   return findOpenTimes({ provider, service, fromKey, toKey: toKey > lastKey ? lastKey : toKey, forClient: true, limit });
@@ -189,7 +191,11 @@ export async function setMemberPhone(memberId: string, phone: string) {
 // ── booking ─────────────────────────────────────────────────────────────────
 
 export type ClientBookResult =
-  | { ok: true; appointment: Appointment; manageUrl: string; pro: BookablePro }
+  | {
+      ok: true; appointment: Appointment; manageUrl: string; pro: BookablePro;
+      /** Present when the pro takes payment at booking: the time is HELD until the client pays here. */
+      payment?: { url: string; mode: PaymentMode; dueCents: number; tipCents: number; holdUntil: Date };
+    }
   | { ok: false; reason: string };
 
 /**
@@ -209,6 +215,8 @@ export async function clientBook(args: {
   notes?: string | null;
   source: "web" | "client_claude";
   origin: string;
+  /** Optional tip added to a booking payment, in cents. Ignored when nothing is paid at booking. */
+  tipCents?: number;
 }): Promise<ClientBookResult> {
   const { pro, service, start } = args;
   const { provider } = pro;
@@ -231,13 +239,26 @@ export async function clientBook(args: {
     .select("id", { count: "exact", head: true })
     .eq("provider_id", provider.id)
     .eq("client_id", client.id)
-    .in("status", ["booked", "confirmed"])
+    .in("status", ["pending_payment", "booked", "confirmed"])
     .gte("starts_at", new Date().toISOString());
   if ((count ?? 0) >= CLIENT_LIMITS.maxUpcomingPerPro) {
     return { ok: false, reason: `You already have ${count} upcoming appointments with ${provider.display_name}. Cancel one to book another, or contact them directly.` };
   }
 
-  const res = await bookAppointment({ provider, service, start, client, notes: args.notes, source: args.source });
+  // The pro's payment rule, as it applies right now (plan and Stripe readiness
+  // included), and the rules the client is agreeing to — kept on the booking.
+  const { paymentTerms, createBookingCheckout, clampTip, releaseHold } = await import("@/lib/calendar/payments");
+  const terms = await paymentTerms(provider);
+  const due = amountDueCents(terms.policy, terms.mode, service.price_cents);
+  const tip = due > 0 && terms.tipsAvailable ? clampTip(args.tipCents) : 0;
+  const snapshot = { ...terms.policy, payment_mode: due > 0 ? terms.mode : "none" };
+
+  const res = await bookAppointment({
+    provider, service, start, client, notes: args.notes, source: args.source,
+    payment: due > 0
+      ? { status: "pending_payment", paymentStatus: "awaiting", amountDueCents: due, holdExpiresAt: new Date(Date.now() + (HOLD_MINUTES + 1) * 60_000), policy: snapshot }
+      : { status: "booked", paymentStatus: "none", amountDueCents: null, holdExpiresAt: null, policy: snapshot },
+  });
   if (!res.ok) return { ok: false, reason: res.reason.replace(/ Ask the owner.*$/, "").replace(/ Use find_open_times.*$/, "") };
 
   const token = randomBytes(24).toString("base64url");
@@ -246,6 +267,16 @@ export async function clientBook(args: {
     .update({ manage_token_hash: sha(token), booked_by_member_id: args.memberId ?? null })
     .eq("id", res.appointment.id);
   const manageUrl = `${args.origin}/appointments/${token}`;
+
+  if (due > 0) {
+    // Nobody is texted yet: it isn't a booking until it's paid.
+    const co = await createBookingCheckout({ provider, appointment: res.appointment, mode: terms.mode, dueCents: due, tipCents: tip, token, origin: args.origin });
+    if (!co.ok) {
+      await releaseHold(provider.id, res.appointment.id);
+      return { ok: false, reason: co.error };
+    }
+    return { ok: true, appointment: res.appointment, manageUrl, pro, payment: { url: co.url, mode: terms.mode, dueCents: due, tipCents: tip, holdUntil: co.expiresAt } };
+  }
 
   await notifyBooked({ pro, appointment: res.appointment, clientPhone: args.phone, manageUrl });
   return { ok: true, appointment: res.appointment, manageUrl, pro };
@@ -273,7 +304,7 @@ export async function memberAppointments(memberId: string) {
   if (!ids.length) return [];
   const { data } = await db()
     .from("calendar_appointments")
-    .select("id, provider_id, starts_at, ends_at, status, service_name, price_cents, provider:calendar_providers(display_name, timezone)")
+    .select("id, provider_id, starts_at, ends_at, status, service_name, price_cents, payment_status, provider:calendar_providers(display_name, timezone)")
     .in("client_id", ids)
     .gte("starts_at", new Date(Date.now() - 30 * 86400_000).toISOString())
     .order("starts_at")
@@ -285,20 +316,34 @@ export async function memberAppointments(memberId: string) {
  * Cancel as the client. Outside the cutoff only; inside it, the client is told
  * to contact the pro, because a last-minute cancellation is a conversation.
  */
-export async function clientCancel(args: { providerId: string; appointmentId: string; reason?: string | null }): Promise<{ ok: boolean; reason?: string }> {
+export async function clientCancel(args: { providerId: string; appointmentId: string; reason?: string | null }): Promise<{ ok: boolean; reason?: string; refund?: string | null }> {
   const appt = await getAppointment(args.providerId, args.appointmentId);
   if (!appt) return { ok: false, reason: "Appointment not found." };
-  if (!["booked", "confirmed"].includes(appt.status)) return { ok: false, reason: `This appointment is already ${appt.status.replace("_", "-")}.` };
-  const minutesAway = (new Date(appt.starts_at).getTime() - Date.now()) / 60_000;
-  if (minutesAway < CLIENT_LIMITS.cancelCutoffMinutes) {
-    return { ok: false, reason: `It's less than ${CLIENT_LIMITS.cancelCutoffMinutes / 60} hours away, so it can't be cancelled online. Contact them directly.` };
+  const { releaseHold, settleCancellation } = await import("@/lib/calendar/payments");
+  // Not paid yet: nothing to refund, just let the held time go.
+  if (appt.status === "pending_payment") {
+    await releaseHold(args.providerId, appt.id);
+    return { ok: true, refund: null };
   }
+  if (!["booked", "confirmed"].includes(appt.status)) return { ok: false, reason: `This appointment is already ${appt.status.replace("_", "-")}.` };
+  const policy = await rulesFor(args.providerId, appt);
+  const minutesAway = (new Date(appt.starts_at).getTime() - Date.now()) / 60_000;
+  const may = clientMayChange(policy, "cancel", minutesAway);
+  if (!may.ok) return { ok: false, reason: may.reason };
   const res = await setAppointmentStatus({ providerId: args.providerId, id: appt.id, status: "cancelled", reason: args.reason ?? "cancelled by client" });
   if (!res.ok) return { ok: false, reason: res.reason };
   await db().from("calendar_appointments").update({ cancelled_by: "client" }).eq("id", appt.id);
+  const refund = await settleCancellation({ providerId: args.providerId, appointment: appt, by: "client" });
   const pro = await bookableProvider(args.providerId);
   if (pro) await notifyCancelled({ pro, appointment: appt, by: "client" });
-  return { ok: true };
+  return { ok: true, refund };
+}
+
+/** The rules a booking was made under, or the pro's current ones for a booking made before rules were kept. */
+export async function rulesFor(providerId: string, appt: Appointment) {
+  if (appt.policy) return policyFrom(appt.policy as any);
+  const { data } = await db().from("calendar_providers").select("*").eq("id", providerId).maybeSingle();
+  return policyFrom(data);
 }
 
 export { normalisePhone };
@@ -311,10 +356,10 @@ export { normalisePhone };
 export async function clientReschedule(args: { providerId: string; appointmentId: string; start: Date }): Promise<{ ok: true; appointment: Appointment; pro: BookablePro } | { ok: false; reason: string }> {
   const appt = await getAppointment(args.providerId, args.appointmentId);
   if (!appt) return { ok: false, reason: "Appointment not found." };
+  if (appt.status === "pending_payment") return { ok: false, reason: "This booking isn't paid yet. Finish paying, or cancel it and book the new time." };
   if (!["booked", "confirmed"].includes(appt.status)) return { ok: false, reason: `This appointment is already ${appt.status.replace("_", "-")}.` };
-  if ((new Date(appt.starts_at).getTime() - Date.now()) / 60_000 < CLIENT_LIMITS.cancelCutoffMinutes) {
-    return { ok: false, reason: `It's less than ${CLIENT_LIMITS.cancelCutoffMinutes / 60} hours away, so it can't be changed online. Contact them directly.` };
-  }
+  const may = clientMayChange(await rulesFor(args.providerId, appt), "reschedule", (new Date(appt.starts_at).getTime() - Date.now()) / 60_000, appt.reschedule_count ?? 0);
+  if (!may.ok) return { ok: false, reason: may.reason };
   const pro = await bookableProvider(args.providerId);
   if (!pro) return { ok: false, reason: "This calendar isn't taking bookings online right now. Contact them directly." };
   const service = pro.services.find((s) => s.name.toLowerCase() === appt.service_name.toLowerCase());
@@ -322,7 +367,7 @@ export async function clientReschedule(args: { providerId: string; appointmentId
   const key = localDateKey(args.start, pro.provider.timezone);
   const offered = await clientOpenTimes(pro, service, key, key, 200);
   if (!offered.some((d) => d.getTime() === args.start.getTime())) return { ok: false, reason: "That time isn't open. Pick one of the open times." };
-  const moved = await moveAppointment({ provider: pro.provider, id: appt.id, start: args.start });
+  const moved = await moveAppointment({ provider: pro.provider, id: appt.id, start: args.start, countAsClientReschedule: true });
   if (!moved.ok) return { ok: false, reason: moved.reason };
   const { notifyMoved } = await import("@/lib/calendar/notify");
   await notifyMoved({ pro, before: appt, after: moved.appointment }).catch(() => {});

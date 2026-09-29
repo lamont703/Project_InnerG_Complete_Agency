@@ -105,7 +105,7 @@ export const myAgencyTool: McpTool = {
       ? `PARTNER AGREEMENT: still a draft, not in effect yet — they can read it at ${SITE_URL}/account/agency/agreement.`
       : ag?.agreement_version === PARTNER_AGREEMENT.version
         ? "PARTNER AGREEMENT: accepted."
-        : `PARTNER AGREEMENT: NOT ACCEPTED${ag?.agreement_version ? " (it changed since they last accepted)" : ""} — approval waits on it. They read and accept it themselves at ${SITE_URL}/account/agency/agreement; it can't be accepted from Claude.`;
+        : `PARTNER AGREEMENT: NOT ACCEPTED${ag?.agreement_version ? " (it changed since they last accepted)" : ""} — commission can't be PAID until it's accepted (approval doesn't wait on it). They read and accept it themselves at ${SITE_URL}/account/agency/agreement; it can't be accepted from Claude.`;
     const out: string[] = [
       `AGENCY: ${p.agency_name}`,
       `  Website: ${p.website || "not given"}`,
@@ -121,7 +121,7 @@ export const myAgencyTool: McpTool = {
       out.push(
         p.partner_status === "rejected"
           ? "PARTNER STATUS: not approved. Businesses they bring in aren't credited. They can contact ShearQuery about it."
-          : "PARTNER STATUS: waiting for ShearQuery to approve. Nothing is credited until then, and there's no referral link yet. They get an email with their link when approved."
+          : "PARTNER STATUS: not approved yet. Agencies are approved automatically when their details are saved — save them with update_my_agency_details."
       );
       const { clients } = await dashboard(memberId);
       out.push("", "CLIENT LIST (samples only until approved):", ...clientLines(clients), "", "PITCHING A BUSINESS: what_shearquery_does shows what each account type gets and what is available now versus in testing.");
@@ -194,7 +194,7 @@ export const updateMyAgencyDetailsTool: McpTool = {
     if (!r.ok) return r.error;
     return existing
       ? `Saved: ${given.join(", ")}. my_agency shows the details as they stand.`
-      : "Saved. ShearQuery has been told and will review the agency for partner approval. When approved, they'll get an email with their referral link and code, and my_agency will show them.";
+      : "Saved. New agencies are approved automatically — they'll get an email with their referral link and code, and my_agency will show them. Commission is paid only after they accept the partner agreement.";
   },
 };
 

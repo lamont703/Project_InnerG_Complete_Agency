@@ -6,13 +6,13 @@ import { SITE_URL } from "@/lib/site";
 import { providerIdByHandle } from "@/lib/calendar/booking-handle";
 import { bookableProvider } from "@/lib/calendar/client-booking";
 import { BookPagePanel } from "@/components/booking/book-page-panel";
+import { calendarInfoFor } from "@/lib/calendar/booking-info";
 
 /**
- * A pro's "Book me" page (/book/<handle>): book right here, or from the
- * client's own AI assistant — Claude or ChatGPT — with no ShearQuery account,
- * proving their phone with a text code (lib/mcp/client-booking-tools.ts,
- * request_booking_code / book_as_guest). The QR code is for the mirror or the
- * front desk.
+ * A pro's "Book me" page (/book/<handle>): book right here with a text code,
+ * or from the client's own AI assistant — Claude or ChatGPT — signed in to a
+ * free client account (lib/mcp/client-booking-tools.ts). The QR code is for
+ * the mirror or the front desk.
  *
  * Only for bookable calendars: in testing, the allowlist; once the calendar
  * opens, the Manage plan (lib/feature-access.ts). Personal to one pro, so
@@ -74,14 +74,7 @@ export default async function BookPage({ params }: Params) {
           <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">Book here</h2>
           <div className="mt-4">
             <BookPagePanel
-              info={{
-                providerId: provider.id,
-                name: provider.display_name,
-                listing,
-                timezone: provider.timezone,
-                windowDays: provider.booking_window_days,
-                services: services.map((s) => ({ id: s.id, name: s.name, minutes: s.duration_minutes, priceCents: s.price_cents })),
-              }}
+              info={await calendarInfoFor(pro)}
             />
           </div>
         </section>

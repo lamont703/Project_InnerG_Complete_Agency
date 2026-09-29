@@ -166,6 +166,9 @@ export interface PayoutPlan {
  * below the minimum.
  */
 export async function preparePayout(agencyMemberId: string): Promise<PayoutPlan | { ok: false; error: string }> {
+  // The partner agreement is what payment depends on — not approval, which is automatic.
+  const { agreementAccepted } = await import("@/lib/agency-partners");
+  if (!(await agreementAccepted(agencyMemberId))) return { ok: false, error: "This agency hasn't accepted the current partner agreement, so it can't be paid yet." };
   const { data: rows } = await db()
     .from("agency_commissions")
     .select("stripe_invoice_id, commission_cents, paid_out_cents")

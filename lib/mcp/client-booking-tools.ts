@@ -8,6 +8,7 @@ import {
   searchBookablePros, bookableProvider, clientOpenTimes, sendPhoneCode, checkPhoneCode,
   getMemberPhone, setMemberPhone, clientBook, memberAppointments, clientCancel, clientReschedule, CLIENT_LIMITS,
 } from "@/lib/calendar/client-booking";
+import { policyLines, money as dollars, MIN_CHARGE_CENTS } from "@/lib/calendar/policy";
 
 /**
  * Booking appointments as a CLIENT, from the client's own Claude.
@@ -61,12 +62,19 @@ function startFrom(tz: string, date: unknown, time: unknown): Date | null {
 
 const money = (c: number | null) => (c == null ? "" : ` · $${(c / 100).toFixed(c % 100 ? 2 : 0)}`);
 
+/** The pro's payment and cancellation terms, as the client must hear them before booking. */
+async function termsFor(pro: Awaited<ReturnType<typeof bookableProvider>> & object, priceCents?: number | null) {
+  const { paymentTerms } = await import("@/lib/calendar/payments");
+  const t = await paymentTerms(pro.provider);
+  return { terms: t, lines: policyLines(t.policy, t.mode, priceCents) };
+}
+
 const findPros: McpTool = {
   name: "find_pros_to_book",
   title: "Find barbers and stylists you can book on ShearQuery",
   provides: "barbers and stylists taking bookings on ShearQuery, with their services",
   description:
-    "Find barbers, stylists and shops that take real bookings on ShearQuery, by name, business name, or the booking handle from their \"Book me\" page (e.g. marcus-cuts) — or leave the search empty to list them. No ShearQuery account needed to look; booking needs the client to sign in (a free client account). Returns each pro's id, where they work, and their services with length and price.",
+    "Find barbers, stylists and shops that take real bookings on ShearQuery, by name, business name, or the booking handle from their \"Book me\" page (e.g. marcus-cuts) — or leave the search empty to list them. No ShearQuery account needed to look; booking needs the client to sign in (a free client account). Returns each pro's id, where they work, their services with length and price, and their booking policy (payment at booking, cancellation and refunds).",
   annotations: READS,
   inputSchema: { type: "object", properties: { query: { type: "string" } } },
   handler: async (args, ctx) => {
@@ -76,11 +84,13 @@ const findPros: McpTool = {
     // Booking itself needs sign-in: book_with_pro (a free client account).
     const { ensureBookingHandle } = await import("@/lib/calendar/booking-handle");
     const handles = await Promise.all(pros.map((p) => ensureBookingHandle(p.provider.id)));
+    const policies = await Promise.all(pros.map(async (p) => (await termsFor(p)).lines));
     return pros
       .map((p, i) =>
         [
           `${p.provider.display_name}${p.listing ? ` at ${p.listing}` : ""} · pro id ${p.provider.id}${handles[i] ? ` · booking handle ${handles[i]} (${SITE_URL}/book/${handles[i]})` : ""} · ${p.provider.timezone}`,
           ...p.services.map((s) => `  ${s.name} · ${s.duration_minutes} min${money(s.price_cents)}`),
+          `  Booking policy: ${policies[i].join(" ")}`,
         ].join("\n")
       )
       .join("\n\n");
@@ -113,9 +123,12 @@ const proOpenTimes: McpTool = {
       const k = localDateKey(s, pro.provider.timezone);
       byDay.set(k, [...(byDay.get(k) || []), formatLocal(s, pro.provider.timezone, false)]);
     }
+    const { lines } = await termsFor(pro, service.price_cents);
     return [
       `OPEN with ${pro.provider.display_name} for ${service.name} (${service.duration_minutes} min${money(service.price_cents)}), ${pro.provider.timezone}:`,
       ...[...byDay].map(([k, t]) => `  ${k} (${DAY[new Date(`${k}T12:00:00Z`).getUTCDay()]}): ${t.join(", ")}`),
+      "",
+      `BOOKING POLICY — tell the client this before booking: ${lines.join(" ")}`,
     ].join("\n");
   },
 };
@@ -160,7 +173,7 @@ const bookWithPro: McpTool = {
   title: "Book an appointment with a barber or stylist",
   provides: "booking appointments with a pro",
   description:
-    "Book the client a NEW appointment with a pro (id or booking handle from find_pros_to_book) at an open time from pro_open_times. Confirm the details with the client first. Needs a confirmed mobile number (verify_my_phone). To CHANGE an existing booking, never book a second one: use reschedule_my_booking. The client gets a text confirmation with a link to view, reschedule or cancel.",
+    "Book the client a NEW appointment with a pro (id or booking handle from find_pros_to_book) at an open time from pro_open_times. Before booking, tell the client the pro's booking policy (pro_open_times lists it) — what they pay now and what's refunded if they cancel — and get their OK. Needs a confirmed mobile number (verify_my_phone). If the pro takes a deposit or full payment, this returns a secure Stripe payment link: give it to the client; the time is held for 30 minutes and is only booked once paid. An optional tip can be added to that payment. To CHANGE an existing booking, never book a second one: use reschedule_my_booking.",
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: WRITES,
@@ -173,6 +186,7 @@ const bookWithPro: McpTool = {
       time: { type: "string", description: 'e.g. "3pm", exactly as pro_open_times listed it.' },
       name: { type: "string", description: "Name for the booking. Defaults to the client's ShearQuery name." },
       notes: { type: "string" },
+      tip: { type: "number", minimum: 0, description: "Optional tip in dollars, added to a deposit or full payment. Only when the client offers one." },
     },
     required: ["pro_id", "service", "date", "time"],
   },
@@ -202,15 +216,27 @@ const bookWithPro: McpTool = {
       notes: args.notes ? String(args.notes).slice(0, 300) : null,
       source: "client_claude",
       origin: ctx.origin || SITE_URL,
+      tipCents: args.tip ? Math.round(Number(args.tip) * 100) : 0,
     });
     if (!res.ok) return res.reason;
     await markAsClient(ctx.identity.memberId);
+    if (res.payment) {
+      const p = res.payment;
+      return [
+        `HELD, NOT YET BOOKED: ${service.name} with ${pro.provider.display_name}${pro.listing ? ` at ${pro.listing}` : ""}, ${formatLocal(start, tz)} (${tz}).`,
+        `${pro.provider.display_name} takes ${p.mode === "full" ? "full payment" : "a deposit"} at booking: ${dollars(p.dueCents)}${p.tipCents ? ` plus a ${dollars(p.tipCents)} tip` : ""}, paid to them directly through Stripe.`,
+        `Give the client this secure payment link: ${p.url}`,
+        `The time is held until ${formatLocal(p.holdUntil, tz, false)}. Once paid, they get a text confirmation with a link to view, reschedule or cancel. Unpaid, the time is released. Appointment id ${res.appointment.id}.`,
+      ].join("\n");
+    }
     return [
       `Booked: ${service.name} with ${pro.provider.display_name}${pro.listing ? ` at ${pro.listing}` : ""}, ${formatLocal(start, tz)} (${tz}).`,
       `A confirmation was texted to ${phone} with a link to view, reschedule or cancel. Appointment id ${res.appointment.id}.`,
     ].join("\n");
   },
 };
+
+const PAY_LABEL: Record<string, string> = { paid: "paid", partially_refunded: "partly refunded", refunded: "refunded" };
 
 const myBookings: McpTool = {
   name: "my_bookings",
@@ -225,7 +251,7 @@ const myBookings: McpTool = {
     const rows = await memberAppointments(ctx.identity.memberId);
     if (!rows.length) return "No appointments booked through ShearQuery yet.";
     return rows
-      .map((r: any) => `${formatLocal(new Date(r.starts_at), r.provider?.timezone || "America/Chicago")} · ${r.service_name}${money(r.price_cents)} with ${r.provider?.display_name || "a pro"} · ${r.status.replace("_", "-")} · id ${r.id}`)
+      .map((r: any) => `${formatLocal(new Date(r.starts_at), r.provider?.timezone || "America/Chicago")} · ${r.service_name}${money(r.price_cents)} with ${r.provider?.display_name || "a pro"} · ${r.status === "pending_payment" ? "held, waiting on payment" : r.status.replace("_", "-")}${PAY_LABEL[r.payment_status] ? ` · ${PAY_LABEL[r.payment_status]}` : ""} · id ${r.id}`)
       .join("\n");
   },
 };
@@ -234,7 +260,7 @@ const cancelMine: McpTool = {
   name: "cancel_my_booking",
   title: "Cancel one of your appointments",
   provides: "cancelling your own appointments",
-  description: `Cancel one of the client's own appointments (id from my_bookings). Confirm first. Not possible within ${CLIENT_LIMITS.cancelCutoffMinutes / 60} hours of the time — then the client contacts the pro.`,
+  description: "Cancel one of the client's own appointments (id from my_bookings). Confirm first, and say what the pro's policy refunds (pro_open_times lists it). How close to the time a client can still cancel online, and what's refunded, are the pro's own rules; when it's too late the client contacts the pro.",
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
@@ -245,7 +271,7 @@ const cancelMine: McpTool = {
     const mine = (await memberAppointments(ctx.identity.memberId)).find((r: any) => r.id === String(args.id || ""));
     if (!mine) return "That isn't one of your appointments. Check my_bookings.";
     const res = await clientCancel({ providerId: mine.provider_id, appointmentId: mine.id, reason: "cancelled by client in Claude" });
-    return res.ok ? "Cancelled. The pro has been told, and that time is open again." : res.reason!;
+    return res.ok ? `Cancelled. The pro has been told, and that time is open again.${res.refund ? ` ${res.refund}` : ""}` : res.reason!;
   },
 };
 
@@ -263,7 +289,7 @@ const rescheduleMine: McpTool = {
   name: "reschedule_my_booking",
   title: "Move one of your appointments to another time",
   provides: "moving your own appointments to another open time",
-  description: `Move one of the client's own appointments (id from my_bookings) to another open time for the same service. Check the new time with pro_open_times and confirm with the client first. This MOVES the booking; never book a second one to reschedule. Not possible within ${CLIENT_LIMITS.cancelCutoffMinutes / 60} hours of the time — then the client contacts the pro.`,
+  description: `Move one of the client's own appointments (id from my_bookings) to another open time for the same service. Check the new time with pro_open_times and confirm with the client first. This MOVES the booking and any payment goes with it; never book a second one to reschedule. Whether and how close to the time a client can move online, and how many times, are the pro's own rules.`,
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
@@ -289,6 +315,32 @@ const rescheduleMine: McpTool = {
   },
 };
 
+const tipMyPro: McpTool = {
+  name: "tip_my_pro",
+  title: "Tip your barber or stylist",
+  provides: "tipping a pro for one of your appointments",
+  description: "Tip the pro for one of the client's own appointments (id from my_bookings), in dollars. Returns a secure Stripe payment link to give the client; the tip goes straight to the pro's own Stripe account. Only when the client asks to tip, and only for pros who take tips online.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: WRITES,
+  inputSchema: { type: "object", properties: { id: { type: "string" }, tip: { type: "number", minimum: 0.5, description: "Dollars." } }, required: ["id", "tip"] },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return NO_IDENTITY;
+    const mine = (await memberAppointments(ctx.identity.memberId)).find((r: any) => r.id === String(args.id || ""));
+    if (!mine) return "That isn't one of your appointments. Check my_bookings.";
+    if (!["booked", "confirmed", "completed"].includes(mine.status)) return "Tips can be added to a booked or completed appointment.";
+    const cents = Math.round(Number(args.tip) * 100);
+    if (!Number.isFinite(cents) || cents < MIN_CHARGE_CENTS) return `A tip must be at least ${dollars(MIN_CHARGE_CENTS)}.`;
+    const pro = await bookableProvider(mine.provider_id);
+    if (!pro) return "This pro isn't taking payments through ShearQuery right now.";
+    const { getAppointment } = await import("@/lib/calendar/store");
+    const appt = await getAppointment(mine.provider_id, mine.id);
+    const { createTipCheckout } = await import("@/lib/calendar/payments");
+    const res = await createTipCheckout({ provider: pro.provider, appointment: appt!, tipCents: cents, origin: ctx.origin || SITE_URL });
+    return res.ok ? `Give the client this secure payment link for a ${dollars(cents)} tip to ${pro.provider.display_name}: ${res.url}` : res.error;
+  },
+};
+
 /**
  * Someone who signed up from their AI to book has no account type yet. Booking
  * makes them a client — only while the type is empty, so a business account
@@ -298,4 +350,4 @@ async function markAsClient(memberId: string) {
   await (createAdminClient().from("community_members") as any).update({ audience: "client" }).eq("id", memberId).is("audience", null);
 }
 
-export const CLIENT_BOOKING_TOOLS: McpTool[] = [findPros, proOpenTimes, verifyPhone, confirmPhone, bookWithPro, myBookings, rescheduleMine, cancelMine];
+export const CLIENT_BOOKING_TOOLS: McpTool[] = [findPros, proOpenTimes, verifyPhone, confirmPhone, bookWithPro, myBookings, rescheduleMine, cancelMine, tipMyPro];

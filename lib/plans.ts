@@ -63,18 +63,21 @@ export function planIncludes(plan: Plan): string[] {
       "Unlimited Google publishing, from Claude or the website",
       `The appointment book, run from Claude${soon(calendar)}`,
       `Clients book you from their own AI — Claude or ChatGPT — with a free client account, or from your booking page and QR code with no account${soon(calendar)}`,
+      `Take a deposit or full payment when clients book, straight to your own Stripe account, with your own cancellation rules${soon(calendar)}`,
       `Instagram insights in Claude${soon(instagram)}`,
     ],
     autopilot: ["Everything in Manage", "Replies to your 4 and 5 star reviews, in your voice", "One Google post a week — you see it a day ahead", "A Monday report and a daily digest"],
   }[plan];
 }
 
-export type PlanFeature = "unlimited_publishing" | "calendar" | "instagram" | "autopilot";
+export type PlanFeature = "unlimited_publishing" | "calendar" | "instagram" | "autopilot" | "booking_payments";
 
 export const FEATURE_PLAN: Record<PlanFeature, Plan> = {
   unlimited_publishing: "manage",
   calendar: "manage",
   instagram: "manage",
+  /** Deposits and full payment at booking (lib/calendar/payments.ts). Tips need only a connected Stripe. */
+  booking_payments: "manage",
   autopilot: "autopilot",
 };
 

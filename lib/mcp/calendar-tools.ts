@@ -16,6 +16,7 @@ import {
   type Provider, type Appointment,
 } from "@/lib/calendar/store";
 import { notifyCancelled } from "@/lib/calendar/notify";
+import { policyLines, money as dollars } from "@/lib/calendar/policy";
 
 /**
  * The pro's own appointment book, managed from Claude.
@@ -62,9 +63,13 @@ async function writeProvider(ctx: McpToolContext): Promise<{ ok: true; p: Provid
 
 const money = (cents: number | null) => (cents == null ? "" : ` · $${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`);
 
+const PAYMENT_LABEL: Record<string, string> = { paid: "paid at booking", partially_refunded: "partly refunded", refunded: "refunded" };
+
 function apptLine(a: Appointment, tz: string, withDate = false): string {
   const who = a.client ? `${a.client.name}${a.client.phone ? ` (${a.client.phone})` : ""}` : "no client recorded";
-  return `${formatLocal(new Date(a.starts_at), tz, withDate)}–${formatLocal(new Date(a.ends_at), tz, false)} · ${a.service_name}${money(a.price_cents)} · ${who} · ${a.status.replace("_", "-")} · id ${a.id}${a.notes ? `\n    note: ${a.notes}` : ""}`;
+  const status = a.status === "pending_payment" ? "held, waiting on the client's payment" : a.status.replace("_", "-");
+  const pay = PAYMENT_LABEL[a.payment_status] ? ` · ${PAYMENT_LABEL[a.payment_status]}${a.amount_due_cents ? ` ${dollars(a.amount_due_cents)}` : ""}` : "";
+  return `${formatLocal(new Date(a.starts_at), tz, withDate)}–${formatLocal(new Date(a.ends_at), tz, false)} · ${a.service_name}${money(a.price_cents)} · ${who} · ${status}${pay} · id ${a.id}${a.notes ? `\n    note: ${a.notes}` : ""}`;
 }
 
 /** "2026-10-02" or "today"/"tomorrow", plus a clock time, in the provider's zone. */
@@ -130,8 +135,19 @@ const myCalendar: McpTool = {
         if (!handle) return [];
         return [
           `YOUR BOOKING PAGE: ${SITE_URL}/book/${handle}  (handle: ${handle})`,
-          "  Clients book there, or from their own Claude or ChatGPT with no ShearQuery account — they just say",
+          "  Clients book there with a text code, or from their own Claude or ChatGPT with a free client account — they just say",
           `  "book with ${p.display_name} on ShearQuery, booking handle ${handle}". The QR code for the mirror is on ${SITE_URL}/account/calendar.`,
+        ];
+      })()),
+      "",
+      ...(await (async () => {
+        const { paymentTerms } = await import("@/lib/calendar/payments");
+        const t = await paymentTerms(p);
+        return [
+          `PAYMENTS: Stripe ${p.stripe_account_id ? (p.payments_ready ? "connected and taking cards" : "connected, setup not finished (connect_stripe_for_payments)") : "not connected (connect_stripe_for_payments)"} · at booking: ${p.payment_mode === "none" ? "no payment" : p.payment_mode === "full" ? "full payment" : `deposit (${p.deposit_kind === "percent" ? `${p.deposit_value}%` : dollars(p.deposit_value ?? 0)})`} · tips ${t.tipsAvailable ? "on" : "off"}`,
+          ...(t.notInEffect ? [`  NOTE: ${t.notInEffect}`] : []),
+          "WHAT CLIENTS ARE TOLD (set_booking_payments_and_policy changes it):",
+          ...policyLines(t.policy, t.mode).map((l) => `  - ${l}`),
         ];
       })()),
     ].join("\n");
@@ -547,7 +563,7 @@ const cancelTool: McpTool = {
   title: "Cancel an appointment",
   provides: "cancelling appointments",
   description:
-    "Cancel an appointment (id from my_schedule), freeing the time. Confirm with the owner first. Texts the client only with notify_client: true — ask the owner, especially for a client who booked themselves online or through Claude.",
+    "Cancel an appointment (id from my_schedule), freeing the time. Confirm with the owner first. Anything the client paid at booking, and any tip, is refunded in full — the pro cancelling is never the client's fault. Texts the client only with notify_client: true — ask the owner, especially for a client who booked themselves online or through Claude.",
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
@@ -561,12 +577,16 @@ const cancelTool: McpTool = {
     if (!r.ok) return r.text;
     const res = await setAppointmentStatus({ providerId: r.p.id, id: String(args.id || ""), status: "cancelled", reason: args.reason ? String(args.reason).slice(0, 200) : null });
     if (!res.ok) return res.reason!;
+    // The pro cancelling refunds everything paid; a held booking's payment page is closed.
+    const { settleCancellation, releaseHold } = await import("@/lib/calendar/payments");
+    await releaseHold(r.p.id, res.appointment!.id).catch(() => {});
+    const refund = await settleCancellation({ providerId: r.p.id, appointment: res.appointment!, by: "pro" }).catch((e) => `The refund didn't go through (${e?.message}); refund it in your Stripe Dashboard.`);
     let texted = false;
     if (args.notify_client && res.appointment?.client?.phone) {
       await notifyCancelled({ pro: { provider: r.p, listing: await listingName(r.p), services: [] }, appointment: res.appointment, by: "pro" });
       texted = true;
     }
-    return `Cancelled: ${apptLine(res.appointment!, r.p.timezone, true)}\nThe time is free again. ${texted ? "The client was texted." : "The client was not texted — let them know."}`;
+    return `Cancelled: ${apptLine(res.appointment!, r.p.timezone, true)}\nThe time is free again. ${texted ? "The client was texted." : "The client was not texted — let them know."}${refund ? `\n${refund}` : ""}`;
   },
 };
 
@@ -574,7 +594,7 @@ const statusTool: McpTool = {
   name: "update_appointment_status",
   title: "Mark an appointment confirmed, completed or no-show",
   provides: "marking appointments confirmed, completed or no-show",
-  description: "Mark an appointment (id from my_schedule) as confirmed, completed, or no_show. A no-show frees the time; a completed visit counts in the client's history.",
+  description: "Mark an appointment (id from my_schedule) as confirmed, completed, or no_show. A no-show frees the time and settles any payment under the owner's no-show rule (a tip is always returned); a completed visit counts in the client's history.",
   requiresIdentity: true,
   requiresScope: "propose",
   annotations: WRITES,
@@ -589,12 +609,87 @@ const statusTool: McpTool = {
     const status = String(args.status);
     if (!["confirmed", "completed", "no_show"].includes(status)) return "Status must be confirmed, completed or no_show.";
     const res = await setAppointmentStatus({ providerId: r.p.id, id: String(args.id || ""), status: status as any });
-    return res.ok ? `Updated: ${apptLine(res.appointment!, r.p.timezone, true)}` : res.reason!;
+    if (!res.ok) return res.reason!;
+    let refund: string | null = null;
+    if (status === "no_show") {
+      const { settleCancellation } = await import("@/lib/calendar/payments");
+      refund = await settleCancellation({ providerId: r.p.id, appointment: res.appointment!, by: "no_show" }).catch((e) => `The refund didn't go through (${e?.message}); check your Stripe Dashboard.`);
+    }
+    return `Updated: ${apptLine(res.appointment!, r.p.timezone, true)}${refund ? `\n${refund}` : ""}`;
+  },
+};
+
+const connectStripe: McpTool = {
+  name: "connect_stripe_for_payments",
+  title: "Connect Stripe so clients can pay you",
+  provides: "connecting the owner's own Stripe account for client payments",
+  description:
+    "Connect the owner's OWN Stripe account, so clients' deposits, payments and tips go straight to them (ShearQuery takes no fee per booking). Returns Stripe's secure setup page — bank and identity details are entered there, never in this chat — or, if already connected, whether it's ready to take cards.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: { ...WRITES, openWorldHint: true },
+  inputSchema: { type: "object", properties: {} },
+  handler: async (_a, ctx) => {
+    const r = await writeProvider(ctx);
+    if (!r.ok) return r.text;
+    if (r.p.is_demo) return "A demo calendar can't connect Stripe. In a real account, this opens Stripe's setup page.";
+    const { refreshPaymentsStatus, startPaymentsSetup } = await import("@/lib/calendar/payments");
+    let needs: string[] = [];
+    if (r.p.stripe_account_id) {
+      const st = await refreshPaymentsStatus(r.p);
+      needs = st.needs;
+      if (st.ready) return "Stripe is connected and taking cards. Payouts, refunds and disputes are in the owner's own Stripe Dashboard (dashboard.stripe.com). Set what clients pay with set_booking_payments_and_policy.";
+    }
+    const { data: m } = await (createAdminClient().from("community_members") as any).select("email").eq("id", ctx.identity!.memberId).maybeSingle();
+    const res = await startPaymentsSetup(r.p, m?.email ?? null, ctx.origin || SITE_URL);
+    if (!res.ok) return res.error;
+    return `${needs.length ? `Stripe still needs ${needs.join(", ")}. ` : ""}Give the owner this link to ${r.p.stripe_account_id ? "finish" : "start"} Stripe setup (it takes about 10 minutes; bank and ID details go on Stripe's page): ${res.url}\nThe link expires soon — if it does, call this again. When they're done, call this again to check it's ready.`;
+  },
+};
+
+const bookingPolicy: McpTool = {
+  name: "set_booking_payments_and_policy",
+  title: "Set what clients pay at booking, and the cancellation rules",
+  provides: "setting payment at booking, tips and cancellation rules",
+  description:
+    "Set how clients pay when they book and the owner's cancellation rules. payment: none, deposit or full (deposit and full need the Manage plan and a Stripe account ready to take cards — connect_stripe_for_payments). Deposit as deposit_percent OR deposit_dollars. tips_enabled. Cancellation: client_can_cancel, client_can_reschedule, change_cutoff_hours (how close to the time clients can still cancel or move online), full_refund_hours (cancel at least this far ahead for a full refund), late_cancel_refund_percent, no_show_refund_percent, max_reschedules (a number, or \"unlimited\"), policy_note (shown to clients). Only change what the owner asks. Existing bookings keep the rules they were booked under.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: WRITES,
+  inputSchema: {
+    type: "object",
+    properties: {
+      payment: { type: "string", enum: ["none", "deposit", "full"] },
+      deposit_percent: { type: "integer", minimum: 1, maximum: 100 },
+      deposit_dollars: { type: "number", minimum: 0.5 },
+      tips_enabled: { type: "boolean" },
+      client_can_cancel: { type: "boolean" },
+      client_can_reschedule: { type: "boolean" },
+      change_cutoff_hours: { type: "number", minimum: 0, maximum: 336 },
+      full_refund_hours: { type: "number", minimum: 0, maximum: 336 },
+      late_cancel_refund_percent: { type: "integer", minimum: 0, maximum: 100 },
+      no_show_refund_percent: { type: "integer", minimum: 0, maximum: 100 },
+      max_reschedules: { type: ["integer", "string"], description: 'A number from 0 to 20, or "unlimited".' },
+      policy_note: { type: "string", maxLength: 500 },
+    },
+  },
+  handler: async (args, ctx) => {
+    const r = await writeProvider(ctx);
+    if (!r.ok) return r.text;
+    const { savePaymentRules } = await import("@/lib/calendar/payments");
+    const { payment, ...rest } = args || {};
+    const res = await savePaymentRules(r.p, { ...rest, ...(payment ? { payment_mode: payment } : {}) });
+    if (!res.ok) return `Not saved: ${res.error}`;
+    return [
+      "Saved. Clients now see this before they book (bookings already made keep the rules they were booked under):",
+      ...policyLines(res.terms.policy, res.terms.mode).map((l) => `  - ${l}`),
+      ...(res.terms.notInEffect ? [`NOTE: ${res.terms.notInEffect}`] : []),
+    ].join("\n");
   },
 };
 
 export const CALENDAR_TOOLS: McpTool[] = [
   myCalendar, mySchedule, findOpenTimesTool, findClient,
   setHours, calendarSettings, saveService, removeServiceTool, blockTime, removeTimeOffTool,
-  bookTool, moveTool, cancelTool, statusTool,
+  bookTool, moveTool, cancelTool, statusTool, connectStripe, bookingPolicy,
 ];

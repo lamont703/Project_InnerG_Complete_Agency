@@ -23,7 +23,7 @@ export default async function AgenciesAdminPage() {
       <Navbar />
       <main className="mx-auto max-w-4xl px-5 pt-28 pb-20 sm:px-6">
         <h1 className="flex items-center gap-2 text-2xl font-black"><Briefcase className="h-6 w-6" /> Agencies</h1>
-        <p className="mt-2 text-sm text-slate-600">Agencies that signed up and told us about themselves. Approving one gives it a referral code and link, and from then on every business that joins through it is credited to it. Rejected or pending agencies earn no credit.</p>
+        <p className="mt-2 text-sm text-slate-600">Agencies are approved automatically when they first save their details. Approval gives an agency a referral code and link, and from then on every business that joins through it is credited to it. Rejected or pending agencies earn no credit, and none is paid until it accepts the partner agreement.</p>
         {rows.length === 0 ? (
           <p className="mt-8 text-sm text-slate-500">No agencies yet.</p>
         ) : (
@@ -53,7 +53,7 @@ export default async function AgenciesAdminPage() {
                   {r.agreementVersion === PARTNER_AGREEMENT.version
                     ? "Partner agreement accepted"
                     : agreementIsFinal()
-                      ? `Hasn't accepted the partner agreement${r.agreementVersion ? " (accepted an older version)" : ""} — approval waits on it`
+                      ? `Hasn't accepted the partner agreement${r.agreementVersion ? " (accepted an older version)" : ""} — payouts wait on it`
                       : "Partner agreement is still a draft — not required yet"}
                 </p>
                 <p className="mt-3 text-sm text-slate-700">{r.what_they_build || "—"}</p>

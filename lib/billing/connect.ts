@@ -39,6 +39,8 @@ export async function startPayoutSetup(agencyMemberId: string, origin: string): 
   const a = await agencyRow(agencyMemberId);
   if (!a) return { ok: false, error: "No agency profile on this account." };
   if (a.partner_status !== "approved") return { ok: false, error: "Payouts open once your agency is approved." };
+  const { agreementAccepted, AGREEMENT_NEEDED_FOR_PAYOUT } = await import("@/lib/agency-partners");
+  if (!(await agreementAccepted(agencyMemberId))) return { ok: false, error: AGREEMENT_NEEDED_FOR_PAYOUT };
 
   let accountId: string | null = a.stripe_account_id;
   if (!accountId) {
@@ -102,6 +104,7 @@ export async function payAgencyViaStripe(agencyMemberId: string, recordedBy: str
   if (!status.ready) return { ok: false, error: "Stripe hasn't finished verifying this agency's payout account yet." };
 
   const { preparePayout, commitPayout } = await import("@/lib/commissions");
+  // preparePayout refuses an agency that hasn't accepted the partner agreement.
   const plan = await preparePayout(agencyMemberId);
   if (!plan.ok) return plan;
 

@@ -5,7 +5,7 @@ import { getAppointment } from "@/lib/calendar/store";
 import { sendReminder } from "@/lib/calendar/notify";
 
 /**
- * Day-before reminders for client bookings. Hourly.
+ * Day-before reminders for client bookings, and releasing unpaid holds. Hourly.
  *
  * Window: appointments starting 22–26 hours from now that have not been
  * reminded. Hourly runs overlap that window on purpose, so a skipped run is
@@ -25,6 +25,12 @@ export async function GET(req: Request) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
+
+  // Also let go of any time held for a client who never paid (lib/calendar/payments.ts).
+  // Each pro's holds are released when their times are next looked at; this
+  // sweep covers calendars nobody is looking at.
+  const { releaseExpiredHolds } = await import("@/lib/calendar/payments");
+  await releaseExpiredHolds().catch((e) => console.error("[cron] hold release failed:", e?.message));
 
   const now = Date.now();
   const { data: due } = await (createAdminClient().from("calendar_appointments") as any)
