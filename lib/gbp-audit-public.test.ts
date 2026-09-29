@@ -125,3 +125,26 @@ describe("PUBLIC_ENTITY_TYPES", () => {
     expect(PUBLIC_ENTITY_TYPES.shop.imagesField).toBe("google_images");
   });
 });
+
+describe("hours we never collected", () => {
+  const facts = { photos: 12, reviews: 40, rating: 4.7, website: "https://x.com", phone: "713" };
+  const bench = { city: "Houston", sampleSize: 50, medianPhotos: 10, medianReviews: 30 };
+
+  it("is unavailable, not failed, and doesn't cost the business points", async () => {
+    const { buildPublicAudit, PUBLIC_ENTITY_TYPES } = await import("./gbp-audit-public");
+    const unknown = buildPublicAudit({ ...facts, hasHours: null }, bench);
+    const hours = unknown.checks.find((c) => c.id === "hours")!;
+    expect(hours.status).toBe("unavailable");
+    expect(hours.weight).toBe(0);
+    expect(unknown.score).toBe(100);
+    // Shops, salons and stores never had hours scraped; schools did.
+    expect(PUBLIC_ENTITY_TYPES.shop.hoursCollected).toBe(false);
+    expect(PUBLIC_ENTITY_TYPES.salon.hoursCollected).toBe(false);
+    expect(PUBLIC_ENTITY_TYPES.cosmetology_school.hoursCollected).toBe(true);
+  });
+
+  it("still fails where hours were collected and are missing", async () => {
+    const { buildPublicAudit } = await import("./gbp-audit-public");
+    expect(buildPublicAudit({ ...facts, hasHours: false }, bench).checks.find((c) => c.id === "hours")!.status).toBe("fail");
+  });
+});
