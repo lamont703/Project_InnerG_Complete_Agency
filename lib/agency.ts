@@ -63,7 +63,7 @@ export async function saveAgencyProfile(memberId: string, input: Record<string, 
   );
   if (error) return { ok: false, error: "Couldn't save that. Try again." };
 
-  // First save only: tell the admin a new agency is waiting for its demo.
+  // First save only: tell the admin a new agency is waiting for approval.
   if (!existing) {
     const to = process.env.ADMIN_ALERT_EMAIL || process.env.OUTREACH_ALERT_EMAIL;
     if (to) {
@@ -72,7 +72,7 @@ export async function saveAgencyProfile(memberId: string, input: Record<string, 
         subject: `New agency on ShearQuery: ${agency_name}`,
         html: `<p><strong>${escapeHtml(agency_name)}</strong> signed up as an agency${website ? ` (${escapeHtml(website)})` : ""}.</p>
 <p>What they build: ${escapeHtml(clean(input.what_they_build, 1000) || "not said")}<br/>Clients: ${count ?? "not said"} · Markets: ${escapeHtml(clean(input.markets, 300) || "not said")}</p>
-<p><a href="${SITE_URL}/admin/agencies">Set up their demo shop</a></p>`,
+<p><a href="${SITE_URL}/admin/agencies">Review and approve them</a></p>`,
       }).catch(() => {});
     }
   }
@@ -81,16 +81,21 @@ export async function saveAgencyProfile(memberId: string, input: Record<string, 
 
 export interface AgencyRow extends AgencyProfile {
   memberId: string;
+  partnerStatus: string;
+  referralCode: string | null;
+  clientCount: number;
   email: string | null;
   name: string;
   hasDemo: boolean;
+  /** False for an agency ACCOUNT that hasn't told us about itself yet — nothing to approve. */
+  hasProfile: boolean;
   createdAt: string;
 }
 
 export async function listAgencies(): Promise<AgencyRow[]> {
   const { data } = await db()
     .from("agency_profiles")
-    .select("community_member_id, agency_name, website, what_they_build, client_count, markets, demo_ready_at, created_at, member:community_members(email, first_name, last_name)")
+    .select("community_member_id, agency_name, website, what_they_build, client_count, markets, demo_ready_at, created_at, partner_status, referral_code, member:community_members(email, first_name, last_name)")
     .order("created_at", { ascending: false })
     .limit(200);
   const ids = (data || []).map((r: any) => r.community_member_id);
@@ -98,8 +103,14 @@ export async function listAgencies(): Promise<AgencyRow[]> {
     ? await db().from("calendar_providers").select("community_member_id, is_demo").in("community_member_id", ids)
     : { data: [] };
   const demoSet = new Set((demos || []).filter((d: any) => d.is_demo).map((d: any) => d.community_member_id));
-  return (data || []).map((r: any) => ({
+  const { data: refs } = ids.length
+    ? await db().from("agency_referrals").select("agency_member_id").in("agency_member_id", ids)
+    : { data: [] };
+  const refCount = new Map<string, number>();
+  for (const r of refs || []) refCount.set(r.agency_member_id, (refCount.get(r.agency_member_id) || 0) + 1);
+  const rows: AgencyRow[] = (data || []).map((r: any) => ({
     memberId: r.community_member_id,
+    hasProfile: true,
     email: r.member?.email ?? null,
     name: [r.member?.first_name, r.member?.last_name].filter(Boolean).join(" ") || "—",
     agency_name: r.agency_name,
@@ -109,8 +120,35 @@ export async function listAgencies(): Promise<AgencyRow[]> {
     markets: r.markets,
     demo_ready_at: r.demo_ready_at,
     hasDemo: demoSet.has(r.community_member_id),
+    partnerStatus: r.partner_status,
+    referralCode: r.referral_code,
+    clientCount: refCount.get(r.community_member_id) || 0,
     createdAt: r.created_at,
   }));
+
+  // Agency accounts with no details yet. Listing only profiles hid them
+  // entirely, so a new agency looked like no agency at all (2026-09-28).
+  const { data: bare } = await db()
+    .from("community_members")
+    .select("id, email, first_name, last_name, created_at")
+    .eq("audience", "agency")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const withProfile = new Set(ids);
+  for (const m of bare || []) {
+    if (withProfile.has(m.id)) continue;
+    rows.push({
+      memberId: m.id,
+      hasProfile: false,
+      email: m.email ?? null,
+      name: [m.first_name, m.last_name].filter(Boolean).join(" ") || "—",
+      agency_name: "Details not filled in yet",
+      website: null, what_they_build: null, client_count: null, markets: null, demo_ready_at: null,
+      hasDemo: false, partnerStatus: "pending", referralCode: null, clientCount: 0,
+      createdAt: m.created_at,
+    });
+  }
+  return rows;
 }
 
 /**

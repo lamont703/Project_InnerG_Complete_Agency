@@ -18,6 +18,7 @@ import { INSTAGRAM_TOOLS } from "@/lib/mcp/instagram-tools";
 import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
 import { accountGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
+import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
@@ -794,7 +795,7 @@ const myAccount: McpTool = {
     const lines: (string | null)[] = [
       `Connection: ShearQuery account for ${safeEcho(who, 60)} (key ${identity.keyPrefix}…).`,
       type
-        ? `Account type: ${AUDIENCES[type].label}.`
+        ? `Account type: ${AUDIENCES[type].label}.${type === "agency" ? " Call my_agency for their partner status, details and referral link." : ""}`
         : "Account type: NOT SET. Ask the which_shearquery_account questions, confirm with them, then call set_my_account_type.",
       "",
     ];
@@ -1182,6 +1183,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...INSTAGRAM_TOOLS,
   ...CALENDAR_TOOLS,
   ...CLIENT_BOOKING_TOOLS,
+  ...AGENCY_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

@@ -71,6 +71,10 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     note: "Built from lib/audiences.ts; asks before recommending, and gives no link for planned types." },
   { id: "set_my_account_type", label: "Set my account type (once)", group: "Getting started", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Only fills an EMPTY type; never changes one already set." },
+  { id: "my_agency", label: "My agency partner account", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Agency accounts only. Status, referral link, credited businesses." },
+  { id: "update_my_agency_details", label: "Save agency details", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Agency accounts only. First save notifies the admin for approval." },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---
