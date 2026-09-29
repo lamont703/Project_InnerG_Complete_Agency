@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { bookableForEntity } from "@/lib/calendar/client-booking";
+import { calendarInfoFor } from "@/lib/calendar/booking-info";
 
 /**
  * Does this listing take real bookings? The Book button asks on open: a yes
@@ -16,15 +17,7 @@ export async function GET(req: Request) {
   const pro = await bookableForEntity(type, id);
   if (!pro) return NextResponse.json({ bookable: false }, { headers: { "Cache-Control": "no-store" } });
   return NextResponse.json(
-    {
-      bookable: true,
-      providerId: pro.provider.id,
-      name: pro.provider.display_name,
-      listing: pro.listing,
-      timezone: pro.provider.timezone,
-      windowDays: pro.provider.booking_window_days,
-      services: pro.services.map((s) => ({ id: s.id, name: s.name, minutes: s.duration_minutes, priceCents: s.price_cents })),
-    },
+    { bookable: true, ...(await calendarInfoFor(pro)) },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

@@ -27,7 +27,9 @@ export async function POST(req: Request) {
     notes: b?.notes ? String(b.notes).slice(0, 300) : null,
     source: "web",
     origin: originOf(req),
+    tipCents: Number(b?.tipCents) || 0,
   });
   if (!res.ok) return NextResponse.json({ ok: false, error: res.reason }, { status: 409 });
-  return NextResponse.json({ ok: true, appointmentId: res.appointment.id, manageUrl: res.manageUrl });
+  // When the pro takes payment at booking, the time is held and the client goes to Stripe to pay.
+  return NextResponse.json({ ok: true, appointmentId: res.appointment.id, manageUrl: res.manageUrl, payUrl: res.payment?.url ?? null });
 }

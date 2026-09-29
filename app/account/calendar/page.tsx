@@ -11,11 +11,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasCalendarAccess } from "@/lib/feature-access";
 import { getProvider, getHours, listServices, listAppointments } from "@/lib/calendar/store";
 import { formatLocal, minuteToClock, localDateKey } from "@/lib/calendar/time";
+import { paymentTerms, refreshPaymentsStatus } from "@/lib/calendar/payments";
+import { policyLines } from "@/lib/calendar/policy";
+import { getMemberPlan } from "@/lib/member-plan";
+import { planAllows } from "@/lib/plans";
+import { PaymentSettings } from "@/components/calendar/payment-settings";
 
 /**
- * The ShearQuery calendar, as a page. Read-only on purpose: the book is managed
- * from Claude (lib/mcp/calendar-tools.ts), and this is where the owner checks
- * what Claude did. Private testing — lib/calendar/access.ts.
+ * The ShearQuery calendar, as a page. The book itself is managed from Claude
+ * (lib/mcp/calendar-tools.ts), and this is where the owner checks what Claude
+ * did. Payments and cancellation rules are set here or from Claude — the
+ * Stripe connection has to start on the web anyway. Private testing —
+ * lib/calendar/access.ts.
  */
 
 export const dynamic = "force-dynamic";
@@ -27,7 +34,8 @@ export const metadata = {
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export default async function CalendarPage() {
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ payments?: string }> }) {
+  const q = await searchParams;
   const ctx = await resolveMemberContext();
   if ("error" in ctx) {
     if (ctx.status === 401) redirect("/login?redirect=/account/calendar");
@@ -71,6 +79,13 @@ export default async function CalendarPage() {
       const k = localDateKey(new Date(a.starts_at), tz);
       days.set(k, [...(days.get(k) || []), a]);
     }
+    // Back from Stripe's setup page: read whether the account can take cards now.
+    // Not ready yet: ask Stripe what it's still waiting for, so the page can say.
+    const stripeStatus = provider.stripe_account_id && (q.payments === "returned" || !provider.payments_ready)
+      ? await refreshPaymentsStatus(provider).catch(() => null)
+      : null;
+    const terms = await paymentTerms(provider);
+    const plan = await getMemberPlan(ctx.memberId);
     const handle = provider.is_demo ? null : await ensureBookingHandle(provider.id);
     const bookUrl = handle ? `${SITE_URL}/book/${handle}` : null;
     const qr = bookUrl ? await QRCode.toDataURL(bookUrl, { margin: 1, width: 480 }) : null;
@@ -81,7 +96,7 @@ export default async function CalendarPage() {
             <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-500"><QrCode className="h-4 w-4" /> Let clients book you — here or from their AI</h2>
             <p className="mt-2 text-sm text-slate-600">
               Share your booking page, or print the QR code for your mirror or front desk. Clients can book on the page, or tell their own Claude or ChatGPT
-              &ldquo;book with {provider.display_name} on ShearQuery, booking handle {handle}&rdquo; — no ShearQuery account needed, just a text code to confirm their number.
+              &ldquo;book with {provider.display_name} on ShearQuery, booking handle {handle}&rdquo;. On this page they confirm with a text code; from their AI they sign in to a free client account.
             </p>
             <div className="mt-4 flex flex-wrap items-start gap-5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -144,7 +159,17 @@ export default async function CalendarPage() {
             </ul>
           </div>
         </section>
-        <p className="text-xs text-slate-500">Change anything by asking Claude. Clients can&apos;t book themselves yet — that comes next.</p>
+        {!provider.is_demo && (
+          <PaymentSettings
+            stripe={provider.payments_ready ? "ready" : provider.stripe_account_id ? "pending" : "none"}
+            planAllowsPayments={planAllows(plan.plan, "booking_payments")}
+            notInEffect={terms.notInEffect}
+            stripeNeeds={stripeStatus?.needs ?? []}
+            initial={terms.policy}
+            clientLines={policyLines(terms.policy, terms.mode)}
+          />
+        )}
+        <p className="text-xs text-slate-500">Change anything by asking Claude.</p>
       </div>
     );
   }

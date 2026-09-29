@@ -28,6 +28,23 @@ export interface Provider {
   entity_id: string | null;
   /** Made-up data for a demo (lib/calendar/demo.ts); hidden from client search. */
   is_demo?: boolean;
+  community_member_id?: string;
+  /** The pro's own Stripe account; clients pay it directly (lib/calendar/payments.ts). */
+  stripe_account_id?: string | null;
+  payments_ready?: boolean;
+  /** Payment and cancellation rules — lib/calendar/policy.ts reads them with policyFrom. */
+  payment_mode?: string;
+  deposit_kind?: string;
+  deposit_value?: number;
+  tips_enabled?: boolean;
+  client_can_cancel?: boolean;
+  client_can_reschedule?: boolean;
+  change_cutoff_minutes?: number;
+  full_refund_minutes?: number;
+  late_cancel_refund_percent?: number;
+  no_show_refund_percent?: number;
+  max_reschedules?: number | null;
+  policy_note?: string | null;
 }
 
 export async function getProvider(memberId: string): Promise<Provider | null> {
@@ -219,17 +236,30 @@ export interface Appointment {
   id: string; starts_at: string; ends_at: string; blocks_until: string; status: string; source: string;
   service_name: string; price_cents: number | null; notes: string | null;
   client: { id: string; name: string; phone: string | null } | null;
+  /** none | awaiting | paid | partially_refunded | refunded */
+  payment_status: string;
+  amount_due_cents: number | null;
+  hold_expires_at: string | null;
+  reschedule_count: number;
+  /** The rules the client booked under (lib/calendar/policy.ts). */
+  policy: Record<string, unknown> | null;
 }
+
+const APPT_COLUMNS =
+  "id, starts_at, ends_at, blocks_until, status, source, service_name, price_cents, notes, payment_status, amount_due_cents, hold_expires_at, reschedule_count, policy, client:calendar_clients(id, name, phone)";
+
+/** Statuses that occupy the time. A booking waiting on payment holds it too. */
+export const LIVE_STATUSES = ["pending_payment", "booked", "confirmed", "completed"];
 
 export async function listAppointments(providerId: string, from: Date, to: Date, includeCancelled = false): Promise<Appointment[]> {
   let q = db()
     .from("calendar_appointments")
-    .select("id, starts_at, ends_at, blocks_until, status, source, service_name, price_cents, notes, client:calendar_clients(id, name, phone)")
+    .select(APPT_COLUMNS)
     .eq("provider_id", providerId)
     .gte("starts_at", from.toISOString())
     .lt("starts_at", to.toISOString())
     .order("starts_at");
-  if (!includeCancelled) q = q.in("status", ["booked", "confirmed", "completed", "no_show"]);
+  if (!includeCancelled) q = q.in("status", ["pending_payment", "booked", "confirmed", "completed", "no_show"]);
   const { data } = await q;
   return data || [];
 }
@@ -237,7 +267,7 @@ export async function listAppointments(providerId: string, from: Date, to: Date,
 export async function getAppointment(providerId: string, id: string): Promise<Appointment | null> {
   const { data } = await db()
     .from("calendar_appointments")
-    .select("id, starts_at, ends_at, blocks_until, status, source, service_name, price_cents, notes, client:calendar_clients(id, name, phone)")
+    .select(APPT_COLUMNS)
     .eq("provider_id", providerId)
     .eq("id", id)
     .maybeSingle();
@@ -251,7 +281,7 @@ async function blockedIntervals(providerId: string, from: Date, to: Date, ignore
       .from("calendar_appointments")
       .select("id, starts_at, blocks_until")
       .eq("provider_id", providerId)
-      .in("status", ["booked", "confirmed", "completed"])
+      .in("status", LIVE_STATUSES)
       .lt("starts_at", to.toISOString())
       .gt("blocks_until", from.toISOString()),
     listTimeOff(providerId, from, to),
@@ -307,6 +337,8 @@ export async function bookAppointment(args: {
   notes?: string | null;
   source: "claude" | "web" | "walk_in" | "client_claude";
   allowOutsideHours?: boolean;
+  /** A client booking that must be paid first is inserted as a HOLD (lib/calendar/payments.ts). */
+  payment?: { status: "pending_payment" | "booked"; paymentStatus: "none" | "awaiting"; amountDueCents: number | null; holdExpiresAt: Date | null; policy: Record<string, unknown> };
 }): Promise<BookResult> {
   const { provider, service, start } = args;
   if (Number.isNaN(start.getTime())) return { ok: false, reason: "That isn't a valid date and time." };
@@ -332,9 +364,17 @@ export async function bookAppointment(args: {
       starts_at: start.toISOString(),
       ends_at: end.toISOString(),
       blocks_until: blocksUntil.toISOString(),
-      status: "booked",
+      status: args.payment?.status ?? "booked",
       source: args.source,
       notes: args.notes?.trim() || null,
+      ...(args.payment
+        ? {
+            payment_status: args.payment.paymentStatus,
+            amount_due_cents: args.payment.amountDueCents,
+            hold_expires_at: args.payment.holdExpiresAt?.toISOString() ?? null,
+            policy: args.payment.policy,
+          }
+        : {}),
     })
     .select("id")
     .single();
@@ -345,7 +385,7 @@ export async function bookAppointment(args: {
   return { ok: true, appointment: (await getAppointment(provider.id, data.id))! };
 }
 
-export async function moveAppointment(args: { provider: Provider; id: string; start: Date; allowOutsideHours?: boolean }): Promise<BookResult> {
+export async function moveAppointment(args: { provider: Provider; id: string; start: Date; allowOutsideHours?: boolean; countAsClientReschedule?: boolean }): Promise<BookResult> {
   const { provider } = args;
   const appt = await getAppointment(provider.id, args.id);
   if (!appt) return { ok: false, reason: "No appointment with that id on this calendar." };
@@ -365,7 +405,10 @@ export async function moveAppointment(args: { provider: Provider; id: string; st
 
   const { error } = await db()
     .from("calendar_appointments")
-    .update({ starts_at: args.start.toISOString(), ends_at: end.toISOString(), blocks_until: blocksUntil.toISOString(), updated_at: new Date().toISOString() })
+    .update({
+      starts_at: args.start.toISOString(), ends_at: end.toISOString(), blocks_until: blocksUntil.toISOString(), updated_at: new Date().toISOString(),
+      ...(args.countAsClientReschedule ? { reschedule_count: (appt.reschedule_count ?? 0) + 1 } : {}),
+    })
     .eq("id", appt.id)
     .eq("provider_id", provider.id);
   if (error) {

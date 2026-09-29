@@ -9,5 +9,5 @@ export async function POST(req: Request) {
   const found = await appointmentByToken(String(b?.token || ""));
   if (!found) return NextResponse.json({ ok: false, error: "That link isn't valid." }, { status: 404 });
   const res = await clientCancel({ providerId: found.providerId, appointmentId: found.appointment.id });
-  return res.ok ? NextResponse.json({ ok: true }) : NextResponse.json({ ok: false, error: res.reason }, { status: 409 });
+  return res.ok ? NextResponse.json({ ok: true, refund: res.refund ?? null }) : NextResponse.json({ ok: false, error: res.reason }, { status: 409 });
 }

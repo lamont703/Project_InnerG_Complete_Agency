@@ -15,6 +15,10 @@ import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/di
  * Steps: service → day → time → name and phone → text code → booked. The code
  * is checked at the moment of booking (api/calendar/public/book), so a proven
  * phone is spent on exactly one appointment.
+ *
+ * When the pro takes a deposit or full payment, the details step shows the
+ * pro's terms and an optional tip, and booking sends the client to Stripe to
+ * pay; the time is held meanwhile (lib/calendar/payments.ts).
  */
 
 export interface CalendarInfo {
@@ -23,8 +27,17 @@ export interface CalendarInfo {
   listing: string | null;
   timezone: string;
   windowDays: number;
-  services: { id: string; name: string; minutes: number; priceCents: number | null }[];
+  services: {
+    id: string; name: string; minutes: number; priceCents: number | null;
+    /** Paid at booking; 0 when nothing is. */
+    dueCents?: number;
+    /** The pro's payment and cancellation terms, in plain words, for this service. */
+    policy?: string[];
+  }[];
+  payment?: { mode: "none" | "deposit" | "full"; tips: boolean };
 }
+
+const TIP_PERCENTS = [0, 15, 20, 25];
 
 type Step = "pick" | "details" | "code" | "done";
 
@@ -66,10 +79,14 @@ export function CalendarBookingPanel({ info, onClose, standalone = false }: { in
   const [phone, setPhone] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [code, setCode] = React.useState("");
+  const [tipPct, setTipPct] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const service = info.services.find((s) => s.id === serviceId);
+  const due = service?.dueCents ?? 0;
+  const canTip = due > 0 && !!info.payment?.tips && service?.priceCents != null;
+  const tipCents = canTip ? Math.round(((service?.priceCents ?? 0) * tipPct) / 100) : 0;
   const dayLabel = days.find((d) => d.key === day)?.label || day;
 
   React.useEffect(() => {
@@ -105,10 +122,15 @@ export function CalendarBookingPanel({ info, onClose, standalone = false }: { in
       const r = await fetch("/api/calendar/public/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerId: info.providerId, serviceId, start: slot.iso, name, phone, code, notes }),
+        body: JSON.stringify({ providerId: info.providerId, serviceId, start: slot.iso, name, phone, code, notes, tipCents }),
       });
       const j = await r.json();
       if (!j.ok) throw new Error(j.error);
+      // Payment due: the time is held, and Stripe's page takes the payment.
+      if (j.payUrl) {
+        window.location.href = j.payUrl;
+        return;
+      }
       setStep("done");
     } catch (e: any) {
       setError(e.message || "Couldn't book that.");
@@ -127,7 +149,7 @@ export function CalendarBookingPanel({ info, onClose, standalone = false }: { in
         </div>
         <Title className="mt-4 text-xl font-black">You&apos;re booked</Title>
         <Description className="mt-2 text-sm text-slate-600">
-          {service?.name} with {who}, {dayLabel} at {slot?.label}. We texted you a confirmation with a link to view or cancel it.
+          {service?.name} with {who}, {dayLabel} at {slot?.label}. We texted you a confirmation with a link to view, reschedule or cancel it.
         </Description>
         <button onClick={onClose} className="mt-6 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white">Done</button>
       </div>
@@ -216,6 +238,31 @@ export function CalendarBookingPanel({ info, onClose, standalone = false }: { in
             <span className="text-xs font-black uppercase tracking-wide text-slate-500">Anything they should know? (optional)</span>
             <input value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={300} className="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm" />
           </label>
+          {canTip && (
+            <div>
+              <span className="text-xs font-black uppercase tracking-wide text-slate-500">Add a tip? (optional)</span>
+              <div className="mt-2 flex gap-2">
+                {TIP_PERCENTS.map((pct) => (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => setTipPct(pct)}
+                    className={`flex-1 rounded-xl border px-2 py-2 text-xs font-bold ${tipPct === pct ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`}
+                  >
+                    {pct === 0 ? "No tip" : `${pct}% · ${price(Math.round(((service?.priceCents ?? 0) * pct) / 100)).replace(" · ", "")}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {!!service?.policy?.length && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-500">Before you book</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
+                {service.policy.map((l) => <li key={l}>{l}</li>)}
+              </ul>
+            </div>
+          )}
           {error && <p className="text-sm font-semibold text-rose-700">{error}</p>}
           <div className="flex gap-3">
             <button onClick={() => { setError(null); setStep("pick"); }} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold"><ArrowLeft className="h-4 w-4" /> Back</button>
@@ -240,7 +287,7 @@ export function CalendarBookingPanel({ info, onClose, standalone = false }: { in
           <div className="flex gap-3">
             <button onClick={() => { setError(null); setCode(""); setStep("details"); }} className="inline-flex items-center gap-1 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold"><ArrowLeft className="h-4 w-4" /> Back</button>
             <button disabled={busy || code.length !== 6} onClick={book} className="flex-1 rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white disabled:opacity-40">
-              {busy ? "Booking…" : `Book ${slot?.label}`}
+              {busy ? "Booking…" : due > 0 ? `Book and pay ${price(due + tipCents).replace(" · ", "")}` : `Book ${slot?.label}`}
             </button>
           </div>
         </div>
