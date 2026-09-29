@@ -122,3 +122,38 @@ describe("CommunityMembershipForm — signup attribution", () => {
     expect(bodyOf().audience).toBe("barbershop");
   });
 });
+
+/**
+ * Signing up in the middle of connecting Claude. Claude's Connect sends a new
+ * person to /login?redirect=/oauth/authorize?…; before this fix the form sent
+ * them to /search and the connection never finished.
+ */
+describe("CommunityMembershipForm — signing up on the way to connecting Claude", () => {
+  it("returns to Claude's Allow screen after signup on /login", async () => {
+    params = new URLSearchParams({ redirect: "/oauth/authorize?client_id=https%3A%2F%2Fclaude.ai%2Fx&state=s" });
+    render(<CommunityMembershipForm source="login" />);
+    await signUp();
+    await waitFor(() => expect(setHref).toHaveBeenCalled());
+    expect(setHref).toHaveBeenCalledWith("/oauth/authorize?client_id=https%3A%2F%2Fclaude.ai%2Fx&state=s");
+  });
+
+  for (const r of ["https://evil.example/", "//evil.example/oauth/authorize?x", "/account/claude"]) {
+    it(`never follows the redirect ${r}`, async () => {
+      params = new URLSearchParams({ redirect: r });
+      render(<CommunityMembershipForm source="login" />);
+      await signUp();
+      await waitFor(() => expect(setHref).toHaveBeenCalled());
+      expect(setHref).not.toHaveBeenCalledWith(r);
+      expect(setHref).toHaveBeenCalledWith("/account/manage-listing");
+    });
+  }
+
+  it("leaves the account type empty on /login, and keeps the default elsewhere", async () => {
+    render(<CommunityMembershipForm source="login" />);
+    await signUp();
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    const body = JSON.parse(((globalThis.fetch as any).mock.calls[0][1] as RequestInit).body as string);
+    expect(body.audience).toBeNull();
+  });
+});
+
