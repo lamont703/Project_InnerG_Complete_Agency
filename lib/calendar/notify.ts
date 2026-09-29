@@ -76,6 +76,16 @@ export async function notifyCancelled(args: { pro: BookablePro; appointment: App
   }
 }
 
+/** A client moved their own booking: tell them it's done, and tell the pro. */
+export async function notifyMoved(args: { pro: BookablePro; before: Appointment; after: Appointment }) {
+  const { pro, before, after } = args;
+  const was = formatLocal(new Date(before.starts_at), pro.provider.timezone);
+  const now = formatLocal(new Date(after.starts_at), pro.provider.timezone);
+  if (after.client?.phone) await sendText(after.client.phone, `Moved: your ${after.service_name} with ${where(pro)} is now ${now} (was ${was}). Reply STOP to opt out.`);
+  const phone = await proPhone(pro.provider.id);
+  if (phone) await sendText(phone, `Rescheduled on ShearQuery: ${after.client?.name || "a client"} — ${after.service_name} moved from ${was} to ${now}.`);
+}
+
 /** The day-before reminder. Claimed first so two cron runs cannot both send it. */
 export async function sendReminder(args: { pro: BookablePro; appointment: Appointment }) {
   const { pro, appointment: a } = args;
