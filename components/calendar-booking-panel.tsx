@@ -46,7 +46,16 @@ function upcomingDays(tz: string, n: number) {
   return out;
 }
 
-export function CalendarBookingPanel({ info, onClose }: { info: CalendarInfo; onClose: () => void }) {
+/**
+ * Inside the Book dialog the headings are the dialog's own title and
+ * description, which Radix requires to be inside a Dialog — outside one they
+ * throw in the browser. `standalone` (the /book/<handle> page) uses plain
+ * headings instead.
+ */
+export function CalendarBookingPanel({ info, onClose, standalone = false }: { info: CalendarInfo; onClose: () => void; standalone?: boolean }) {
+  const Title = (standalone ? "h2" : DialogTitle) as React.ElementType;
+  const Description = (standalone ? "p" : DialogDescription) as React.ElementType;
+  const Header = (standalone ? "div" : DialogHeader) as React.ElementType;
   const [step, setStep] = React.useState<Step>("pick");
   const [serviceId, setServiceId] = React.useState(info.services[0]?.id || "");
   const days = React.useMemo(() => upcomingDays(info.timezone, Math.min(info.windowDays, 21)), [info]);
@@ -116,10 +125,10 @@ export function CalendarBookingPanel({ info, onClose }: { info: CalendarInfo; on
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
           <Check className="h-6 w-6 text-emerald-700" />
         </div>
-        <DialogTitle className="mt-4 text-xl font-black">You&apos;re booked</DialogTitle>
-        <DialogDescription className="mt-2 text-sm text-slate-600">
+        <Title className="mt-4 text-xl font-black">You&apos;re booked</Title>
+        <Description className="mt-2 text-sm text-slate-600">
           {service?.name} with {who}, {dayLabel} at {slot?.label}. We texted you a confirmation with a link to view or cancel it.
-        </DialogDescription>
+        </Description>
         <button onClick={onClose} className="mt-6 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-black text-white">Done</button>
       </div>
     );
@@ -127,12 +136,12 @@ export function CalendarBookingPanel({ info, onClose }: { info: CalendarInfo; on
 
   return (
     <div>
-      <DialogHeader>
-        <DialogTitle className="text-xl font-black">Book with {info.name}</DialogTitle>
-        <DialogDescription className="text-sm text-slate-600">
+      <Header>
+        <Title className="text-xl font-black">Book with {info.name}</Title>
+        <Description className="text-sm text-slate-600">
           {info.listing ? `${info.listing} · ` : ""}Real open times — you&apos;re booked when you finish.
-        </DialogDescription>
-      </DialogHeader>
+        </Description>
+      </Header>
 
       {step === "pick" && (
         <div className="mt-5 space-y-5">
