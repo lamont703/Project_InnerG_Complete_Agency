@@ -97,6 +97,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: "save_prospect", label: "Save or update a prospect", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "my_prospects", label: "Prospect pipeline", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "share_audit_link", label: "Shareable audit page", group: "Agency prospecting", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "The agency sends it; ShearQuery sends nothing. Joining credits the agency." },
+  { id: "agency_playbook", label: "Agency playbook", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "lib/agency-playbook.ts; numbers computed from lib/plans.ts." },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

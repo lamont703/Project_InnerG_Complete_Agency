@@ -89,7 +89,7 @@ export default async function AgencyPage() {
                 <Link href="/account/agency/agreement" className="font-bold underline">Read and accept</Link>
               </section>
             ) : (
-              <p className="text-xs text-slate-500"><Link href="/account/agency/agreement" className="underline">The partner agreement</Link></p>
+              <p className="text-xs text-slate-500"><Link href="/account/agency/playbook" className="font-bold underline">The partner playbook</Link> · <Link href="/account/agency/agreement" className="underline">The partner agreement</Link></p>
             )}
 
             <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

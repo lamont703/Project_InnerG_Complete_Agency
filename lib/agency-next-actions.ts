@@ -31,6 +31,7 @@ export async function agencyNextActions(memberId: string): Promise<{ stage: stri
   const { agreementIsFinal, PARTNER_AGREEMENT } = await import("@/lib/partner-agreement");
   const needsAgreement = agreementIsFinal() && p?.agreement_version !== PARTNER_AGREEMENT.version;
   const agreement: AgencyAction = { group: "Get set up", label: "Read and accept the partner agreement (on the website — it can't be accepted from Claude)", how: `${SITE_URL}/account/agency/agreement` };
+  const playbook: AgencyAction = { group: "Get set up", label: "Learn how the partner program works: the workflow, how commission adds up, what to tell each kind of business, and the outreach rules", how: "agency_playbook" };
   const learn: AgencyAction[] = [
     { group: "Also", label: "Show ShearQuery as a made-up barbershop, salon, school or supply store — the real tools, nothing reaches Google or customers", how: "start_demo" },
     { group: "Also", label: "What each account type gets, with prices and what's live or still in testing", how: "what_shearquery_does" },
@@ -39,7 +40,7 @@ export async function agencyNextActions(memberId: string): Promise<{ stage: stri
   if (!p) {
     return {
       stage: "New agency — no details yet",
-      actions: [{ group: "Get set up", label: "Tell ShearQuery about the agency (name, website, what it builds, clients, markets) so it can be approved", how: "update_my_agency_details" }, ...learn],
+      actions: [{ group: "Get set up", label: "Tell ShearQuery about the agency (name, website, what it builds, clients, markets) so it can be approved", how: "update_my_agency_details" }, playbook, ...learn],
     };
   }
   if (p.partner_status === "rejected") {
@@ -51,6 +52,7 @@ export async function agencyNextActions(memberId: string): Promise<{ stage: stri
       actions: [
         ...(needsAgreement ? [agreement] : []),
         { group: "Get set up", label: "Check or complete the agency's details", how: "my_agency / update_my_agency_details" },
+        playbook,
         ...learn,
       ],
     };
@@ -81,6 +83,7 @@ export async function agencyNextActions(memberId: string): Promise<{ stage: stri
     { group: "Earn", label: inPlay ? `Follow up the pipeline — ${inPlay} business${inPlay === 1 ? "" : "es"} in play${pendingInvites ? `, ${pendingInvites} invite${pendingInvites === 1 ? "" : "s"} not joined yet` : ""}` : "Build a pipeline: save the businesses being pitched", how: inPlay ? "my_prospects" : "save_prospect" },
     { group: "Your clients", label: "See every client and where each is stuck, plus earnings and payouts", how: "my_agency" },
     { group: "Your clients", label: (shared.count ?? 0) ? `Check a client's account health — ${shared.count} client${shared.count === 1 ? " has" : "s have"} shared access` : "Ask a client to share their account health, read-only, so the agency can help", how: (shared.count ?? 0) ? "client_support_view" : "request_client_access" },
+    { group: "Also", label: "The playbook — how to work the program, what to say, and the rules", how: "agency_playbook" },
     ...learn,
   );
   return { stage: `Approved partner${p.payouts_ready ? "" : " — payouts not set up yet"}`, actions };

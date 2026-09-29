@@ -338,4 +338,32 @@ export const requestClientAccessTool: McpTool = {
   },
 };
 
-export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool, clientSupportViewTool, requestClientAccessTool];
+/**
+ * The playbook: how the partner program is meant to be worked
+ * (lib/agency-playbook.ts). Claude answers "how do I…" from it rather than
+ * improvising the method, the pitch or the rules.
+ */
+export const agencyPlaybookTool: McpTool = {
+  name: "agency_playbook",
+  title: "How the ShearQuery partner program works",
+  provides: "the agency playbook: the workflow, how commission adds up, what to tell each kind of business, outreach rules and FAQ",
+  description:
+    "For AGENCIES: ShearQuery's playbook for the partner program — how it works, the step-by-step workflow with the tool for each step, how commission adds up (real numbers), what to tell each kind of business, what never to promise, how to reach out and why, where to spend time, and common questions. Use it to teach a new agency and whenever an agency asks how to do something or what to say; answer from it rather than improvising. Pass a topic for one section.",
+  requiresIdentity: true,
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  inputSchema: {
+    type: "object",
+    properties: { topic: { type: "string", enum: ["overview", "workflow", "commission", "pitch", "never", "outreach", "priorities", "faq"], description: "Leave out for the whole playbook." } },
+  },
+  handler: async (args) => {
+    const { playbookSections, OWNER_NOTE } = await import("@/lib/agency-playbook");
+    const sections = playbookSections().filter((x) => !args.topic || x.id === args.topic);
+    return [
+      !args.topic && OWNER_NOTE ? `A NOTE FROM LAMONT\n${OWNER_NOTE}\n` : "",
+      ...sections.map((x) => `${x.title.toUpperCase()}\n${x.body.join("\n")}\n`),
+      `The playbook is also on the agency page: ${SITE_URL}/account/agency/playbook`,
+    ].filter(Boolean).join("\n");
+  },
+};
+
+export const AGENCY_TOOLS: McpTool[] = [agencyPlaybookTool, myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool, clientSupportViewTool, requestClientAccessTool];
