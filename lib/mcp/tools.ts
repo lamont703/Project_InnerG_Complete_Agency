@@ -21,6 +21,7 @@ import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
 import { accountGuideTool, featureGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
 import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
 import { DEMO_TOOLS } from "@/lib/mcp/demo-tools";
+import { AUTOPILOT_TOOLS } from "@/lib/mcp/autopilot-tools";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
@@ -1202,6 +1203,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...CLIENT_BOOKING_TOOLS,
   ...AGENCY_TOOLS,
   ...DEMO_TOOLS,
+  ...AUTOPILOT_TOOLS,
 ];
 
 export const TOOL_BY_NAME = new Map(MCP_TOOLS.map((t) => [t.name, t]));

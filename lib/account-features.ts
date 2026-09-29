@@ -93,6 +93,16 @@ export const CLAUDE_FEATURES: ClaudeFeature[] = [
     plan: "manage",
     tools: ["my_instagram_account", "my_instagram_insights", "my_instagram_posts", "my_instagram_conversions"],
   },
+  {
+    id: "autopilot",
+    title: "Autopilot",
+    what: "Runs without being asked: replies to 4 and 5 star reviews in the owner's voice, one Google post a week (sent to them a day ahead so they can cancel), a Monday report and a daily digest. Reviews under 4 stars are never answered for them. Everything it publishes can be undone.",
+    types: ["barbershop", "salon", "barber", "cosmetologist", "school", "supply_store"],
+    needs: "A connected Google Business Profile, and the Autopilot plan.",
+    status: live,
+    plan: "autopilot",
+    tools: ["my_autopilot", "update_autopilot_settings"],
+  },
 ];
 
 /** The types an agency would sign up, in pitch order. Agency itself is left out. */

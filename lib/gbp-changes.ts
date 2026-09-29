@@ -860,6 +860,8 @@ export async function draftChange(args: {
   canPublish: boolean;
   kind: ChangeKind;
   input: Record<string, any>;
+  /** Who drafted it, for the change log. Default "claude:<keyPrefix>"; Autopilot passes "autopilot". */
+  origin?: string;
 }): Promise<DraftResult> {
   const spec = SPECS[args.kind];
   const g = await resolveOwnerGbp(args.memberId, { account: spec.needsAccount });
@@ -874,7 +876,7 @@ export async function draftChange(args: {
       location_name: g.locationName,
       surface: SURFACE[args.kind],
       proposed: { kind: args.kind, ...prepared.proposed, preview: prepared.preview },
-      origin: `claude:${args.keyPrefix}`,
+      origin: args.origin ?? `claude:${args.keyPrefix}`,
       status: "pending",
     })
     .select("id")
@@ -912,6 +914,11 @@ export async function publishChange(args: {
   /** The connection that asked; absent when the owner clicked Publish on the website. */
   keyPrefix?: string;
   changeId: string;
+  /**
+   * Skip the per-change email. Autopilot sets it: the owner gets one daily
+   * digest of what Autopilot did instead of an email per review reply.
+   */
+  quiet?: boolean;
 }): Promise<DraftResult> {
   const admin = createAdminClient();
   const id = String(args.changeId || "").trim();
@@ -973,7 +980,7 @@ export async function publishChange(args: {
     .select("id");
   if (!claimed?.length) return { ok: false, text: "That change was published or discarded a moment ago. Nothing was done." };
 
-  const note = `${args.keyPrefix ? `claude ${args.keyPrefix}` : "owner on website"} — ${KIND_LABEL[kind]}`;
+  const note = `${row.origin === "autopilot" ? "autopilot" : args.keyPrefix ? `claude ${args.keyPrefix}` : "owner on website"} — ${KIND_LABEL[kind]}`;
   let applied: Applied;
   try {
     applied = await spec.apply(row.proposed, g, args.memberId, note);
@@ -993,7 +1000,7 @@ export async function publishChange(args: {
     return { ok: false, text: `Google refused the change: ${applied.error}\n\nNothing was changed. The draft is marked failed; fix the problem and draft it again.` };
   }
 
-  void notifyOwner(args.memberId, kind, row.proposed?.preview || [], id, args.keyPrefix ?? null).catch((e) =>
+  if (!args.quiet) void notifyOwner(args.memberId, kind, row.proposed?.preview || [], id, args.keyPrefix ?? null).catch((e) =>
     console.error("[gbp-changes] owner notification failed:", e)
   );
 
@@ -1107,7 +1114,7 @@ export async function listChanges(memberId: string, limit = 15): Promise<string>
     ...data.map((r: any) => {
       const kind = kindOf(r) as ChangeKind | null;
       const what = kind ? KIND_LABEL[kind] : r.surface;
-      const where = String(r.origin || "").startsWith("claude:") ? "from Claude" : "on the website";
+      const where = r.origin === "autopilot" ? "by Autopilot" : String(r.origin || "").startsWith("claude:") ? "from Claude" : "on the website";
       const first = describeChange(r)[0] || "";
       return `- ${r.id} · ${String(r.status).toUpperCase()} · ${what} (${where}) · ${String(r.created_at).slice(0, 16).replace("T", " ")}${first ? `\n    ${String(first).slice(0, 160)}` : ""}${r.error ? `\n    error: ${String(r.error).slice(0, 160)}` : ""}`;
     }),

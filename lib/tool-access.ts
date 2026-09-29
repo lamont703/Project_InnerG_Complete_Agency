@@ -80,6 +80,9 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
   { id: "start_demo", label: "Start a demo as a made-up business", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Agency accounts and admins. Swaps owner tools onto a demo business (lib/demo/); its Google/Instagram/texts are fenced." },
   { id: "stop_demo", label: "Leave demo mode", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
+  { id: "my_autopilot", label: "My Autopilot", group: "Owner: Autopilot", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Settings and log. The work runs hourly in app/api/cron/autopilot, only on the stored Autopilot plan." },
+  { id: "update_autopilot_settings", label: "Autopilot settings", group: "Owner: Autopilot", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false },
   { id: "booth_rent_for_city", label: "Booth rent for a city", group: "Shops & rent", implemented: ["mcp"], defaultMcp: true, defaultChat: false },
 
   // --- MCP: owner-scoped, key required ---

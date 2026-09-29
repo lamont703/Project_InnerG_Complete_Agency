@@ -5,8 +5,10 @@
  * the first that speaks publicly in the owner's voice, permanently, under their
  * business name. So the rules are stricter than for a form:
  *
- *  • Nothing is ever published without the owner reading it. The draft is a
- *    starting point, not an outbox.
+ *  • Nothing is ever published without the owner reading it — EXCEPT on the
+ *    Autopilot plan, where the owner has chosen to let replies to 4 and 5 star
+ *    reviews go out on their own (lib/autopilot/, decided 2026-09-29). Below
+ *    four stars it is still always a draft for the owner.
  *  • The draft may not invent facts. A reply thanking someone for enjoying a
  *    service they never mentioned is a lie the business gets blamed for.
  *  • Low-rated reviews are handled differently and flagged for editing. A warm
@@ -118,7 +120,7 @@ export function validateDraft(text: string): DraftValidation {
 }
 
 /** The instruction given to the model. Exported so it's reviewable and testable. */
-export function draftPrompt(review: GoogleReview, businessName: string): string {
+export function draftPrompt(review: GoogleReview, businessName: string, examples: string[] = []): string {
   const stars = starsOf(review);
   const tone =
     stars >= 4
@@ -142,6 +144,11 @@ export function draftPrompt(review: GoogleReview, businessName: string): string 
     `- Use the reviewer's first name (${firstName(review)}) at most once. Never their full name.`,
     "- Plain sentences. No emoji, no hashtags, no marketing slogans.",
     "- Output only the reply text, with no preamble, quotes, or explanation.",
+    // The owner's own past replies, so it sounds like them. Style only: they
+    // are other customers' conversations and must not be copied or referred to.
+    ...(examples.length
+      ? ["", "Match the tone and length of these replies the owner wrote before. Copy their style, never their content:", ...examples.slice(0, 4).map((e) => `- "${e.slice(0, 300).replace(/\s+/g, " ")}"`)]
+      : []),
   ].join("\n");
 }
 
@@ -155,7 +162,8 @@ export function draftPrompt(review: GoogleReview, businessName: string): string 
  */
 export async function draftReply(
   review: GoogleReview,
-  businessName: string
+  businessName: string,
+  examples: string[] = []
 ): Promise<{ draft: string; source: "generated" | "template" }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return { draft: buildFallbackDraft(review), source: "template" };
@@ -165,7 +173,7 @@ export async function draftReply(
     const ai = new GoogleGenAI({ apiKey });
     const res = await ai.models.generateContent({
       model: "gemini-3.1-flash-lite",
-      contents: draftPrompt(review, businessName),
+      contents: draftPrompt(review, businessName, examples),
     });
     const text = (res.text || "").trim().replace(/^["']|["']$/g, "");
     const check = validateDraft(text);

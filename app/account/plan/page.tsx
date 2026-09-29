@@ -20,7 +20,7 @@ export const metadata = { title: "Your plan | ShearQuery", robots: { index: fals
 const INCLUDES: Record<Plan, string[]> = {
   free: ["Your listing and verified badge", "The full Google profile audit", "Claude drafts any fix to your profile", `${FREE_PUBLISHES_PER_MONTH} Google publishes a month`],
   manage: ["Everything in Free", "Unlimited Google publishing, from Claude or here", "The appointment book, run from Claude (when it opens)", "Instagram insights in Claude (when it opens)"],
-  autopilot: ["Everything in Manage", "Things that run without you asking — replies to good reviews, a posting schedule, reminders and a weekly report (arriving over the coming months)"],
+  autopilot: ["Everything in Manage", "Replies to your 4 and 5 star reviews, in your voice", "One Google post a week — you see it a day ahead", "A Monday report and a daily digest"],
 };
 
 export default async function PlanPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
