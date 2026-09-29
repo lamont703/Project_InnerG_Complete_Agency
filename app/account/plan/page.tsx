@@ -4,11 +4,12 @@ import { Check, CreditCard } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { getMemberPlan, publishesThisMonth } from "@/lib/member-plan";
-import { FREE_PUBLISHES_PER_MONTH, PLAN_LABEL, PRICES, hasPaidPlans, planStatusLine, type Plan } from "@/lib/plans";
-import { AUDIENCES } from "@/lib/audiences";
+import { planIncludes, PLAN_LABEL, PRICES, hasPaidPlans, planStatusLine, type Plan } from "@/lib/plans";
+import { AUDIENCES, type AudienceId } from "@/lib/audiences";
 import { checkoutOpenFor, isTestMode, liveSubscription } from "@/lib/billing/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PlanButton } from "@/components/account/plan-buttons";
+import { AccountTypePicker } from "@/components/account/account-type-picker";
 
 /**
  * A member's plan: what they're on, what each plan includes at their account
@@ -18,11 +19,6 @@ import { PlanButton } from "@/components/account/plan-buttons";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Your plan | ShearQuery", robots: { index: false, follow: false } };
 
-const INCLUDES: Record<Plan, string[]> = {
-  free: ["Your listing and verified badge", "The full Google profile audit", "Claude drafts any fix to your profile", `${FREE_PUBLISHES_PER_MONTH} Google publishes a month`],
-  manage: ["Everything in Free", "Unlimited Google publishing, from Claude or here", "The appointment book, run from Claude (when it opens)", "Instagram insights in Claude (when it opens)"],
-  autopilot: ["Everything in Manage", "Replies to your 4 and 5 star reviews, in your voice", "One Google post a week — you see it a day ahead", "A Monday report and a daily digest"],
-};
 
 export default async function PlanPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {
   const ctx = await resolveMemberContext();
@@ -69,6 +65,20 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
           {live && canBuy && <div className="mt-4 max-w-xs"><PlanButton action="portal" label="Card, invoices and cancelling" /></div>}
         </section>
 
+        {!type && !ctx.impersonating && (
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-sm font-black uppercase tracking-wide text-slate-500">What kind of account is this?</h2>
+            <p className="mt-1 text-sm text-slate-600">Plans and prices depend on it. Pick the one that fits — a barber who owns the shop is a barbershop.</p>
+            <div className="mt-4">
+              <AccountTypePicker
+                options={(["barbershop", "salon", "barber", "cosmetologist", "school", "supply_store", "student", "agency"] as AudienceId[])
+                  .filter((id) => AUDIENCES[id].status === "live")
+                  .map((id) => ({ id, label: AUDIENCES[id].label, who: AUDIENCES[id].who }))}
+              />
+            </div>
+          </section>
+        )}
+
         {paidPlans && type && (
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             {(["free", "manage", "autopilot"] as Plan[]).map((p) => {
@@ -79,7 +89,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
                   <p className="font-black">{PLAN_LABEL[p]}</p>
                   <p className="mt-1 text-2xl font-black">${price}<span className="text-sm font-bold text-slate-500">/month</span></p>
                   <ul className="mt-3 flex-1 space-y-1.5 text-sm text-slate-700">
-                    {INCLUDES[p].map((i) => <li key={i} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{i}</li>)}
+                    {planIncludes(p).map((i) => <li key={i} className="flex gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />{i}</li>)}
                   </ul>
                   <div className="mt-4">
                     {current ? (
@@ -104,7 +114,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         )}
 
         <p className="mt-6 text-xs text-slate-500">
-          Using ShearQuery inside Claude also needs your own Claude subscription, about $20 a month, paid to Anthropic. Plans are billed monthly by Stripe and can be cancelled any time; you keep the plan until the end of the month you paid for.
+          <Link href="/pricing" className="font-bold underline">See every plan and price</Link>. Using ShearQuery inside Claude also needs your own Claude subscription, about $20 a month, paid to Anthropic. Plans are billed monthly by Stripe and can be cancelled any time; you keep the plan until the end of the month you paid for.
         </p>
       </main>
     </div>
