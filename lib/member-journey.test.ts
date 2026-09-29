@@ -256,12 +256,12 @@ describe("audiences", () => {
     expect(audienceFromParam("STUDENT")).toBe("student");
   });
 
-  it("falls back to the existing default for junk and for planned audiences", () => {
+  it("falls back to the existing default for junk, and resolves live types", () => {
     expect(audienceFromParam("nonsense")).toBe("barber");
     expect(audienceFromParam(null)).toBe("barber");
-    // school and agency are declared but not launched — a query string must not render them.
-    expect(audienceFromParam("school")).toBe("barber");
-    expect(audienceFromParam("agency")).toBe("barber");
+    // school and agency went live on 2026-09-28, so a query string now resolves them.
+    expect(audienceFromParam("school")).toBe("school");
+    expect(audienceFromParam("agency")).toBe("agency");
   });
 
   /**

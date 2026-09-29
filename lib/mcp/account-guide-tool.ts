@@ -6,8 +6,8 @@ import { AUDIENCES, membershipPath, storedAudience, type AudienceId } from "@/li
  * Which ShearQuery account someone needs — for Claude to work out by asking.
  *
  * Built from lib/audiences.ts, never restated, so an account type added or
- * changed there reaches Claude on the next request. Planned types (school,
- * agency today) are described honestly as not open yet, with no signup link:
+ * changed there reaches Claude on the next request. A planned type is
+ * described honestly as not open yet, with no signup link:
  * a link to a page with no benefits is a promise nobody made.
  *
  * Public: choosing an account is what someone does BEFORE they have one.
@@ -33,13 +33,14 @@ function line(id: AudienceId): string {
   const a = AUDIENCES[id];
   const header = `${a.label.toUpperCase()} [${id}] — "${a.who}"`;
   if (a.status !== "live") {
-    return `${header}\n  Not open yet. ${id === "agency" ? "The partner program is being built; do not quote commission, prices or terms. Ask what they build and for whom, and point them to ShearQuery directly." : "It isn't open for signup yet; say so plainly."}`;
+    return `${header}\n  Not open for signup yet; say so plainly.`;
   }
   if (id === "client") {
     return `${header}\n  No signup needed: the account is made when they book an appointment, on a listing's Book button or with the booking tools in Claude.`;
   }
   const gets = a.benefits.map((b) => b.title).join("; ");
-  return `${header}\n  Gets: ${gets}\n  Sign up: ${SITE_URL}${membershipPath(id)}`;
+  const note = id === "agency" ? "\n  The partner program (managing clients' accounts, commission) is being built and is NOT open; never quote its terms." : "";
+  return `${header}\n  Gets: ${gets}\n  Sign up: ${SITE_URL}${membershipPath(id)}${note}`;
 }
 
 export const accountGuideTool: McpTool = {
