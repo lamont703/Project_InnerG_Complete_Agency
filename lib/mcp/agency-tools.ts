@@ -50,7 +50,7 @@ function clientLines(clients: Client[]): string[] {
 /** The agency's commission, in the words and numbers it can repeat. */
 async function earningsLines(memberId: string): Promise<string[]> {
   const [{ agencyEarnings }, { COMMISSION_TERMS, dollars }] = await Promise.all([import("@/lib/commissions"), import("@/lib/commission-rules")]);
-  const { summary: e, lines } = await agencyEarnings(memberId);
+  const { summary: e, lines, payouts } = await agencyEarnings(memberId);
   return [
     "EARNINGS",
     `  Terms: ${COMMISSION_TERMS}`,
@@ -58,6 +58,7 @@ async function earningsLines(memberId: string): Promise<string[]> {
       ? `  Ready to pay out: ${dollars(e.readyCents)}${e.canPayOut ? "" : " (below the payout minimum)"} · waiting out the refund window: ${dollars(e.pendingCents)} · paid so far: ${dollars(e.paidCents)}`
       : "  Nothing earned yet — commission starts when a business credited to them pays for a plan.",
     ...lines.slice(0, 10).map((l) => `  - ${l.earnedAt.slice(0, 10)} · ${l.clientName} paid ${dollars(l.paidCents - l.refundedCents)} → ${dollars(l.commissionCents)}`),
+    ...(payouts.length ? ["  Payouts:", ...payouts.slice(0, 12).map((p) => `  - ${String(p.paid_at).slice(0, 10)} · ${dollars(p.amount_cents)}`)] : []),
     "",
   ];
 }
@@ -123,12 +124,15 @@ export const myAgencyTool: McpTool = {
       "PARTNER STATUS: approved.",
       `  Referral link: ${SITE_URL}/join/${p.referral_code}`,
       `  Referral code: ${p.referral_code} (a business can type it at signup)`,
-      `  Invites by email are sent from ${SITE_URL}/account/agency.`,
+      `  Invite a client by email with invite_client_to_shearquery (or at ${SITE_URL}/account/agency).`,
       "",
       `BUSINESSES CREDITED: ${realCount}`,
       ...clientLines(clients),
       "",
-      `INVITES SENT: ${invites.length}, joined ${invites.filter((i: any) => i.accepted_at).length}.`,
+      `INVITES (${invites.length}, ${invites.filter((i: any) => i.accepted_at).length} joined)`,
+      ...(invites.length
+        ? invites.slice(0, 20).map((i: any) => `  - ${i.business_name ? `${i.business_name} · ` : ""}${i.email}: ${i.accepted_at ? `joined ${String(i.accepted_at).slice(0, 10)}` : new Date(i.expires_at) < new Date() ? "expired — send a new invite" : `sent ${String(i.sent_at).slice(0, 10)}, not joined yet`}`)
+        : ["  none yet — invite_client_to_shearquery sends one"]),
       "",
       ...(await earningsLines(memberId)),
       "Managing clients' accounts from ShearQuery is NOT available yet; never say it is.",
@@ -180,4 +184,37 @@ export const updateMyAgencyDetailsTool: McpTool = {
   },
 };
 
-export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool];
+/**
+ * Send a client an email invite from Claude — the same invite, limits and
+ * credit as the button on /account/agency (lib/agency-partners.ts): approved
+ * agencies only, 50 a day, not the same address twice in a week. The invite
+ * link credits the business to this agency when they sign up.
+ */
+export const inviteClientTool: McpTool = {
+  name: "invite_client_to_shearquery",
+  title: "Invite a client to ShearQuery",
+  provides: "sending a client an email invite that credits them to the agency",
+  description:
+    "For an APPROVED agency: email a barber, stylist, shop, salon or school an invite to join ShearQuery. When they join through it, the business is credited to this agency (and earns commission when it pays for a plan). Sends a real email from ShearQuery naming the agency — confirm the address and business name with the agency before calling. Limits: 50 a day, and not the same address twice in a week.",
+  requiresIdentity: true,
+  requiresScope: "propose",
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+  inputSchema: {
+    type: "object",
+    properties: {
+      email: { type: "string", description: "The client's email address." },
+      business_name: { type: "string", description: "Their business or name, used in the greeting. Optional." },
+    },
+    required: ["email"],
+  },
+  handler: async (args, ctx) => {
+    if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
+    if (!(await isAgencyAccount(ctx.identity.memberId))) return NOT_AGENCY;
+    const { sendAgencyInvite } = await import("@/lib/agency-partners");
+    const res = await sendAgencyInvite({ agencyMemberId: ctx.identity.memberId, email: args.email, businessName: args.business_name });
+    if (!res.ok) return `Not sent: ${res.error}`;
+    return `Invite sent to ${String(args.email).trim().toLowerCase()}. The link works for 30 days, and when they join through it they're credited to this agency. my_agency shows whether they've joined.`;
+  },
+};
+
+export const AGENCY_TOOLS: McpTool[] = [myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool];
