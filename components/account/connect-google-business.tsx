@@ -164,18 +164,32 @@ export function ConnectGoogleBusiness() {
     const params = new URLSearchParams(window.location.search);
     const p = params.get("gbp");
     const staged = Number(params.get("staged") || 0);
-    if (p === "connected") {
+    if (p === "connected" && params.get("locations") === "0") {
+      // Signed in fine, but that Google account manages no Business Profile —
+      // most often the profile sits under a different Google login.
+      toast.warning(
+        "Connected, but that Google account doesn't manage any Business Profile. If your business's profile is under a different Google account, disconnect and connect with that one.",
+        { duration: 12000 }
+      );
+    }
+    else if (p === "connected") {
       toast.success(
         staged > 0
           ? `Google Business Profile connected — ${staged} ${staged === 1 ? "business" : "businesses"} submitted for review.`
           : "Google Business Profile connected."
       );
     }
+    else if (p === "missing_permission")
+      toast.error(
+        "Google didn't give ShearQuery permission to see your Business Profile. Try again, and on Google's screen make sure the box to manage your Business Profile is ticked.",
+        { duration: 12000 }
+      );
     else if (p === "denied") toast.error("Google Business Profile connection was cancelled.");
     else if (p === "notconfigured")
       toast.error("Google Business Profile connect isn't configured on this site yet. We've been notified.");
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
+    else if (p === "viewas") toast.error("View As is read-only — exit View As to connect Google.");
 
     // Google's own numbers for the listing — what happened on Search/Maps
     // before anyone ever reached us. Silent when unavailable.

@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { createServerClient } from "@/lib/supabase/server";
 import { gbpAuthUrl, gbpPkcePair } from "@/lib/google-business";
 import { SITE_HOST } from "@/lib/site";
+import { getViewAsContext } from "@/lib/account/view-as";
 
 // Kicks off the Google Business Profile OAuth consent for the signed-in member.
 // Sets a state nonce cookie (CSRF) and redirects to Google.
@@ -19,6 +20,12 @@ export async function GET(req: Request) {
       `${origin}/login?redirect=${encodeURIComponent("/api/google-business/start")}`
     );
   }
+
+  // View As is read-only. Reconnect on a member's card would otherwise start a
+  // Google sign-in for the ADMIN's own account from inside the member's page —
+  // the same guard select, sync and disconnect already have.
+  const viewAs = await getViewAsContext();
+  if (viewAs.viewingAs) return NextResponse.redirect(`${origin}/account/manage-listing?gbp=viewas`);
 
   // Without the OAuth credentials, generateAuthUrl still happily builds a URL —
   // just one with no client_id — and Google answers the owner with a raw

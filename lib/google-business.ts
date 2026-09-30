@@ -73,6 +73,17 @@ export const GBP_SCOPES = [
   "https://www.googleapis.com/auth/business.manage",
 ];
 
+/**
+ * Whether Google actually granted the Business Profile permission. The consent
+ * screen lets a person untick it while the sign-in still succeeds, so a token
+ * holding only openid + email must never be stored as a connection
+ * (app/api/google-business/callback). Google returns granted scopes as one
+ * space-separated string.
+ */
+export function hasBusinessPermission(grantedScope: unknown): boolean {
+  return String(grantedScope ?? "").split(/\s+/).includes("https://www.googleapis.com/auth/business.manage");
+}
+
 export function gbpRedirectUri(origin: string): string {
   return `${origin}/api/google-business/callback`;
 }

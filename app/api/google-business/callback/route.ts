@@ -9,6 +9,7 @@ import {
   matchLocationToEntity,
   claimEntityForMember,
   stageGbpLocation,
+  hasBusinessPermission,
   type GbpLocationOutcome,
 } from "@/lib/google-business";
 import { SITE_HOST } from "@/lib/site";
@@ -66,6 +67,19 @@ export async function GET(req: Request) {
     // now or a later revocation has nothing to match against.
     const identity = identityFromIdToken((tokens as any).id_token);
     if (!accessToken) return back("gbp=error");
+
+    /*
+     * DID THEY ACTUALLY GRANT THE BUSINESS PERMISSION? Google's consent screen
+     * lets a person untick individual permissions, and the one that matters —
+     * business.manage — can come back missing while the sign-in itself
+     * succeeds. That happened on 2026-09-16: a barber "connected", we stored a
+     * connection holding only openid + email, every lookup failed into a
+     * server log, and they were told "connected" with nothing to manage.
+     *
+     * So: no business permission, nothing saved, and they're told exactly what
+     * to tick when they try again.
+     */
+    if (!hasBusinessPermission((tokens as any).scope)) return back("gbp=missing_permission");
 
     let locations: any[] = [];
     try {

@@ -269,3 +269,14 @@ describe("stageGbpLocation", () => {
     expect(admin.inserted).toHaveLength(0);
   });
 });
+
+describe("hasBusinessPermission — a sign-in without the business box ticked isn't a connection", () => {
+  it("is true only when business.manage was granted", async () => {
+    const { hasBusinessPermission } = await import("./google-business");
+    expect(hasBusinessPermission("openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/business.manage")).toBe(true);
+    // What a real barber's grant held on 2026-09-16: signed in, business unticked.
+    expect(hasBusinessPermission("https://www.googleapis.com/auth/userinfo.email openid")).toBe(false);
+    expect(hasBusinessPermission(undefined)).toBe(false);
+    expect(hasBusinessPermission("https://www.googleapis.com/auth/business.manage.readonly")).toBe(false);
+  });
+});
