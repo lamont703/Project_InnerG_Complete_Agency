@@ -4,9 +4,7 @@ import { getToolAccess, isToolEnabled } from "@/lib/tool-access";
 import { SITE_URL } from "@/lib/site";
 import { recordAgentRequest, clientIpFrom } from "@/lib/agent-requests";
 import type { McpIdentity } from "@/lib/mcp/connection";
-import { runInDemo, type DemoContext } from "@/lib/demo/core";
-import { activeDemo } from "@/lib/demo/session";
-import { DEMO_EXEMPT } from "@/lib/mcp/demo-tools";
+import { runTool } from "@/lib/mcp/run-tool";
 import { wwwAuthenticate, scopesForTool, CHALLENGE_SCOPES } from "@/lib/mcp/oauth-rules";
 import { originOf } from "@/lib/mcp/oauth-metadata";
 import { APP_RESOURCES, readAppResource } from "@/lib/mcp/apps/registry";
@@ -318,10 +316,6 @@ type LogFn = (fields: {
   isError?: boolean;
 }) => void;
 
-/** First line of every demo result, so no answer can be read as a real business. */
-function demoBanner(demo: DemoContext): string {
-  return `[DEMO — a made-up ${demo.businessType.replace("_", " ")}. Nothing here is a real business, and nothing reaches Google, Instagram or any customer. stop_demo leaves.]`;
-}
 
 /**
  * tools/call, shared by both eras.
@@ -352,33 +346,14 @@ async function callTool(
     isError: !tool,
   });
 
-  if (!tool) {
-    // Unknown tool is a PROTOCOL error, distinct from a tool that ran and
-    // failed — that one comes back as isError below.
-    return rpcError(id, JSONRPC_INVALID_PARAMS, `Unknown tool: ${String(name)}`);
-  }
-
   /**
-   * Closed on this door, by configuration. Checked here and not only in
-   * tools/list for the same reason the identity gate is: a name carried over
-   * from a cached list, or typed by a person, reaches this line without ever
-   * appearing in a list we filtered. "Unknown tool" is the honest answer —
-   * from this connection it does not exist, and naming it as "disabled" tells
-   * a caller what to come back for.
+   * Lazy authentication, Claude's half. An owner tool called without a token
+   * answers HTTP 401 with a WWW-Authenticate challenge — the ONLY response that
+   * makes Claude show its Connect card. Protocol, so it lives here and not in
+   * lib/mcp/run-tool.ts, which the site chat shares. An unknown or switched-off
+   * tool falls through to runTool, which says so.
    */
-  if (!(await isToolEnabled(tool.name, "mcp"))) {
-    return rpcError(id, JSONRPC_INVALID_PARAMS, `Unknown tool: ${String(name)}`);
-  }
-
-  /**
-   * The gate. An owner-scoped tool is not in the anonymous tool list at all,
-   * but a client can still name one directly — tool lists get cached, and a
-   * model that saw the list on a keyed connection can carry the name to an
-   * unkeyed one. Checked here rather than inside each handler, because a
-   * handler that forgets is a data leak and this cannot be forgotten in one
-   * place.
-   */
-  if (tool.requiresIdentity && !ctx.identity && ctx.oauth) {
+  if (tool && tool.requiresIdentity && !ctx.identity && ctx.oauth && (await isToolEnabled(tool.name, "mcp"))) {
     return NextResponse.json(
       { error: "invalid_token", error_description: "Sign in to ShearQuery to use this tool." },
       {
@@ -396,30 +371,6 @@ async function callTool(
     );
   }
 
-  if (tool.requiresIdentity && !ctx.identity) {
-    return rpcResult(
-      id,
-      wrap({
-        content: [
-          {
-            type: "text",
-            text:
-              `"${tool.name}" answers about one specific business, so it needs that owner's own ` +
-              `connection. This connection is the public one. The owner can generate their ` +
-              `connection URL at ${SITE_URL}/account/claude and add that instead of ${SITE_URL}/mcp.`,
-          },
-        ],
-        isError: true,
-      })
-    );
-  }
-
-  /**
-   * The scope gate, same reasoning as the identity gate above: a draft-only key
-   * never sees publish_change in its list, but a name can still arrive here.
-   * The answer names the fix, because "unknown tool" would send the model
-   * looking for a tool that does exist.
-   */
   /**
    * Step-up for a signed-in owner who did not grant this tool's scope — most
    * often publishing, which the consent screen lets them untick. A 403 with
@@ -428,7 +379,7 @@ async function callTool(
    * re-consent does not drop what they already granted.
    */
   const signedIn = ctx.identity;
-  if (tool.requiresScope && signedIn?.via === "oauth" && ctx.oauth && !signedIn.scopes.includes(tool.requiresScope)) {
+  if (tool && tool.requiresScope && signedIn?.via === "oauth" && ctx.oauth && !signedIn.scopes.includes(tool.requiresScope)) {
     const needed = [...new Set([...signedIn.scopes, ...scopesForTool(tool)])];
     return NextResponse.json(
       { error: "insufficient_scope", error_description: `"${tool.name}" needs the ${tool.requiresScope} permission.` },
@@ -447,80 +398,18 @@ async function callTool(
     );
   }
 
-  if (tool.requiresScope && !ctx.identity?.scopes.includes(tool.requiresScope)) {
-    return rpcResult(
-      id,
-      wrap({
-        content: [
-          {
-            type: "text",
-            text:
-              tool.requiresScope === "publish"
-                ? `This connection was created without permission to publish, so "${tool.name}" cannot run. ` +
-                  `The owner can create a connection with publishing turned on at ${SITE_URL}/account/claude.`
-                : `This connection does not have the "${tool.requiresScope}" permission that "${tool.name}" needs.`,
-          },
-        ],
-        isError: true,
-      })
-    );
-  }
-
-  /**
-   * DEMO MODE (lib/demo/). A member in a demo gets this tool run as their
-   * made-up business: the identity is swapped here, once, and the call runs
-   * inside runInDemo, which is what keeps every outbound request and every
-   * text or email inside the fence. Only owner-scoped tools are swapped;
-   * DEMO_EXEMPT ones always see the real member.
-   *
-   * If demo mode can't be checked, the call is REFUSED rather than run as the
-   * real account: for an admin with a real Google profile, "run it anyway"
-   * turns a demo publish into a real one.
-   */
-  let runContext = toolContext;
-  let demo: DemoContext | null = null;
-  if (tool.requiresIdentity && ctx.identity && !DEMO_EXEMPT.has(tool.name)) {
-    try {
-      demo = await activeDemo(ctx.identity.memberId);
-    } catch (err) {
-      console.error("[mcp] demo check failed:", err);
-      return rpcResult(id, wrap({
-        content: [{ type: "text", text: "Couldn't check whether this account is in demo mode, so nothing was run. Try again in a moment." }],
-        isError: true,
-      }));
-    }
-    if (demo) runContext = { ...toolContext, identity: { ...ctx.identity, memberId: demo.demoMemberId } };
-  }
-
-  try {
-    const args = params?.arguments ?? {};
-    const out = demo ? await runInDemo(demo, () => tool.handler(args, runContext)) : await tool.handler(args, runContext);
-    const raw = typeof out === "string" ? out : out.text;
-    const text = demo ? `${demoBanner(demo)}\n\n${raw}` : raw;
-    const structuredContent = typeof out === "string" ? undefined : out.structuredContent;
-    return rpcResult(
-      id,
-      wrap({ content: [{ type: "text", text }], ...(structuredContent ? { structuredContent } : {}), isError: false })
-    );
-  } catch (err) {
-    // Execution failure is reported in the result so the model can see it and
-    // adapt, rather than as a transport-level error it cannot read.
-    console.error(`[mcp] tool ${tool.name} failed:`, err);
-    return rpcResult(
-      id,
-      wrap({
-        content: [
-          {
-            type: "text",
-            text: `The "${tool.name}" tool could not complete: ${
-              err instanceof Error ? err.message : "unknown error"
-            }`,
-          },
-        ],
-        isError: true,
-      })
-    );
-  }
+  // Every other gate — exists, switched on, identity, scope, demo mode — is in
+  // runTool, shared with the site chat so the two doors can't drift apart.
+  const run = await runTool({ name, input: params?.arguments, identity: ctx.identity, toolContext, door: "mcp" });
+  // Unknown or switched off is a PROTOCOL error, distinct from a tool that ran
+  // and failed; "unknown" is the honest answer, since from this connection it
+  // does not exist.
+  if (!run.ok && run.reason === "unknown") return rpcError(id, JSONRPC_INVALID_PARAMS, run.text);
+  if (!run.ok) return rpcResult(id, wrap({ content: [{ type: "text", text: run.text }], isError: true }));
+  return rpcResult(
+    id,
+    wrap({ content: [{ type: "text", text: run.text }], ...(run.structuredContent ? { structuredContent: run.structuredContent } : {}), isError: false })
+  );
 }
 
 /**
