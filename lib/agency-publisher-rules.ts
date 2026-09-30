@@ -51,3 +51,16 @@ export function upcomingSlots(opts: { easternHour: number; slotHours: number[]; 
   }
   return seq.slice(0, opts.count ?? 3).map((s, i) => ({ label: `${s.day} ${SLOT_LABEL[s.h]}`, title: opts.queueTitles[i] ?? null }));
 }
+
+/**
+ * The lowest and highest ids that start with a short ref, for a range lookup.
+ * An id column is typed uuid, so the bounds must be real uuids: comparing it
+ * to `ref + "g"` is an invalid uuid, Postgres rejects the whole query, and
+ * every short ref reads as "no match".
+ */
+export function uuidPrefixRange(ref: string): { low: string; high: string } | null {
+  const hex = String(ref || "").trim().toLowerCase().replace(/-/g, "");
+  if (!/^[0-9a-f]{8,32}$/.test(hex)) return null;
+  const fmt = (h: string) => `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  return { low: fmt(hex.padEnd(32, "0")), high: fmt(hex.padEnd(32, "f")) };
+}

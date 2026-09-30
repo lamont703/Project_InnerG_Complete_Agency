@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defaultAgencyCaption, parseSlotHours, upcomingSlots, CAPTION_MAX } from "./agency-publisher-rules";
+import { defaultAgencyCaption, parseSlotHours, upcomingSlots, CAPTION_MAX, uuidPrefixRange } from "./agency-publisher-rules";
 
 describe("the agency's caption", () => {
   it("credits @shearquery, points to the Monday training in their bio, and drops our own CTA", () => {
@@ -29,5 +29,21 @@ describe("slots", () => {
   });
   it("shows nothing while paused", () => {
     expect(upcomingSlots({ easternHour: 10, slotHours: [14], paused: true, queueTitles: ["A"] })).toEqual([]);
+  });
+});
+
+describe("short refs", () => {
+  it("turns the 8-character ref Claude is shown into a range of real uuids", () => {
+    expect(uuidPrefixRange("2988CFBD")).toEqual({
+      low: "2988cfbd-0000-0000-0000-000000000000",
+      high: "2988cfbd-ffff-ffff-ffff-ffffffffffff",
+    });
+  });
+  it("a full id is a range of exactly itself", () => {
+    const id = "1c186a97-c7f0-466f-b3d3-9f111fd51407";
+    expect(uuidPrefixRange(id)).toEqual({ low: id, high: id });
+  });
+  it("refuses anything that isn't a hex ref of at least 8 characters", () => {
+    for (const bad of ["", "2988cfb", "2988cfbg", "ref 2988cfbd", "'; drop"]) expect(uuidPrefixRange(bad)).toBeNull();
   });
 });
