@@ -131,3 +131,36 @@ export function stripLinks(text: string): string {
     .replace(/\s+([.,!?])/g, "$1")
     .trim();
 }
+
+/**
+ * A message with up to 3 buttons (Instagram's button template: text up to 640
+ * characters). To a person (`recipient.id`, inside the 24-hour window) or as
+ * the one private reply to a comment (`recipient.comment_id`) — Meta's private
+ * reply docs show text only, so callers keep a text fallback for that case.
+ * https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/messaging-api/button-template/
+ */
+export async function sendButtonMessage(input: {
+  accessToken: string;
+  igUserId: string;
+  recipient: { id: string } | { comment_id: string };
+  text: string;
+  buttons: ({ type: "postback"; title: string; payload: string } | { type: "web_url"; title: string; url: string })[];
+}): Promise<SendResult> {
+  try {
+    const r = await fetch(`${IG}/${input.igUserId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        recipient: input.recipient,
+        message: { attachment: { type: "template", payload: { template_type: "button", text: input.text, buttons: input.buttons } } },
+        access_token: input.accessToken,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok || body?.error) return { ok: false, error: body?.error?.message || `button message failed (${r.status})` };
+    return { ok: true, id: body?.message_id };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || "button message threw" };
+  }
+}

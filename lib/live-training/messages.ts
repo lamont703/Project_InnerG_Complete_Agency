@@ -335,7 +335,7 @@ export function campaignEmail(week: number, i: CampaignInput): EmailOut {
         `${hi}join us <strong>${esc(whenLong(i.sessionDate))}</strong> on Google Meet. Free. ${HOW_IT_WORKS} Registration closes Saturday at 3 PM ET.`,
       ],
       cta: { href: `${REGISTER_URL}?src=email_w${week}`, label: "Save my seat" },
-      why: "You're getting this because you have a ShearQuery account.",
+      why: "You're getting this because you have a ShearQuery account or asked for our weekly LIVE training invite.",
       unsubscribeUrl: i.unsubscribeUrl,
       mailingAddress: i.mailingAddress,
     }),
