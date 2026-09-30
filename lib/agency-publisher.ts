@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publishToInstagram } from "@/lib/instagram-publish";
 import { isExpired } from "@/lib/instagram-token";
-import { AGENCY_SLOT_HOURS, defaultAgencyCaption, upcomingSlots, CAPTION_MAX, parseSlotHours } from "@/lib/agency-publisher-rules";
+import { AGENCY_SLOT_HOURS, defaultAgencyCaption, upcomingSlots, CAPTION_MAX, parseSlotHours, uuidPrefixRange } from "@/lib/agency-publisher-rules";
 
 /**
  * THE AGENCY PUBLISHER — approved agencies repost ShearQuery's videos to their
@@ -65,11 +65,10 @@ export async function videoLibrary(opts: { query?: string | null; limit?: number
 
 /** A library video by its full id or the 8-character ref Claude is shown. Published ones only. */
 async function libraryVideo(ref: string): Promise<any | null> {
-  const r = String(ref || "").trim().toLowerCase();
-  if (!/^[0-9a-f-]{8,36}$/.test(r)) return null;
-  let q = db().from("publisher_queue").select(LIBRARY_COLS).in("status", ["published", "partial"]).not("video_url", "is", null);
-  q = r.length === 36 ? q.eq("id", r) : q.gte("id", r).lt("id", r + "g").limit(2);
-  const { data } = await q;
+  const range = uuidPrefixRange(ref);
+  if (!range) return null;
+  const { data } = await db().from("publisher_queue").select(LIBRARY_COLS).in("status", ["published", "partial"]).not("video_url", "is", null)
+    .gte("id", range.low).lte("id", range.high).limit(2);
   const rows = Array.isArray(data) ? data : data ? [data] : [];
   return rows.length === 1 ? rows[0] : null;
 }
