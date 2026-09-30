@@ -4,17 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 /** The LIVE training's settings on /admin/live-training. */
-export function LiveTrainingSettings({ initial }: { initial: { default_meet_url: string | null; campaign_start: string | null; mailing_address: string | null } }) {
+export function LiveTrainingSettings({ initial }: { initial: { default_meet_url: string | null; campaign_start: string | null; mailing_address: string | null; notify_phone?: string | null } }) {
   const router = useRouter();
   const [meet, setMeet] = useState(initial.default_meet_url ?? "");
   const [start, setStart] = useState(initial.campaign_start ?? "");
   const [address, setAddress] = useState(initial.mailing_address ?? "");
+  const [notify, setNotify] = useState(initial.notify_phone ?? "");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const box = "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm";
   const save = async () => {
     setBusy(true); setMsg(null);
-    const r = await fetch("/api/admin/live-training", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ default_meet_url: meet, campaign_start: start, mailing_address: address }) });
+    const r = await fetch("/api/admin/live-training", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ default_meet_url: meet, campaign_start: start, mailing_address: address, notify_phone: notify }) });
     const j = await r.json().catch(() => ({}));
     setBusy(false);
     setMsg(j.ok ? { ok: true, text: "Saved." } : { ok: false, text: j.error || "Not saved." });
@@ -30,6 +31,10 @@ export function LiveTrainingSettings({ initial }: { initial: { default_meet_url:
       <label className="block text-sm font-bold">Mailing address for emails
         <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows={2} placeholder="Street or PO box, City, State ZIP" className={box} />
         <span className="mt-1 block text-xs font-normal text-slate-500">Required by CAN-SPAM on promotional email. The 12-week campaign won't send without it.</span>
+      </label>
+      <label className="block text-sm font-bold">Text me when someone registers
+        <input value={notify} onChange={(e) => setNotify(e.target.value)} placeholder="770-555-0100" inputMode="tel" className={box} />
+        <span className="mt-1 block text-xs font-normal text-slate-500">One text per new registration, with their first name, type, where they came from, and the running count. Leave empty to turn off.</span>
       </label>
       <label className="block text-sm font-bold">12-week campaign starts (a Wednesday)
         <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={box} />
