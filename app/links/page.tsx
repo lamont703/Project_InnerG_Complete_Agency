@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, Bot, CalendarCheck, PlayCircle, Sparkles, UserPlus, Search } from "lucide-react";
+import { ArrowUpRight, Bot, CalendarCheck, PlayCircle, Radio, Sparkles, UserPlus, Search } from "lucide-react";
 import { SITE_URL } from "@/lib/site";
 import { CLAUDE_FEATURES, type ClaudeFeature } from "@/lib/account-features";
 import { PLAN_LABEL } from "@/lib/plans";
@@ -136,6 +136,11 @@ export default function LinksPage() {
         </header>
 
         <nav className="mt-8 space-y-3" aria-label="Links">
+          {/* The weekly LIVE training (lib/live-training/) — first, because it's where questions get answered. */}
+          <Link href="/live-training?src=links" data-ig-click="links_live_training" className={`${big} bg-blue-600 text-white hover:bg-blue-700`}>
+            <span className="flex items-center gap-3"><Radio className="h-6 w-6" /> <span>Join the LIVE training<span className="block text-xs font-bold opacity-80">Mondays 3 PM ET · free · Q&amp;A</span></span></span>
+            <ArrowUpRight className="h-5 w-5" />
+          </Link>
           <a href={YOUTUBE} target="_blank" rel="noopener noreferrer" data-ig-click="links_youtube" className={`${big} bg-red-600 text-white hover:bg-red-700`}>
             <span className="flex items-center gap-3"><PlayCircle className="h-6 w-6" /> Watch the training on YouTube</span>
             <ArrowUpRight className="h-5 w-5" />
