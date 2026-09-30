@@ -189,6 +189,7 @@ export function ConnectGoogleBusiness() {
       toast.error("Google Business Profile connect isn't configured on this site yet. We've been notified.");
     else if (p === "error") toast.error("Couldn't connect Google Business Profile. Please try again.");
     else if (p === "nomember") toast.error("Finish creating your membership first, then connect.");
+    else if (p === "viewas") toast.error("View As is read-only — exit View As to connect Google.");
 
     // Google's own numbers for the listing — what happened on Search/Maps
     // before anyone ever reached us. Silent when unavailable.
