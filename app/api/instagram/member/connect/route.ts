@@ -6,6 +6,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { resolveMemberContext } from "@/lib/account/view-as";
 import { MEMBER_IG_SCOPES } from "@/lib/instagram-member";
 import { hasInstagramAccess } from "@/lib/feature-access";
+import { approvedAgency, PUBLISH_SCOPE } from "@/lib/agency-publisher";
 
 /**
  * Start connecting a MEMBER'S Instagram — their own account, for their Claude
@@ -28,12 +29,18 @@ export async function GET(req: Request) {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(`${origin}/login?redirect=${encodeURIComponent("/account/instagram")}`);
-  if (!(await hasInstagramAccess(user.email))) {
-    return NextResponse.redirect(`${origin}/account/instagram?ig=not_available`);
-  }
-
   const ctx = await resolveMemberContext();
   if ("error" in ctx) return NextResponse.redirect(`${origin}/account/instagram?ig=no_member`);
+  /*
+   * AN APPROVED AGENCY connects to POST (the agency publisher,
+   * lib/agency-publisher.ts): it asks for the publishing permission too, and
+   * comes back to /account/agency/publisher. Meta still decides who can finish
+   * — until App Review, only accounts added as Instagram Testers on our app.
+   */
+  const agency = !ctx.impersonating && (await approvedAgency(ctx.memberId)).ok;
+  if (!agency && !(await hasInstagramAccess(user.email))) {
+    return NextResponse.redirect(`${origin}/account/instagram?ig=not_available`);
+  }
   // Connecting someone else's Instagram while viewing as them would attach an
   // account they never chose.
   if (ctx.impersonating) return NextResponse.redirect(`${origin}/account/instagram?ig=view_as`);
@@ -46,8 +53,8 @@ export async function GET(req: Request) {
   const jar = await cookies();
   // The member id rides with the state, so the callback writes to the member
   // who STARTED the flow — not whoever's session happens to be present later.
-  jar.set("ig_member_oauth_state", `${state}.${ctx.memberId}`, {
+  jar.set("ig_member_oauth_state", `${state}.${ctx.memberId}${agency ? ".agency" : ""}`, {
     httpOnly: true, secure: true, sameSite: "lax", maxAge: 600, path: "/",
   });
-  return NextResponse.redirect(instagramAuthUrl(clientId, redirectUri, state, MEMBER_IG_SCOPES));
+  return NextResponse.redirect(instagramAuthUrl(clientId, redirectUri, state, agency ? [...MEMBER_IG_SCOPES, PUBLISH_SCOPE] : MEMBER_IG_SCOPES));
 }

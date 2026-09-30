@@ -75,6 +75,10 @@
     {
       "path": "/api/cron/live-training",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/agency-publisher",
+      "schedule": "5 * * * *"
     }
   ]
 }

@@ -314,6 +314,8 @@ export async function storeMemberInstagram(args: {
   igUserId: string | null;
   username: string | null;
   accountType: string | null;
+  /** What was asked for. An agency's connection adds posting (lib/agency-publisher.ts). */
+  scopes?: string[];
 }) {
   const now = new Date().toISOString();
   const { error } = await (createAdminClient().from("member_instagram_connections") as any).upsert(
@@ -324,7 +326,7 @@ export async function storeMemberInstagram(args: {
       ig_user_id: args.igUserId,
       username: args.username,
       account_type: args.accountType,
-      scopes: MEMBER_IG_SCOPES,
+      scopes: args.scopes ?? MEMBER_IG_SCOPES,
       last_refreshed_at: now,
       last_refresh_error: null,
       status: "connected",
