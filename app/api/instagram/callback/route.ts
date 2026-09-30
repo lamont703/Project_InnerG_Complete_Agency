@@ -121,7 +121,9 @@ async function finishMemberConnect(args: {
   memberCookie: string;
 }) {
   const { url, code, state, denied, memberCookie } = args;
-  const back = (reason: string, extra = "") => NextResponse.redirect(`${url.origin}/account/instagram?ig=${reason}${extra}`);
+  // An agency connecting to post (lib/agency-publisher.ts) goes back to its publisher.
+  const isAgency = memberCookie.split(".")[2] === "agency";
+  const back = (reason: string, extra = "") => NextResponse.redirect(`${url.origin}${isAgency ? "/account/agency/publisher" : "/account/instagram"}?ig=${reason}${extra}`);
 
   const jar = await cookies();
   jar.delete("ig_member_oauth_state");
@@ -132,7 +134,9 @@ async function finishMemberConnect(args: {
   if (!expectedState || !memberId || expectedState !== state) return back("bad_state");
 
   // The allowlist is checked again here, not only when the flow started.
-  if (!(await hasInstagramAccess(await memberEmail(memberId)))) return back("not_available");
+  const { approvedAgency, PUBLISH_SCOPE } = await import("@/lib/agency-publisher");
+  const agencyOk = isAgency && (await approvedAgency(memberId)).ok;
+  if (!agencyOk && !(await hasInstagramAccess(await memberEmail(memberId)))) return back("not_available");
 
   const clientId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || process.env.NEXT_PUBLIC_META_APP_ID;
   const clientSecret = process.env.INSTAGRAM_APP_SECRET || process.env.META_APP_SECRET;
@@ -161,7 +165,8 @@ async function finishMemberConnect(args: {
   } catch { /* identity is nice to have */ }
 
   try {
-    await storeMemberInstagram({ memberId, accessToken: result.accessToken, expiresAt: result.expiresAt ?? null, igUserId, username, accountType });
+    const { MEMBER_IG_SCOPES } = await import("@/lib/instagram-member");
+    await storeMemberInstagram({ memberId, accessToken: result.accessToken, expiresAt: result.expiresAt ?? null, igUserId, username, accountType, scopes: agencyOk ? [...MEMBER_IG_SCOPES, PUBLISH_SCOPE] : undefined });
   } catch (e: any) {
     console.error("[instagram/member] could not store token:", e?.message);
     return back("store_failed");

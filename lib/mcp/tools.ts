@@ -20,6 +20,7 @@ import { CALENDAR_TOOLS } from "@/lib/mcp/calendar-tools";
 import { CLIENT_BOOKING_TOOLS } from "@/lib/mcp/client-booking-tools";
 import { accountGuideTool, featureGuideTool, setMyAccountTypeTool } from "@/lib/mcp/account-guide-tool";
 import { AGENCY_TOOLS } from "@/lib/mcp/agency-tools";
+import { AGENCY_PUBLISHER_TOOLS } from "@/lib/mcp/agency-publisher-tools";
 import { DEMO_TOOLS } from "@/lib/mcp/demo-tools";
 import { AUTOPILOT_TOOLS } from "@/lib/mcp/autopilot-tools";
 import { myAgencyAccessTool } from "@/lib/mcp/agency-access-tool";
@@ -1213,6 +1214,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...CALENDAR_TOOLS,
   ...CLIENT_BOOKING_TOOLS,
   ...AGENCY_TOOLS,
+  ...AGENCY_PUBLISHER_TOOLS,
   ...DEMO_TOOLS,
   ...AUTOPILOT_TOOLS,
   myAgencyAccessTool,
