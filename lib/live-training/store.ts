@@ -30,10 +30,10 @@ export const SMS_CONSENT_TEXT =
 
 // ── settings ────────────────────────────────────────────────────────────────
 
-export interface LiveTrainingConfig { default_meet_url: string | null; campaign_start: string | null; mailing_address: string | null }
+export interface LiveTrainingConfig { default_meet_url: string | null; campaign_start: string | null; mailing_address: string | null; notify_phone?: string | null }
 
 export async function getConfig(): Promise<LiveTrainingConfig> {
-  const { data } = await db().from("live_training_config").select("default_meet_url, campaign_start, mailing_address").eq("id", 1).maybeSingle();
+  const { data } = await db().from("live_training_config").select("default_meet_url, campaign_start, mailing_address, notify_phone").eq("id", 1).maybeSingle();
   return data ?? { default_meet_url: null, campaign_start: null, mailing_address: null };
 }
 
@@ -53,6 +53,12 @@ export async function saveConfig(input: Record<string, unknown>): Promise<{ ok: 
     const a = String(input.mailing_address || "").trim();
     if (a && a.length < 10) return { ok: false, error: "Give the full mailing address — street or PO box, city, state and ZIP." };
     patch.mailing_address = a || null;
+  }
+  if (input.notify_phone !== undefined) {
+    const raw = String(input.notify_phone || "").trim();
+    const phone = raw ? normalisePhone(raw) : null;
+    if (raw && !phone) return { ok: false, error: "The alert number needs an area code, like 770-555-0100." };
+    patch.notify_phone = phone;
   }
   const { error } = await db().from("live_training_config").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", 1);
   return error ? { ok: false, error: error.message } : { ok: true };
@@ -153,7 +159,21 @@ export async function register(input: {
   // Signing up again is a fresh yes to email: lift an old unsubscribe.
   await db().from("email_suppressions").delete().eq("email", email);
   await sendStep(id, STEPS.find((s) => s.id === "confirm")!);
+  if (!existing) await alertOwner(sessionDate, row).catch((e) => console.error("[live-training] owner alert failed:", e?.message));
   return { ok: true, sessionDate, already: !!existing };
+}
+
+/** A text to the owner for every new registration (the number on /admin/live-training). */
+async function alertOwner(sessionDate: string, row: { first_name: string; audience: string | null; source: string | null; sms_consent: boolean }) {
+  const { notify_phone } = await getConfig();
+  if (!notify_phone) return;
+  const { count } = await db().from("live_training_registrations").select("id", { count: "exact", head: true }).eq("session_date", sessionDate).is("cancelled_at", null);
+  const day = new Date(`${sessionDate}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const parts = [row.audience, row.source ? `from ${row.source}` : null, row.sms_consent ? "texts on" : null].filter(Boolean).join(", ");
+  await sendGhlSms({
+    phone: notify_phone,
+    message: `ShearQuery LIVE: ${row.first_name} registered for Mon ${day}${parts ? ` (${parts})` : ""}. ${count ?? "?"} registered so far.`,
+  });
 }
 
 // ── sending the hype sequence ───────────────────────────────────────────────
