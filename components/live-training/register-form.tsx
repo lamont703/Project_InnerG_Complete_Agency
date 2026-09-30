@@ -4,9 +4,9 @@ import { useState } from "react";
 import { CalendarPlus, Check, Loader2 } from "lucide-react";
 
 /**
- * The LIVE training sign-up (/live-training). Texts are opt-in only: the box
- * starts unticked, needs a mobile number, and shows the exact consent words
- * that are stored with the registration (lib/live-training/store.ts).
+ * The LIVE training sign-up (/live-training). Name, email and mobile number
+ * are required. Texts are opt-in only: the box starts unticked and shows the
+ * exact consent words stored with the registration (lib/live-training/store.ts).
  */
 export function RegisterForm({ consentText, audiences, source }: { consentText: string; audiences: { id: string; label: string }[]; source: string | null }) {
   const [firstName, setFirstName] = useState("");
@@ -25,7 +25,7 @@ export function RegisterForm({ consentText, audiences, source }: { consentText: 
       const r = await fetch("/api/live-training/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, email, phone: phone || undefined, smsConsent: sms, audience: audience || undefined, source }),
+        body: JSON.stringify({ firstName, email, phone, smsConsent: sms, audience: audience || undefined, source }),
       });
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || "Couldn't register.");
@@ -70,8 +70,8 @@ export function RegisterForm({ consentText, audiences, source }: { consentText: 
           {audiences.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
         </select>
       </label>
-      <label className="block text-xs font-black uppercase tracking-wide text-slate-500">Mobile number (optional, for text reminders)
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" inputMode="tel" className={box} />
+      <label className="block text-xs font-black uppercase tracking-wide text-slate-500">Mobile number
+        <input required type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" inputMode="tel" className={box} />
       </label>
       <label className="flex items-start gap-2.5 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-slate-600">
         <input type="checkbox" checked={sms} onChange={(e) => setSms(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />

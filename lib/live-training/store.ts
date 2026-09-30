@@ -109,9 +109,11 @@ export async function register(input: {
   if (!firstName) return { ok: false, error: "Add your first name." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) return { ok: false, error: "That email doesn't look right." };
   const smsConsent = input.smsConsent === true;
-  const phone = input.phone ? normalisePhone(input.phone) : null;
-  if (input.phone && !phone) return { ok: false, error: "That doesn't look like a full mobile number with area code." };
-  if (smsConsent && !phone) return { ok: false, error: "Add your mobile number to get text reminders." };
+  // Required, like name and email (owner's ask, 2026-09-29). Texting it still
+  // needs the box ticked — consent can't be a condition of registering.
+  if (!String(input.phone ?? "").trim()) return { ok: false, error: "Add your mobile number." };
+  const phone = normalisePhone(input.phone);
+  if (!phone) return { ok: false, error: "That doesn't look like a full mobile number with area code." };
 
   const sessionDate = sessionForRegistration(now);
   const { data: member } = await db().from("community_members").select("id").ilike("email", email).maybeSingle();
