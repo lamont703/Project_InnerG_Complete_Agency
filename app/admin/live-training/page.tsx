@@ -29,10 +29,10 @@ export default async function LiveTrainingAdmin() {
             <p className={`mt-1 text-xs ${s.meetUrl ? "text-slate-500" : "font-bold text-amber-700"}`}>{s.meetUrl ? `Link: ${s.meetUrl}` : "No Google Meet link set — link reminders will wait."}</p>
             {s.registrations.length > 0 && (
               <table className="mt-4 w-full text-left text-xs">
-                <thead className="text-slate-500"><tr><th className="py-1">Name</th><th>Email</th><th>Texts</th><th>Type</th><th>Source</th></tr></thead>
+                <thead className="text-slate-500"><tr><th className="py-1">Name</th><th>Email</th><th>Texts</th><th>Type</th><th>Source</th><th>Agency</th></tr></thead>
                 <tbody>
                   {s.registrations.map((r: any) => (
-                    <tr key={r.email} className="border-t border-slate-100"><td className="py-1.5">{r.first_name}</td><td>{r.email}</td><td>{r.sms_consent ? "yes" : "—"}</td><td>{r.audience ?? "—"}</td><td>{r.source ?? "—"}</td></tr>
+                    <tr key={r.email} className="border-t border-slate-100"><td className="py-1.5">{r.first_name}</td><td>{r.email}</td><td>{r.sms_consent ? "yes" : "—"}</td><td>{r.audience ?? "—"}</td><td>{r.source ?? "—"}</td><td>{r.agency_code ?? "—"}</td></tr>
                   ))}
                 </tbody>
               </table>

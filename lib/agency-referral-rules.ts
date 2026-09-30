@@ -24,7 +24,8 @@ export function makeReferralCode(agencyName: string, taken: Set<string>): string
   throw new Error("could not make a unique referral code");
 }
 
-export type ReferralSource = "invite" | "code" | "link";
+/** "event": they registered for the LIVE training through the agency's /live/<CODE> link (lib/live-training/). */
+export type ReferralSource = "invite" | "code" | "link" | "event";
 
 /**
  * Which signal earns the credit when a signup carries more than one.
