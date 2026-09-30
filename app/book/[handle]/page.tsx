@@ -87,10 +87,10 @@ export default async function BookPage({ params }: Params) {
               <strong>Claude:</strong> Customize → Connectors → Add custom connector, and paste <code className="rounded bg-slate-100 px-1">{SITE_URL}/mcp</code>.
               If it asks how to sign in, choose <strong>Sign in when needed</strong>. Claude asks you to sign in when you book.
             </li>
-            <li><strong>ChatGPT:</strong> Settings → Apps → Advanced settings, turn on Developer mode, then add a connector with the same address.</li>
+            <li><strong>ChatGPT:</strong> Settings → Security and login → turn on Developer mode, then in Plugins tap + and create a developer-mode app with the same address. In a chat, pick it from + → Developer mode.</li>
             <li>Then say: <span className="font-bold">&ldquo;{phrase}&rdquo;</span></li>
           </ol>
-          <p className="mt-2 text-xs text-slate-500">Claude&apos;s Free plan can add one custom connector. ChatGPT needs a paid plan for Developer mode.</p>
+          <p className="mt-2 text-xs text-slate-500">Claude&apos;s Free plan can add one custom connector. ChatGPT&apos;s Developer mode is on Plus, Pro, Business, Enterprise and Education, on the web.</p>
         </section>
 
         <section className="mt-4 flex flex-wrap items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
