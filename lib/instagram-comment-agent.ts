@@ -54,7 +54,7 @@ import {
  * particular payload, and it is already stored from the OAuth exchange. Either
  * match is enough; both are cheap.
  */
-async function isOurOwnComment(
+export async function isOurOwnComment(
   admin: any,
   commenterId: string,
   username?: string | null
@@ -77,7 +77,7 @@ async function isOurOwnComment(
   return false;
 }
 
-async function connection(admin: any) {
+export async function connection(admin: any) {
   const { data } = await admin
     .from("instagram_connection")
     .select("access_token, ig_user_id, expires_at, status")

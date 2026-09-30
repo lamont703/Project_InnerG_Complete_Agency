@@ -250,6 +250,11 @@ export async function runCampaign(now = new Date()) {
 
   const { data: members } = await db().from("community_members").select("email, first_name").not("email", "is", null).eq("is_demo", false);
   const all: { email: string; firstName: string | null }[] = (members || []).map((m: any) => ({ email: String(m.email).toLowerCase(), firstName: m.first_name as string | null })).filter((m: any) => m.email.includes("@"));
+  // Plus everyone who asked for the kit in our Instagram DMs and said yes to
+  // the weekly invite (lib/instagram-flow.ts) — told before they gave the email.
+  const { data: igLeads } = await db().from("instagram_flow_state").select("email, username").eq("live_training_opt_in", true).not("email", "is", null);
+  const seen = new Set(all.map((m) => m.email));
+  for (const l of igLeads || []) if (l.email && !seen.has(l.email)) { all.push({ email: l.email, firstName: null }); seen.add(l.email); }
   const suppressed = await suppressedSet(all.map((m) => m.email));
   const { data: regs } = await db().from("live_training_registrations").select("email").eq("session_date", session).is("cancelled_at", null);
   const registered = new Set((regs || []).map((r: any) => r.email));

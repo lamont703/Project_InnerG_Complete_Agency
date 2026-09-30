@@ -312,3 +312,24 @@ export async function markCopied(commentId: string): Promise<{ ok: boolean; erro
   revalidatePath("/admin/comment-engagement");
   return { ok: true };
 }
+
+/**
+ * The one-tap Instagram comment → DM flow (lib/instagram-flow.ts). While on,
+ * it replaces the AI comment and DM agents. Who and when are recorded, like
+ * auto-reply.
+ */
+export async function setDmFlow(enabled: boolean): Promise<{ ok: boolean; error?: string }> {
+  const email = await requireAdmin();
+  if (!email) return { ok: false, error: "Not authorized." };
+  const db = createAdminClient() as any;
+  const { error } = await db.from("instagram_agent_settings").upsert({
+    id: true,
+    dm_flow_enabled: enabled,
+    dm_flow_changed_at: new Date().toISOString(),
+    dm_flow_changed_by: email,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/comment-engagement");
+  return { ok: true };
+}

@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { handleInstagramDm } from "@/lib/instagram-dm-agent";
 import { handleInstagramComment } from "@/lib/instagram-comment-agent";
+import { flowEnabled, handleFlowComment, handleFlowMessage } from "@/lib/instagram-flow-runner";
 
 /**
  * Instagram webhook: comments, mentions and messages.
@@ -89,8 +90,8 @@ export async function POST(req: Request) {
         sender_id: m.sender?.id || null,
         username: null,
         media_id: null,
-        comment_id: m.message?.mid || null,
-        text_body: m.message?.text || null,
+        comment_id: m.message?.mid || m.postback?.mid || null,
+        text_body: m.message?.text || (m.postback ? `[tapped] ${m.postback.title || m.postback.payload}` : null),
         raw: m,
       });
     }
@@ -137,6 +138,8 @@ export async function POST(req: Request) {
     for (const m of entry.messaging || []) inbound.push(m);
     for (const change of entry.changes || []) {
       if (change.field === "messages" && change.value?.message) inbound.push(change.value);
+      // Button taps: live they come in `messaging`; the dashboard's Test sends them as a change.
+      if (change.field === "messaging_postbacks" && change.value?.postback) inbound.push(change.value);
     }
   }
 
@@ -152,6 +155,14 @@ export async function POST(req: Request) {
    * because a non-2xx makes it redeliver and a redelivered comment becomes a
    * second public reply under the same thread.
    */
+  /*
+   * THE ONE-TAP FLOW (lib/instagram-flow.ts) replaces the AI comment and DM
+   * agents while it's switched on at /admin/comment-engagement: every comment
+   * gets "check your DM" plus a private reply with a button, and taps and
+   * typed messages walk the flow. Switched off, everything below runs as before.
+   */
+  const useFlow = await flowEnabled().catch(() => false);
+
   const commentReplies: any[] = [];
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
@@ -160,7 +171,7 @@ export async function POST(req: Request) {
       if (!v.id || !v.text || !v.from?.id) continue;
       try {
         commentReplies.push(
-          await handleInstagramComment({
+          await (useFlow ? handleFlowComment : handleInstagramComment)({
             commentId: v.id,
             mediaId: v.media?.id ?? null,
             commenterId: v.from.id,
@@ -179,6 +190,15 @@ export async function POST(req: Request) {
     if (m.message?.is_echo) continue;
     const senderId = m.sender?.id;
     const text = m.message?.text;
+    // A button tap arrives as a postback, with no message text.
+    if (useFlow && senderId && (m.postback?.payload || text)) {
+      try {
+        replies.push(await handleFlowMessage({ senderId, text: text ?? null, postbackPayload: m.postback?.payload ?? null, postbackTitle: m.postback?.title ?? null, mid: m.message?.mid ?? m.postback?.mid ?? null }));
+      } catch (err: any) {
+        console.warn("[instagram-webhook] flow handler threw:", err?.message);
+      }
+      continue;
+    }
     if (!senderId || !text) continue;
     try {
       replies.push(

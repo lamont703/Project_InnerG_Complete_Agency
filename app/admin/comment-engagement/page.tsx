@@ -3,7 +3,8 @@ import { isAdmin } from "@/app/admin/ad-campaigns/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { fetchCommentEngagement } from "@/lib/admin/comment-engagement";
 import { MessageCircle, AlertTriangle, CheckCircle2, Clock, Send } from "lucide-react";
-import { AutoReplySwitch, CommentDraftList } from "@/components/admin/comment-draft-list";
+import { AutoReplySwitch, CommentDraftList, DmFlowSwitch } from "@/components/admin/comment-draft-list";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,23 @@ export default async function CommentEngagementPage() {
   const { threads, drafts, autoReply, unanswered, counts, repeatCommenters } = await fetchCommentEngagement();
   const urgent = unanswered.filter((u) => u.hoursLeftInWindow < 48).length;
 
+  // The one-tap DM flow (lib/instagram-flow.ts): its switch and funnel.
+  const adb = createAdminClient() as any;
+  const [{ data: flowSettings }, { data: fc }, { data: fs }] = await Promise.all([
+    adb.from("instagram_agent_settings").select("dm_flow_enabled").eq("id", true).maybeSingle(),
+    adb.from("instagram_flow_comments").select("dm_ok, dm_kind, public_ok"),
+    adb.from("instagram_flow_state").select("stage, email, kit_sent_at"),
+  ]);
+  const flowStats = {
+    comments: (fc || []).length,
+    dms: (fc || []).filter((r: any) => r.dm_ok).length,
+    buttonDms: (fc || []).filter((r: any) => r.dm_kind === "button" || r.dm_kind === "menu").length,
+    tapped: (fs || []).filter((r: any) => r.stage !== "opened").length,
+    emails: (fs || []).filter((r: any) => r.email).length,
+    kitsSent: (fs || []).filter((r: any) => r.kit_sent_at).length,
+    failures: (fc || []).filter((r: any) => r.public_ok === false || r.dm_ok === false).length,
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 light">
       <Navbar />
@@ -50,6 +68,8 @@ export default async function CommentEngagementPage() {
           commenter, which is all Instagram allows, and only when there is
           genuinely a link to hand over.
         </p>
+
+        <DmFlowSwitch enabled={flowSettings?.dm_flow_enabled === true} stats={flowStats} />
 
         <AutoReplySwitch
           enabled={autoReply.enabled}

@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Send, X, Loader2, Zap, ZapOff, MessageCircle, Copy } from "lucide-react";
-import { sendDraftReply, discardDraft, setAutoReply, markCopied } from "@/app/admin/comment-engagement/actions";
+import { sendDraftReply, discardDraft, setAutoReply, setDmFlow, markCopied } from "@/app/admin/comment-engagement/actions";
 import { COMMENT_MAX_CHARS } from "@/lib/instagram-comments";
 
 /**
@@ -30,6 +30,37 @@ export interface DraftRow {
   dmText: string | null;
   priorComments: number;
   firstTime: boolean;
+}
+
+/** The one-tap comment → DM flow switch, and how it's doing. */
+export function DmFlowSwitch({ enabled, stats }: { enabled: boolean; stats: { comments: number; dms: number; buttonDms: number; tapped: number; emails: number; kitsSent: number; failures: number } }) {
+  const router = useRouter();
+  const [busy, setBusy] = React.useState(false);
+  const toggle = async () => { setBusy(true); await setDmFlow(!enabled); setBusy(false); router.refresh(); };
+  return (
+    <div className={`rounded-2xl border p-5 mb-8 ${enabled ? "border-blue-300 bg-blue-50" : "border-slate-200 bg-white"}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="inline-flex items-center gap-2 text-sm font-black text-slate-900">
+            <MessageCircle className={`h-4 w-4 ${enabled ? "text-blue-700" : "text-slate-400"}`} />
+            {enabled ? "One-tap DM flow is ON" : "One-tap DM flow is OFF"}
+          </p>
+          <p className="mt-1 text-xs text-slate-600 max-w-xl">
+            {enabled
+              ? "Every comment gets a short \"check your DM\" reply and a private message with a SEND IT button: email → Claude + ShearQuery kit → Learn Claude / LIVE training / Grow my shop. Typed DMs get a nudge back to the buttons. The AI agents are paused while this is on."
+              : "Off: comments and DMs go to the AI agents as before."}
+          </p>
+          <p className="mt-2 text-xs text-slate-700">
+            {stats.comments} comments · {stats.dms} DMs sent ({stats.buttonDms} with the button) · {stats.tapped} started · {stats.emails} emails · {stats.kitsSent} kits sent{stats.failures ? ` · ${stats.failures} failed` : ""}
+          </p>
+        </div>
+        <button type="button" onClick={toggle} disabled={busy}
+          className={`shrink-0 rounded-xl px-4 py-2 text-sm font-bold transition-colors disabled:opacity-50 ${enabled ? "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50" : "bg-slate-900 text-white hover:bg-slate-800"}`}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : enabled ? "Turn off" : "Turn on"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function AutoReplySwitch({ enabled, changedBy, changedAt }: { enabled: boolean; changedBy: string | null; changedAt: string | null }) {
