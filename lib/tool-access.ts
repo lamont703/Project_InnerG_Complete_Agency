@@ -73,6 +73,7 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     note: "Built from lib/account-features.ts; feature status follows the same switches the tools obey." },
   { id: "set_my_account_type", label: "Set my account type (once)", group: "Getting started", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Only fills an EMPTY type; never changes one already set." },
+  { id: "promote_live_training", label: "Promote the LIVE training (agency link)", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "shearquery.com/live/<CODE>; registrations and later signups credit the agency." },
   { id: "my_agency", label: "My agency partner account", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Agency accounts only. Status, referral link, credited businesses." },
   { id: "update_my_agency_details", label: "Save agency details", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,

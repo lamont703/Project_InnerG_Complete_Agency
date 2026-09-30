@@ -108,6 +108,8 @@ export type RegisterResult = { ok: true; sessionDate: string; already: boolean }
 
 export async function register(input: {
   firstName: unknown; email: unknown; phone?: unknown; smsConsent?: unknown; audience?: unknown; source?: unknown;
+  /** An agency's referral code, from its /live/<CODE> link or the sq_ref cookie. Only an approved agency counts. */
+  agencyCode?: string | null;
   ip?: string | null; userAgent?: string | null;
 }, now = new Date()): Promise<RegisterResult> {
   const firstName = String(input.firstName ?? "").trim().slice(0, 60);
@@ -122,6 +124,8 @@ export async function register(input: {
   if (!phone) return { ok: false, error: "That doesn't look like a full mobile number with area code." };
 
   const sessionDate = sessionForRegistration(now);
+  const { approvedAgencyByCode } = await import("@/lib/agency-partners");
+  const agency = input.agencyCode ? await approvedAgencyByCode(input.agencyCode) : null;
   const { data: member } = await db().from("community_members").select("id").ilike("email", email).maybeSingle();
   const row = {
     session_date: sessionDate, first_name: firstName, email, phone,
@@ -131,8 +135,10 @@ export async function register(input: {
     audience: input.audience ? String(input.audience).slice(0, 40) : null,
     source: input.source ? String(input.source).slice(0, 80) : null,
     community_member_id: member?.id ?? null,
+    agency_member_id: agency?.memberId ?? null,
+    agency_code: agency ? String(input.agencyCode).toUpperCase() : null,
   };
-  const { data: existing } = await db().from("live_training_registrations").select("id, phone, sms_consent, sms_consent_text, consent_ip, consent_user_agent, audience, source").eq("session_date", sessionDate).eq("email", email).maybeSingle();
+  const { data: existing } = await db().from("live_training_registrations").select("id, phone, sms_consent, sms_consent_text, consent_ip, consent_user_agent, audience, source, agency_member_id, agency_code").eq("session_date", sessionDate).eq("email", email).maybeSingle();
   let id: string;
   if (existing) {
     // Signing up again without a phone or the box ticked doesn't take back the
@@ -149,6 +155,8 @@ export async function register(input: {
           audience: row.audience ?? existing.audience,
           source: row.source ?? existing.source,
         };
+    // The agency that brought them the first time keeps it.
+    if (existing.agency_member_id) { (merged as any).agency_member_id = existing.agency_member_id; (merged as any).agency_code = existing.agency_code; }
     await db().from("live_training_registrations").update({ ...merged, cancelled_at: null }).eq("id", existing.id);
     id = existing.id;
   } else {
@@ -159,17 +167,17 @@ export async function register(input: {
   // Signing up again is a fresh yes to email: lift an old unsubscribe.
   await db().from("email_suppressions").delete().eq("email", email);
   await sendStep(id, STEPS.find((s) => s.id === "confirm")!);
-  if (!existing) await alertOwner(sessionDate, row).catch((e) => console.error("[live-training] owner alert failed:", e?.message));
+  if (!existing) await alertOwner(sessionDate, row, agency?.name ?? null).catch((e) => console.error("[live-training] owner alert failed:", e?.message));
   return { ok: true, sessionDate, already: !!existing };
 }
 
 /** A text to the owner for every new registration (the number on /admin/live-training). */
-async function alertOwner(sessionDate: string, row: { first_name: string; audience: string | null; source: string | null; sms_consent: boolean }) {
+async function alertOwner(sessionDate: string, row: { first_name: string; audience: string | null; source: string | null; sms_consent: boolean }, agencyName: string | null) {
   const { notify_phone } = await getConfig();
   if (!notify_phone) return;
   const { count } = await db().from("live_training_registrations").select("id", { count: "exact", head: true }).eq("session_date", sessionDate).is("cancelled_at", null);
   const day = new Date(`${sessionDate}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-  const parts = [row.audience, row.source ? `from ${row.source}` : null, row.sms_consent ? "texts on" : null].filter(Boolean).join(", ");
+  const parts = [row.audience, agencyName ? `via ${agencyName}` : row.source ? `from ${row.source}` : null, row.sms_consent ? "texts on" : null].filter(Boolean).join(", ");
   await sendGhlSms({
     phone: notify_phone,
     message: `ShearQuery LIVE: ${row.first_name} registered for Mon ${day}${parts ? ` (${parts})` : ""}. ${count ?? "?"} registered so far.`,
@@ -268,7 +276,7 @@ export async function adminOverview(now = new Date()) {
   const sessions = [...new Set([upcoming, next])];
   const out = [];
   for (const s of sessions) {
-    const { data: regs } = await db().from("live_training_registrations").select("first_name, email, phone, sms_consent, audience, source, created_at").eq("session_date", s).is("cancelled_at", null).order("created_at");
+    const { data: regs } = await db().from("live_training_registrations").select("first_name, email, phone, sms_consent, audience, source, agency_code, created_at").eq("session_date", s).is("cancelled_at", null).order("created_at");
     out.push({ sessionDate: s, meetUrl: await meetUrlFor(s, cfg), registrations: regs || [] });
   }
   const { data: sends } = await db().from("live_training_campaign_sends").select("week, sent_at, error");

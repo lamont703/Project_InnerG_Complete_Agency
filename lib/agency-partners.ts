@@ -168,10 +168,29 @@ export async function creditReferral(args: { clientMemberId: string; agencyMembe
  * typed in the form, or the link cookie. Never throws — a referral problem must
  * not fail somebody's signup.
  */
-export async function attributeSignup(args: { clientMemberId: string; inviteToken?: string | null; typedCode?: string | null; linkCode?: string | null }) {
+export async function attributeSignup(args: {
+  clientMemberId: string; inviteToken?: string | null; typedCode?: string | null; linkCode?: string | null;
+  /** Their email, for the last resort: a LIVE training registration made through an agency's link. */
+  email?: string | null;
+}) {
   try {
     const signal = pickReferralSignal(args);
-    if (!signal) return;
+    if (!signal) {
+      // Nothing on this signup — but they may have registered for the Monday
+      // LIVE training through an agency's link, on another device or weeks
+      // ago. The earliest such registration credits that agency.
+      if (!args.email) return;
+      const { data: reg } = await db()
+        .from("live_training_registrations")
+        .select("agency_member_id")
+        .eq("email", String(args.email).trim().toLowerCase())
+        .not("agency_member_id", "is", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (reg?.agency_member_id) await creditReferral({ clientMemberId: args.clientMemberId, agencyMemberId: reg.agency_member_id, source: "event" });
+      return;
+    }
     if (signal.source === "invite") {
       const invite = await inviteByToken(signal.value);
       if (!invite) return attributeSignup({ ...args, inviteToken: null });
@@ -292,6 +311,34 @@ export async function agencyDashboard(agencyMemberId: string) {
   }));
   // Real clients first; samples after, so they never push a real one down.
   return { clients: [...clients, ...samples], realCount: clients.length, invites: (invites as any)?.data || [] };
+}
+
+/**
+ * The agency's LIVE training numbers: who registered through its
+ * /live/<CODE> link, which session, and whether they've since created a
+ * ShearQuery account (and been credited to this agency). First names only —
+ * the registrant signed up for a training, not to be handed to a third party.
+ */
+export async function agencyLiveTraining(agencyMemberId: string) {
+  const { data: regs } = await db()
+    .from("live_training_registrations")
+    .select("first_name, email, session_date, created_at, audience")
+    .eq("agency_member_id", agencyMemberId)
+    .is("cancelled_at", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  const emails = [...new Set((regs || []).map((r: any) => r.email))];
+  const { data: members } = emails.length ? await db().from("community_members").select("id, email").in("email", emails) : { data: [] };
+  const memberByEmail = new Map((members || []).map((m: any) => [String(m.email).toLowerCase(), m.id]));
+  const ids = [...memberByEmail.values()];
+  const { data: credited } = ids.length ? await db().from("agency_referrals").select("client_member_id").eq("agency_member_id", agencyMemberId).in("client_member_id", ids) : { data: [] };
+  const creditedIds = new Set((credited || []).map((r: any) => r.client_member_id));
+  type Row = { firstName: string; sessionDate: string; registeredAt: string; type: string | null; hasAccount: boolean; creditedToYou: boolean };
+  const list: Row[] = (regs || []).map((r: any) => {
+    const id = memberByEmail.get(r.email);
+    return { firstName: r.first_name as string, sessionDate: r.session_date as string, registeredAt: r.created_at as string, type: r.audience as string | null, hasAccount: !!id, creditedToYou: !!id && creditedIds.has(id) };
+  });
+  return { total: list.length, withAccount: list.filter((r) => r.hasAccount).length, credited: list.filter((r) => r.creditedToYou).length, list };
 }
 
 function escapeHtml(s: string) {

@@ -34,7 +34,7 @@ type Client = Awaited<ReturnType<typeof dashboard>>["clients"][number];
 function clientLines(clients: Client[], shared: Set<string> = new Set()): string[] {
   const shown = clients.slice(0, 25).map(
     (c) =>
-      `  - ${c.isDemo ? "[SAMPLE — not a real business] " : ""}${c.name} (${c.type || "type not set"}), joined ${c.joinedAt.slice(0, 10)} by ${c.source}: ` +
+      `  - ${c.isDemo ? "[SAMPLE — not a real business] " : ""}${c.name} (${c.type || "type not set"}), joined ${c.joinedAt.slice(0, 10)} by ${c.source === "event" ? "the LIVE training (your link)" : c.source}: ` +
       [
         c.claimedListing ? "listing claimed" : "listing NOT claimed",
         c.googleConnected ? "Google connected" : "Google not connected",
@@ -137,7 +137,17 @@ export const myAgencyTool: McpTool = {
       `  Referral link: ${SITE_URL}/join/${p.referral_code}`,
       `  Referral code: ${p.referral_code} (a business can type it at signup)`,
       `  Invite a client by email with invite_client_to_shearquery (or at ${SITE_URL}/account/agency).`,
+      `  Monday LIVE training link: ${SITE_URL}/live/${p.referral_code} — registrations through it are credited to the agency (promote_live_training).`,
       "",
+      ...(await (async () => {
+        const { agencyLiveTraining } = await import("@/lib/agency-partners");
+        const lt = await agencyLiveTraining(memberId);
+        return [
+          `LIVE TRAINING REGISTRATIONS THROUGH YOUR LINK: ${lt.total}${lt.total ? ` (${lt.withAccount} have a ShearQuery account, ${lt.credited} credited to you)` : " — share your link with promote_live_training"}`,
+          ...lt.list.slice(0, 10).map((r) => `  - ${r.firstName}${r.type ? ` (${r.type})` : ""} · for Mon ${r.sessionDate} · ${r.creditedToYou ? "account credited to you" : r.hasAccount ? "has an account (credited elsewhere or before registering)" : "no account yet"}`),
+          "",
+        ];
+      })()),
       `BUSINESSES CREDITED: ${realCount}`,
       ...clientLines(clients, shared),
       "",
@@ -366,4 +376,54 @@ export const agencyPlaybookTool: McpTool = {
   },
 };
 
-export const AGENCY_TOOLS: McpTool[] = [agencyPlaybookTool, myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool, clientSupportViewTool, requestClientAccessTool];
+/**
+ * Agencies promote the Monday LIVE training with their own link and are
+ * credited for who registers (lib/live-training/, lib/agency-partners.ts):
+ * the registration records the agency, and so does the account if the person
+ * signs up later — on any device.
+ */
+export const promoteLiveTrainingTool: McpTool = {
+  name: "promote_live_training",
+  title: "Promote the Monday LIVE training with your agency link",
+  provides: "the agency's LIVE training link, ready-to-post copy, and who registered through it",
+  description:
+    "For an APPROVED agency: its own link to ShearQuery's free LIVE AI Barber Beauty Business Training (Mondays 3 PM ET), ready-to-post captions, and who has registered through the link. Anyone who registers through it is credited to the agency, and so is their ShearQuery account if they sign up later.",
+  requiresIdentity: true,
+  annotations: { readOnlyHint: true, openWorldHint: false },
+  inputSchema: { type: "object", properties: {} },
+  handler: async (_args, ctx) => {
+    if (!ctx.identity) return "This needs the person to be signed in to ShearQuery in this connection.";
+    const memberId = ctx.identity.memberId;
+    if (!(await isAgencyAccount(memberId))) return NOT_AGENCY;
+    const { data: p } = await (await db()).from("agency_profiles").select("partner_status, referral_code").eq("community_member_id", memberId).maybeSingle();
+    if (p?.partner_status !== "approved" || !p.referral_code) return "The agency needs to be approved first — agencies are approved automatically once their details are saved (update_my_agency_details).";
+    const link = `${SITE_URL}/live/${p.referral_code}`;
+    const { sessionLabel } = await import("@/lib/live-training/schedule");
+    const { agencyLiveTraining } = await import("@/lib/agency-partners");
+    const lt = await agencyLiveTraining(memberId);
+    const when = sessionLabel(new Date());
+    return [
+      `YOUR LIVE TRAINING LINK: ${link}`,
+      `Next training: ${when} at 3 PM ET (Google Meet, free, about an hour). Registration closes Saturday 3 PM ET; after that the link registers people for the following Monday.`,
+      "",
+      "HOW THE CREDIT WORKS",
+      "  - Everyone who registers through this link is recorded as yours.",
+      "  - If they create a ShearQuery account later — on any device — they're credited to your agency, unless another agency's invite or code reached them first. Commission follows the usual partner terms.",
+      "  - The link also sets your 90-day referral cookie, like your /join link.",
+      "",
+      "WHAT THE TRAINING IS (say it like this — don't add promises)",
+      "  Hosted by the ShearQuery Cosmetology & Barber Board. AI for barber, beauty and wellness businesses: market trends, real AI use cases, and a live walkthrough connecting ShearQuery to Claude or ChatGPT. No camera needed; mics muted until the Q&A. A special gift for those who stay to the end — keep it a surprise.",
+      "",
+      "READY-TO-POST (swap in your own voice)",
+      `  1. Free LIVE AI training for barbers & stylists — Mondays 3 PM ET. Learn how AI is changing the chair, then connect it to your business live. No camera needed. Save your seat: ${link}`,
+      `  2. Your Google profile, your reviews, your bookings — what if your AI helped run them? Join the free LIVE AI Barber Beauty Business Training this Monday, 3 PM ET: ${link}`,
+      `  3. Shop and salon owners: a free weekly LIVE training on putting AI to work in your business. Stay to the end for a gift 🎁 ${link}`,
+      "  Put the link in your bio or link-in-bio page, your stories and your emails. Texts and DMs only to people who've agreed to hear from you.",
+      "",
+      `REGISTERED THROUGH YOUR LINK: ${lt.total}${lt.total ? ` — ${lt.withAccount} have a ShearQuery account, ${lt.credited} credited to you` : ""}`,
+      ...lt.list.slice(0, 15).map((r) => `  - ${r.firstName}${r.type ? ` (${r.type})` : ""} · for Mon ${r.sessionDate} · ${r.creditedToYou ? "account credited to you" : r.hasAccount ? "has an account" : "no account yet"}`),
+    ].join("\n");
+  },
+};
+
+export const AGENCY_TOOLS: McpTool[] = [promoteLiveTrainingTool, agencyPlaybookTool, myAgencyTool, updateMyAgencyDetailsTool, inviteClientTool, agencyPayoutsTool, clientSupportViewTool, requestClientAccessTool];

@@ -17,7 +17,9 @@ import { RegisterForm } from "@/components/live-training/register-form";
  * ET) — lib/live-training/schedule.ts.
  *
  * ?src= (or utm_source) is recorded with the registration, so we can see which
- * ads and which campaign week bring people in.
+ * ads and which campaign week bring people in. ?via=<CODE> is an agency's
+ * referral code (from shearquery.com/live/<CODE>): the registration is
+ * credited to that agency, and so is the account if they sign up later.
  */
 
 export const dynamic = "force-dynamic";
@@ -44,7 +46,7 @@ const STEPS = [
   { icon: Gift, text: "Stay to the end for a special gift." },
 ];
 
-export default async function LiveTrainingPage({ searchParams }: { searchParams: Promise<{ src?: string; utm_source?: string; utm_campaign?: string }> }) {
+export default async function LiveTrainingPage({ searchParams }: { searchParams: Promise<{ src?: string; utm_source?: string; utm_campaign?: string; via?: string }> }) {
   const q = await searchParams;
   const now = new Date();
   const session = sessionForRegistration(now);
@@ -121,7 +123,7 @@ export default async function LiveTrainingPage({ searchParams }: { searchParams:
             <p className="text-xs font-black uppercase tracking-widest text-red-600">Free · Live · Mondays 3 PM ET</p>
             <h2 className="mt-1 text-2xl font-black">Save your seat</h2>
             <p className="mt-1 mb-5 text-sm text-slate-600">For {when.replace(/^This/, "this")}.</p>
-            <RegisterForm consentText={SMS_CONSENT_TEXT} audiences={SIGNUP_AUDIENCES.map((a) => ({ id: a.id, label: a.label }))} source={source} />
+            <RegisterForm consentText={SMS_CONSENT_TEXT} audiences={SIGNUP_AUDIENCES.map((a) => ({ id: a.id, label: a.label }))} source={source} via={q.via && /^[A-Za-z0-9-]{3,24}$/.test(q.via) ? q.via : null} />
           </section>
         </div>
 

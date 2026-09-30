@@ -8,7 +8,7 @@ import { CalendarPlus, Check, Loader2 } from "lucide-react";
  * are required. Texts are opt-in only: the box starts unticked and shows the
  * exact consent words stored with the registration (lib/live-training/store.ts).
  */
-export function RegisterForm({ consentText, audiences, source }: { consentText: string; audiences: { id: string; label: string }[]; source: string | null }) {
+export function RegisterForm({ consentText, audiences, source, via = null }: { consentText: string; audiences: { id: string; label: string }[]; source: string | null; via?: string | null }) {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,7 +25,7 @@ export function RegisterForm({ consentText, audiences, source }: { consentText: 
       const r = await fetch("/api/live-training/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, email, phone, smsConsent: sms, audience: audience || undefined, source }),
+        body: JSON.stringify({ firstName, email, phone, smsConsent: sms, audience: audience || undefined, source, via }),
       });
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || "Couldn't register.");
@@ -34,7 +34,7 @@ export function RegisterForm({ consentText, audiences, source }: { consentText: 
       const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
       const calendar = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("LIVE: AI Barber Beauty Business Training")}&dates=${fmt(start)}/${fmt(end)}&details=${encodeURIComponent("Your Google Meet link arrives by email 24 hours before. No camera needed. https://shearquery.com/live-training")}`;
       setDone({ when: j.when, calendar });
-      (window as any).innerG?.track?.("live_training_registered", { session: j.sessionDate, sms: sms, audience: audience || null, source });
+      (window as any).innerG?.track?.("live_training_registered", { session: j.sessionDate, sms: sms, audience: audience || null, source, via });
     } catch (err: any) {
       setError(err.message);
     } finally {

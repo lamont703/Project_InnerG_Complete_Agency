@@ -116,6 +116,8 @@ export default async function AgencyPage() {
                   <div className="mt-4 space-y-3">
                     <CopyField label="Link" value={`${SITE_URL}/join/${status!.referral_code}`} />
                     <CopyField label="Code" value={status!.referral_code} />
+                    {/* The Monday LIVE training, with the agency's own link (lib/live-training/). */}
+                    <CopyField label="LIVE training link (Mondays 3 PM ET — registrations credited to you)" value={`${SITE_URL}/live/${status!.referral_code}`} />
                   </div>
                 </section>
 
@@ -216,7 +218,7 @@ export default async function AgencyPage() {
                               <p className="text-xs text-slate-500">{c.isDemo ? "Not a real business" : c.email}</p>
                             </td>
                             <td>{t ? AUDIENCES[t].label : "not set"}</td>
-                            <td className="text-xs text-slate-500">{new Date(c.joinedAt).toLocaleDateString()} · {c.source}</td>
+                            <td className="text-xs text-slate-500">{new Date(c.joinedAt).toLocaleDateString()} · {c.source === "event" ? "LIVE training" : c.source}</td>
                             <td className="text-center">{yes(c.claimedListing)}</td>
                             <td className="text-center">{yes(c.googleConnected)}</td>
                             <td className="text-center">{yes(c.calendarLive)}</td>

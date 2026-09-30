@@ -79,6 +79,7 @@ export async function agencyNextActions(memberId: string): Promise<{ stage: stri
   actions.push(
     { group: "Earn", label: "Find businesses to pitch — ranked by need, in any city or ZIP", how: "find_prospects" },
     { group: "Earn", label: "Send a business its own Google audit page — joining from it credits the agency", how: "share_audit_link" },
+    { group: "Earn", label: "Promote the free Monday LIVE AI training with your own link — everyone who registers, and later signs up, is credited to you", how: "promote_live_training" },
     { group: "Earn", label: "Invite a business that's ready to join (credits it to the agency)", how: "invite_client_to_shearquery" },
     { group: "Earn", label: inPlay ? `Follow up the pipeline — ${inPlay} business${inPlay === 1 ? "" : "es"} in play${pendingInvites ? `, ${pendingInvites} invite${pendingInvites === 1 ? "" : "s"} not joined yet` : ""}` : "Build a pipeline: save the businesses being pitched", how: inPlay ? "my_prospects" : "save_prospect" },
     { group: "Your clients", label: "See every client and where each is stuck, plus earnings and payouts", how: "my_agency" },

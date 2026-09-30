@@ -98,6 +98,7 @@ export async function POST(req: Request) {
           inviteToken: jar.get(INVITE_COOKIE)?.value ?? null,
           typedCode: typeof body.agencyCode === "string" ? body.agencyCode : null,
           linkCode: jar.get(REF_COOKIE)?.value ?? null,
+          email: typeof body.email === "string" ? body.email : null,
         });
         // An agency starts with its sample barber, salon and school.
         if (memberAudience === "agency") await ensureDemoClients(created.id);
