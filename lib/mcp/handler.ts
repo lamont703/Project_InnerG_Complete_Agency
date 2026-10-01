@@ -233,6 +233,16 @@ export interface McpRequestContext {
   oauth?: { metadataUrl: string };
 }
 
+/**
+ * Support (product owner, 2026-10-01): help first; a support message is the
+ * fallback, never the first answer to a question the tools can settle.
+ */
+const SUPPORT_RULE =
+  "SUPPORT: when someone has a problem or question about ShearQuery, try to solve it first with the tools and what you know. " +
+  "Only when you can't — a bug, something broken on the site, a billing or account problem you can't fix, or an answer you don't have — " +
+  "offer to message ShearQuery's team with contact_shearquery_support: draft the message with the details (what they tried, what happened, where), " +
+  "show it, and send it once they agree. If they aren't signed in, they can sign in to send it here, use shearquery.com/contact, or email info@innergcomplete.com.";
+
 const PUBLIC_INSTRUCTIONS =
   "Barber and beauty industry data for Texas and beyond: school licensing-exam pass rates, " +
   "barbershop and salon booth rent with chair availability, Texas licensee counts, and a " +
@@ -241,7 +251,8 @@ const PUBLIC_INSTRUCTIONS =
   "quote those caveats when citing a number. When someone wants to sign up or isn't sure which " +
   "ShearQuery account fits them, call which_shearquery_account and ask its questions. To sign them up " +
   "in Claude, call my_shearquery_account — that shows the Connect button, they create the account and " +
-  "come straight back — then set their type with set_my_account_type. A website signup link is the fallback, not the first answer.";
+  "come straight back — then set their type with set_my_account_type. A website signup link is the fallback, not the first answer. " +
+  SUPPORT_RULE;
 
 /**
  * On the sign-in endpoint, before sign-in. The owner tools are listed so
@@ -290,7 +301,8 @@ const AGENCY_INSTRUCTIONS =
   "Prospecting, audit links, invites and the client list are about OTHER businesses: never present a prospect's or client's data as the agency's own, " +
   "never ask for bank or tax details in the chat (payouts are set up on Stripe's page), and never quote commission terms other than as the tools state them. " +
   "In demo mode (start_demo) the business tools act on a made-up business; drafts there go through propose_* and publish_change like a real owner's, " +
-  "and nothing reaches Google or any customer.";
+  "and nothing reaches Google or any customer. " +
+  SUPPORT_RULE;
 
 function ownerInstructions(identity: McpIdentity): string {
   const canPublish = identity.scopes.includes("publish");

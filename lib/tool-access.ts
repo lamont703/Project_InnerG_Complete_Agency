@@ -71,6 +71,8 @@ export const TOOL_REGISTRY: ToolRegistryEntry[] = [
     note: "Built from lib/audiences.ts; asks before recommending, and gives no link for planned types." },
   { id: "what_shearquery_does", label: "What each account type gets", group: "Getting started", implemented: ["mcp"], defaultMcp: true, defaultChat: false,
     note: "Built from lib/account-features.ts; feature status follows the same switches the tools obey." },
+  { id: "contact_shearquery_support", label: "Message ShearQuery support", group: "Getting started", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
+    note: "Any signed-in member. Saved to support_messages, emailed to info@innergcomplete.com and texted to the owner. The assistant tries to help first." },
   { id: "set_my_account_type", label: "Set my account type (once)", group: "Getting started", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false,
     note: "Only fills an EMPTY type; never changes one already set." },
   { id: "agency_video_library", label: "Agency publisher: video library", group: "Agency partners", implemented: ["mcp"], requiresKey: true, defaultMcp: true, defaultChat: false, note: "Only videos our content publisher already published." },
