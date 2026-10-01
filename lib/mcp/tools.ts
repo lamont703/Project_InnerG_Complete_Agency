@@ -25,6 +25,7 @@ import { DEMO_TOOLS } from "@/lib/mcp/demo-tools";
 import { AUTOPILOT_TOOLS } from "@/lib/mcp/autopilot-tools";
 import { myAgencyAccessTool } from "@/lib/mcp/agency-access-tool";
 import { PROSPECT_TOOLS } from "@/lib/mcp/prospect-tools";
+import { supportTool } from "@/lib/mcp/support-tool";
 import { AUDIENCES, storedAudience } from "@/lib/audiences";
 
 /**
@@ -1215,6 +1216,7 @@ export const MCP_TOOLS: McpTool[] = [
   ...CLIENT_BOOKING_TOOLS,
   ...AGENCY_TOOLS,
   ...AGENCY_PUBLISHER_TOOLS,
+  supportTool,
   ...DEMO_TOOLS,
   ...AUTOPILOT_TOOLS,
   myAgencyAccessTool,
