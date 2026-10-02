@@ -122,3 +122,19 @@ describe("WWW-Authenticate", () => {
     expect(h).toContain('error="invalid_token"');
   });
 });
+
+describe("hosted client documents (public/oauth/clients)", () => {
+  // Meta AI's Muse asks for a client ID instead of bringing its own, so we host its
+  // Client ID Metadata Document. It must pass the same checks any client's does.
+  it("meta-muse.json is a valid client and allows Muse's callback", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { checkClientIdUrl, checkClientMetadata, redirectUriAllowed } = await import("./oauth-rules");
+    const id = "https://shearquery.com/oauth/clients/meta-muse.json";
+    const doc = JSON.parse(readFileSync("public/oauth/clients/meta-muse.json", "utf8"));
+    expect(checkClientIdUrl(id).ok).toBe(true);
+    const meta = checkClientMetadata(doc, id);
+    expect(meta.ok).toBe(true);
+    expect(redirectUriAllowed("https://agent.meta.ai/api/hatch/oauth/callback", doc.redirect_uris)).toBe(true);
+    expect(doc.token_endpoint_auth_method).toBe("none");
+  });
+});

@@ -97,7 +97,7 @@ export async function checkAuthorizeRequest(p: Record<string, string | undefined
     req: {
       clientId,
       clientHost,
-      clientName: knownClientName(clientHost),
+      clientName: knownClientName(clientHost, clientId),
       claimedName: meta.meta.client_name ?? null,
       redirectUri,
       redirectHost: new URL(redirectUri).host,
