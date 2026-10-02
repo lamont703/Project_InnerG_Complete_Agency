@@ -135,6 +135,19 @@ when b-roll arrives. **`HEYGEN_LANDSCAPE_AVATAR_LEFT_ID` is the workhorse for
 this project**: it is the only one of the three that leaves clean negative space
 on the left of frame, which is where every graphic in the long-form cut lives.
 
+## Finishing a Short — "finalize" means FINISHING.md
+
+**When asked to finalize, finish or complete a Short, follow
+`ShearQuery YouTube Channel/FINISHING.md` exactly and run `scripts/finish_short.py`.** The
+approved reference is `shorts/Twenty People Working For You (Short).mp4` and its spec,
+`experiments/content-parts/finish/ai-03-twenty-workers/finish.spec.json`, is the template.
+
+The owner's framework, fixed: hook → stakes → middle → proof → turn → CTA; hooks call out
+barbers and stylists; middles play whole; the intro sits **directly between the stakes and
+the middle**; a 3s push-in and hard punches; promise hook text through the end of the intro;
+two `OVERLAYS.md` cards; captions, wordmark, ending; both ears at -16 LUFS (his mic is
+left-only — `scripts/dual_mono.py`).
+
 ## Making a News Desk — two commands, and the config decides everything else
 
 **`lib/newsdesk-config.js` is the format. Do not pass settings at the prompt.**

@@ -4,6 +4,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { fetchPublisherQueue, fetchPublisherConnections } from "@/lib/admin/publisher-queue";
 import { PublisherQueueBoard } from "@/components/admin/publisher-queue-board";
 import { PublisherConnections } from "@/components/admin/publisher-connections";
+import { PublisherSchedulePanel } from "@/components/admin/publisher-schedule-panel";
+import { describeSlots } from "@/lib/admin/publisher-schedule";
 import { Send } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +30,9 @@ export default async function ContentPublisherPage() {
     fetchPublisherConnections(),
   ]);
   const blocked = queue.queued.filter((i) => i.unpublishable).length;
-  const daysOfRunway = Math.floor(queue.queued.length / 3);
+  const s = queue.settings;
+  // When the last queued video is planned to go out, under the schedule as set.
+  const lastPlanned = queue.queued.map((q) => q.plannedAt).filter(Boolean).sort().pop() ?? null;
 
   return (
     <div className="min-h-screen bg-slate-50 light">
@@ -46,21 +50,24 @@ export default async function ContentPublisherPage() {
             <span className="text-amber-700"> · {blocked} with no video</span>
           )}
         </h1>
-        <p className="text-slate-500 text-sm mb-10 max-w-2xl">
-          Three posts a day — 9:00 AM, 2:00 PM and 7:00 PM Eastern. Whatever sits
-          in position 1 goes out at the next slot, to every destination that is
-          connected below. Drag the cards to set the order the feed will read
-          in.
-          {queue.queued.length > 0 && (
+        <p className="text-slate-500 text-sm mb-8 max-w-2xl">
+          {!s
+            ? "The posting schedule can't be read, so nothing will post until it can."
+            : s.paused
+              ? "Posting is paused — nothing goes out until you resume it below."
+              : `Posting ${describeSlots(s.weeklySlots)}. Whatever sits first in line goes out at the next posting time, to every destination connected below; pinned videos go at their own time.`}
+          {lastPlanned && s && !s.paused && (
             <>
-              {" "}At three a day this line lasts{" "}
+              {" "}This line runs until{" "}
               <strong className="text-slate-700">
-                {daysOfRunway === 0 ? "less than a day" : `about ${daysOfRunway} day${daysOfRunway === 1 ? "" : "s"}`}
+                {new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric" }).format(new Date(lastPlanned))}
               </strong>
               .
             </>
           )}
         </p>
+
+        <PublisherSchedulePanel settings={queue.settings} queued={queue.queued} />
 
         <PublisherConnections connections={connections} />
 

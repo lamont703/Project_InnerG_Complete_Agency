@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { publishToInstagram } from "@/lib/instagram-publish";
 import { isExpired } from "@/lib/instagram-token";
-import { SLOT_HOURS_ET } from "@/lib/admin/publisher-queue";
+import { decide, parseWeeklySlots, type QueueEntry } from "@/lib/admin/publisher-schedule";
 import {
   buildYouTubeDescription,
   buildInstagramCaption,
@@ -20,7 +20,10 @@ import {
  * Publishes whatever sits at the front of the content publisher line, to every
  * connected platform.
  *
- * THREE SLOTS A DAY: 9am, 2pm and 7pm Eastern.
+ * ON THE OWNER'S SCHEDULE, set on /admin/content-publisher (publisher_settings, 2026-10-02):
+ * a pause switch, weekly days + hours in Eastern, and videos pinned to an exact time. The
+ * rules live in lib/admin/publisher-schedule.ts (decide), shared with the page's preview.
+ * It used to be three fixed slots a day — 9am, 2pm and 7pm Eastern.
  *
  * WHY THIS RUNS HOURLY AND DECIDES FOR ITSELF. Vercel cron schedules are UTC
  * with no timezone to pin, so an entry written as 13:00 UTC is 9am Eastern for
@@ -97,17 +100,53 @@ export async function GET(req: Request) {
   const dryRun = url.searchParams.get("dryRun") === "1";
 
   const { hour, date } = easternNow();
-  if (!dryRun && !SLOT_HOURS_ET.includes(hour as (typeof SLOT_HOURS_ET)[number])) {
-    return NextResponse.json({ ok: true, state: "not_a_slot", easternHour: hour });
-  }
-
   const admin = createAdminClient();
 
-  if (!dryRun) {
+  /*
+   * THE SCHEDULE FIRST. If the settings row cannot be read — the migration not applied yet,
+   * or the database unreachable — nothing publishes. A publisher that cannot tell whether it
+   * is paused must assume it is.
+   */
+  const { data: settingsRow, error: settingsError } = await (admin.from("publisher_settings") as any)
+    .select("paused, weekly_slots")
+    .eq("id", 1)
+    .maybeSingle();
+  if (settingsError || !settingsRow) {
+    return NextResponse.json({ ok: true, state: "settings_unavailable", error: settingsError?.message ?? "no settings row" });
+  }
+  const settings = { paused: !!settingsRow.paused, weeklySlots: parseWeeklySlots(settingsRow.weekly_slots) };
+
+  const { data: lineRows } = await (admin.from("publisher_queue") as any)
+    .select("id, position, scheduled_for, video_url")
+    .eq("status", "queued")
+    .order("position", { ascending: true })
+    .limit(300);
+  const line: QueueEntry[] = (lineRows ?? []).map((r: any) => ({
+    id: r.id, position: r.position, scheduledFor: r.scheduled_for ?? null, hasVideo: !!r.video_url,
+  }));
+
+  /*
+   * A DRY RUN IS A QUESTION, NOT A TURN: it ignores the pause and the clock and answers
+   * "what would go out next" — the earliest pinned post, else the front of the line.
+   */
+  let chosenId: string | null = null;
+  let reason = "dry_run";
+  if (dryRun) {
+    const ready = line.filter((q) => q.hasVideo);
+    const pinned = ready.filter((q) => q.scheduledFor)
+      .sort((a, b) => new Date(a.scheduledFor!).getTime() - new Date(b.scheduledFor!).getTime())[0];
+    chosenId = pinned?.id ?? ready.find((q) => !q.scheduledFor)?.id ?? null;
+  } else {
+    const d = decide(settings, line, new Date());
+    if (d.kind === "paused") return NextResponse.json({ ok: true, state: "paused" });
+    if (d.kind === "not_a_slot") return NextResponse.json({ ok: true, state: "not_a_slot", easternHour: hour });
+    if (d.kind === "empty") return NextResponse.json({ ok: true, state: "queue_empty", slot: `${date} ${hour}:00 ET` });
+    chosenId = d.id; reason = d.reason;
+
     /*
-     * CLAIM FIRST. A conflict here means this slot already went out — return
-     * quietly rather than as an error, because a second invocation in the same
-     * hour is a normal thing for a cron platform to do, not a fault.
+     * CLAIM FIRST. A conflict here means this hour already published — return quietly
+     * rather than as an error, because a second invocation in the same hour is a normal
+     * thing for a cron platform to do, not a fault. One post per hour, pinned or weekly.
      */
     const { error: claimError } = await (admin.from("publisher_slot_claims") as any)
       .insert({ slot_date: date, slot_hour: hour });
@@ -117,18 +156,9 @@ export async function GET(req: Request) {
     }
   }
 
-  /*
-   * The front of the line, skipping anything with no video. A row without an
-   * MP4 cannot publish, and letting it hold position 1 would burn the slot and
-   * then burn every following slot too. The publisher page flags these
-   * separately so they are visible rather than silently stepped over.
-   */
-  const { data: due } = await (admin.from("publisher_queue") as any)
-    .select("*")
-    .eq("status", "queued")
-    .not("video_url", "is", null)
-    .order("position", { ascending: true })
-    .limit(1);
+  const { data: due } = chosenId
+    ? await (admin.from("publisher_queue") as any).select("*").eq("id", chosenId).eq("status", "queued").limit(1)
+    : { data: [] };
 
   const row = due?.[0];
   if (!row) {
@@ -141,6 +171,7 @@ export async function GET(req: Request) {
       ok: true,
       state: "dry_run",
       itemKey: row.item_key,
+      schedule: { paused: settings.paused, weeklySlots: settings.weeklySlots, scheduledFor: row.scheduled_for ?? null },
       wouldPublish: {
         youtube: { title: String(row.title).slice(0, 100), description: buildYouTubeDescription(row) },
         instagram: { caption: buildInstagramCaption(row) },
@@ -253,6 +284,7 @@ export async function GET(req: Request) {
     ok: status !== "failed",
     state: status,
     slot: `${date} ${hour}:00 ET`,
+    reason,
     itemKey: row.item_key,
     results: outcomes,
   });

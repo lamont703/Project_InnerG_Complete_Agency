@@ -157,3 +157,18 @@ describe("sanitize", () => {
     expect(sanitize("two\nlines")).toBe("two lines");
   });
 });
+
+describe("chunkWords sentences option", () => {
+  const w = [
+    { word: "is", start: 11.28, end: 11.42 },
+    { word: "you.", start: 11.42, end: 11.64 },
+    { word: "If", start: 12.0, end: 12.24 },
+    { word: "I", start: 12.24, end: 12.5 },
+  ];
+  it("keeps the old behavior by default: a short pause does not split a sentence end", () => {
+    expect(chunkWords(w).map((c: { text: string }) => c.text)).toEqual(["is you. If I"]);
+  });
+  it("starts a new cue after a sentence end when asked", () => {
+    expect(chunkWords(w, { sentences: true }).map((c: { text: string }) => c.text)).toEqual(["is you.", "If I"]);
+  });
+});

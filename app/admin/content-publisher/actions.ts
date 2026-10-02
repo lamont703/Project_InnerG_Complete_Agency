@@ -140,3 +140,58 @@ export async function renderCard(id: string): Promise<{ ok: boolean; error?: str
 
   return { ok: true, log };
 }
+
+/**
+ * The posting schedule: pause switch and weekly days/hours (Eastern).
+ *
+ * Validated through parseWeeklySlots — the same parser the cron reads with — so a slot the
+ * page accepts is a slot the cron will honour. Resuming with no weekly slots is allowed:
+ * pinned videos still go out, everything else waits.
+ */
+export async function savePublisherSchedule(input: {
+  paused: boolean;
+  weeklySlots: { day: number; hour: number }[];
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+  const { parseWeeklySlots } = await import("@/lib/admin/publisher-schedule");
+  const slots = parseWeeklySlots(input.weeklySlots);
+  const { error } = await (createAdminClient().from("publisher_settings") as any).upsert({
+    id: 1,
+    paused: !!input.paused,
+    weekly_slots: slots,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/content-publisher");
+  return { ok: true };
+}
+
+/**
+ * Pin one queued video to an Eastern date and hour, or unpin it (date = null) so it
+ * waits for the weekly slots again. The conversion to an instant happens HERE, on the
+ * server, so the browser's own timezone can never shift the post.
+ */
+export async function setPublishTime(
+  id: string,
+  date: string | null,
+  hour: number | null
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!(await isAdmin())) return { ok: false, error: "Not authorized." };
+  let scheduledFor: string | null = null;
+  if (date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || hour == null || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+      return { ok: false, error: "Pick a date and an hour." };
+    }
+    const { easternToInstant } = await import("@/lib/admin/publisher-schedule");
+    const at = easternToInstant(date, hour);
+    if (at.getTime() < Date.now() - 60_000) return { ok: false, error: "That time has already passed." };
+    scheduledFor = at.toISOString();
+  }
+  const { error } = await (createAdminClient().from("publisher_queue") as any)
+    .update({ scheduled_for: scheduledFor, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("status", "queued");
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/content-publisher");
+  return { ok: true };
+}

@@ -369,7 +369,7 @@ export function PublisherQueueBoard({ queue }: { queue: PublisherQueue }) {
     <>
       <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-5">
         <h2 className="mb-3 text-sm font-black uppercase tracking-widest text-slate-500">
-          Next three slots
+          Next three posts
         </h2>
         <ul className="grid gap-3 sm:grid-cols-3">
           {queue.upcomingSlots.map((slot) => (
@@ -378,7 +378,7 @@ export function PublisherQueueBoard({ queue }: { queue: PublisherQueue }) {
                 {slot.label}
               </p>
               <p className="mt-1 text-sm font-bold text-slate-900 leading-snug">
-                {slot.itemTitle ?? <span className="text-slate-400 font-medium">queue is empty</span>}
+                {slot.itemTitle ?? <span className="text-slate-400 font-medium">nothing scheduled</span>}
               </p>
             </li>
           ))}
@@ -396,8 +396,8 @@ export function PublisherQueueBoard({ queue }: { queue: PublisherQueue }) {
           In line {order.length > 0 && <span className="text-slate-900">({order.length})</span>}
         </h2>
         <p className="mb-4 text-xs text-slate-500">
-          Drag a card, or use ↑ ↓. Position 1 goes out at the next slot — to both
-          YouTube Shorts and Instagram Reels.
+          Drag a card, or use ↑ ↓. The first unpinned video goes out at the next posting time
+          in the schedule above — to every connected destination.
         </p>
         {order.length === 0 ? (
           <p className="text-sm text-slate-500">
