@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseWeeklySlots, planQueue, formatEastern, type PublisherSettings } from "@/lib/admin/publisher-schedule";
 
 /**
  * The content publishing line, for the internal publisher page.
@@ -61,6 +62,12 @@ export interface PublisherItem {
    */
   results: Record<string, PublisherOutcome>;
   publishedAt: string | null;
+  /** Pinned post time (ISO), set on the schedule panel. Null = waits for a weekly slot. */
+  scheduledFor: string | null;
+  /** When it will go out under the current schedule (ISO), or null if nothing reaches it. */
+  plannedAt: string | null;
+  /** plannedAt is a pinned time already past: it goes at the next hourly run once unpaused. */
+  overdue: boolean;
   /**
    * True when the row is queued but has no video. It can never publish, and it
    * will sit at the front of the line blocking everything behind it if it ever
@@ -73,74 +80,47 @@ export interface PublisherItem {
 export interface PublisherQueue {
   queued: PublisherItem[];
   done: PublisherItem[];
-  /** Next three posting slots, already resolved to Eastern wall-clock. */
+  /** The posting schedule (publisher_settings). Null when it cannot be read — the cron then publishes nothing. */
+  settings: PublisherSettings | null;
+  /** The next three posts, already resolved to Eastern wall-clock. */
   upcomingSlots: { label: string; itemTitle: string | null }[];
 }
 
-/** The three daily slots, in Eastern. Kept here so the page and the cron agree. */
-export const SLOT_HOURS_ET = [9, 14, 19] as const;
-
-const SLOT_LABELS: Record<number, string> = { 9: "9:00 AM ET", 14: "2:00 PM ET", 19: "7:00 PM ET" };
-
-function nowEasternParts(): { hour: number; date: string } {
-  const fmt = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/New_York",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", hour12: false,
-  });
-  const parts = Object.fromEntries(fmt.formatToParts(new Date()).map((p) => [p.type, p.value]));
-  return {
-    hour: Number(parts.hour),
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-  };
-}
-
 /**
- * Which slots are still ahead, and what would go out in each.
- *
- * Deliberately shows the MAPPING and not just the times. "Next post: 2pm" tells
- * you nothing you could act on; "2pm -> this specific video" is the thing worth
- * checking before it is too late to change it, and it is the reason the order
- * on this page is worth setting by hand at all.
+ * The schedule, as the cron reads it. Null on any error: the cron treats an unreadable
+ * schedule as paused, so the page must show it the same way rather than inventing defaults.
  */
-function resolveUpcomingSlots(queued: PublisherItem[]): { label: string; itemTitle: string | null }[] {
-  const { hour } = nowEasternParts();
-  const remainingToday = SLOT_HOURS_ET.filter((h) => h > hour);
-  const sequence = [
-    ...remainingToday.map((h) => ({ h, day: "Today" })),
-    ...SLOT_HOURS_ET.map((h) => ({ h, day: "Tomorrow" })),
-  ].slice(0, 3);
-
-  /**
-   * Only items that can actually publish. The cron skips rows with no video
-   * rather than burning a slot on them, so counting them here would show a
-   * video-less row as "next out" when the thing that will really go out is the
-   * one behind it. The two must agree or this panel is a lie.
-   */
-  const publishable = queued.filter((i) => !i.unpublishable);
-
-  return sequence.map((s, i) => ({
-    label: `${s.day} ${SLOT_LABELS[s.h]}`,
-    itemTitle: publishable[i]?.title ?? null,
-  }));
+export async function fetchPublisherSettings(): Promise<PublisherSettings | null> {
+  const { data, error } = await (createAdminClient().from("publisher_settings") as any)
+    .select("paused, weekly_slots").eq("id", 1).maybeSingle();
+  if (error || !data) return null;
+  return { paused: !!data.paused, weeklySlots: parseWeeklySlots(data.weekly_slots) };
 }
 
 export async function fetchPublisherQueue(): Promise<PublisherQueue> {
   const db = createAdminClient();
 
-  const { data, error } = await db
+  const COLS_BASE =
+    "id, item_key, title, video_type, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, results, published_at";
+  let { data, error } = await db
     .from("publisher_queue")
     .select(
       // thumbnail_url was mapped below but never selected, so every poster was
       // null and the board fell back to loading video metadata to show a first
       // frame. A field that is mapped but not selected fails silently — the
       // page renders, it is just quietly worse.
-      "id, item_key, title, video_type, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, results, published_at"
+      "id, item_key, title, video_type, stat, label, question, video_url, thumbnail_url, caption, position, status, youtube_id, youtube_error, instagram_media_id, instagram_permalink, instagram_error, results, published_at, scheduled_for"
     )
     .order("position", { ascending: true })
     .limit(300);
+  // Before the schedule migration is applied scheduled_for does not exist and the whole
+  // select fails — fall back so the board still shows the line rather than going blank.
+  if (error) {
+    ({ data, error } = await db.from("publisher_queue").select(COLS_BASE).order("position", { ascending: true }).limit(300));
+  }
 
-  if (error || !data) return { queued: [], done: [], upcomingSlots: [] };
+  const settings = await fetchPublisherSettings();
+  if (error || !data) return { queued: [], done: [], settings, upcomingSlots: [] };
 
   const rows: PublisherItem[] = data.map((r: any) => ({
     id: r.id,
@@ -162,10 +142,27 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
     instagramError: r.instagram_error,
     results: (r.results ?? {}) as Record<string, PublisherOutcome>,
     publishedAt: r.published_at,
+    scheduledFor: r.scheduled_for ?? null,
+    plannedAt: null,
+    overdue: false,
     unpublishable: r.status === "queued" && !r.video_url,
   }));
 
   const queued = rows.filter((r) => r.status === "queued");
+
+  /*
+   * The same planner the cron's decide() mirrors, so the times on the page are the times
+   * things actually go out. Planned as if unpaused; the page says when it is paused.
+   */
+  const plan = planQueue(
+    settings ?? { paused: true, weeklySlots: [] },
+    queued.map((q) => ({ id: q.id, position: q.position, scheduledFor: q.scheduledFor, hasVideo: !q.unpublishable })),
+    new Date()
+  );
+  plan.forEach((p, i) => { queued[i].plannedAt = p.at; queued[i].overdue = p.overdue; });
+  const upcoming = queued.filter((q) => q.plannedAt)
+    .sort((a, b) => a.plannedAt!.localeCompare(b.plannedAt!)).slice(0, 3)
+    .map((q) => ({ label: q.overdue ? "Overdue — next run after resume" : formatEastern(q.plannedAt!), itemTitle: q.title }));
 
   return {
     queued,
@@ -178,7 +175,8 @@ export async function fetchPublisherQueue(): Promise<PublisherQueue> {
     done: rows
       .filter((r) => r.status !== "queued")
       .sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")),
-    upcomingSlots: resolveUpcomingSlots(queued),
+    settings,
+    upcomingSlots: upcoming,
   };
 }
 
