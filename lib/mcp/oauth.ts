@@ -103,7 +103,19 @@ export async function fetchClientMetadata(clientId: string): Promise<{ ok: true;
  * the document's own client_name is self-asserted and anyone can call their
  * app "Claude".
  */
-export function knownClientName(clientHost: string): string | null {
+/**
+ * Client ID Metadata Documents WE host for apps that ask for a client ID instead of
+ * bringing their own (Meta AI's Muse, 2026-10-02 — its connector form wants a client ID
+ * and a callback). The document lives in public/oauth/clients/, so its host is ours and
+ * would otherwise show as "shearquery.com" with an unknown-app warning; name it here by
+ * its exact client_id.
+ */
+export const HOSTED_CLIENTS: Record<string, string> = {
+  "https://shearquery.com/oauth/clients/meta-muse.json": "Meta AI (Muse)",
+};
+
+export function knownClientName(clientHost: string, clientId?: string | null): string | null {
+  if (clientId && HOSTED_CLIENTS[clientId]) return HOSTED_CLIENTS[clientId];
   const h = clientHost.toLowerCase();
   if (h === "claude.ai" || h.endsWith(".claude.ai") || h === "claude.com" || h.endsWith(".claude.com")) return "Claude";
   return null;
@@ -326,7 +338,7 @@ export interface GrantRow {
 
 export async function listGrants(memberId: string): Promise<GrantRow[]> {
   const { data } = await (createAdminClient().from("mcp_oauth_grants") as any)
-    .select("id, client_host, scopes, created_at, last_used_at, revoked_at")
+    .select("id, client_id, client_host, scopes, created_at, last_used_at, revoked_at")
     .eq("community_member_id", memberId)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -334,7 +346,7 @@ export async function listGrants(memberId: string): Promise<GrantRow[]> {
     id: g.id,
     prefix: grantPrefix(g.id),
     clientHost: g.client_host,
-    clientName: knownClientName(g.client_host),
+    clientName: knownClientName(g.client_host, g.client_id),
     scopes: g.scopes || [],
     createdAt: g.created_at,
     lastUsedAt: g.last_used_at,
