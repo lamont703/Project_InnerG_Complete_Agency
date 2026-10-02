@@ -64,6 +64,7 @@ const cues = chunkWords(words, {
   maxWords: Number(arg("max-words", 4)),
   maxChars: Number(arg("max-chars", 22)),
   maxSecs: Number(arg("max-secs", 1.4)),
+  sentences: process.argv.includes("--sentences"),   // new cue after . ? ! (see captions.js)
 });
 const ass = buildAss(cues, {
   fontName: arg("font", "Arial Black"),
