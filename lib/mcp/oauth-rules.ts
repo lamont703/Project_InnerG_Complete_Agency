@@ -218,3 +218,43 @@ export function wwwAuthenticate(args: {
     .filter(Boolean)
     .join(", ");
 }
+
+/**
+ * Where a token request says which client it is.
+ *
+ * RFC 6749 §2.3.1 lets a client authenticate with HTTP Basic: base64 of
+ * "<client_id>:<client_secret>", each form-urlencoded. Meta AI's Muse (2026-10-02)
+ * stores the client ID in a credentials store and sends it this way with an empty
+ * secret — and the old rule refused ANY Authorization header, so every Muse sign-in
+ * ended at the token step with the codes never used.
+ *
+ * We register public clients only, so a secret proves nothing and is ignored, never
+ * checked. The proof stays PKCE plus the exact redirect_uri the code was bound to.
+ * A client_id in the body and a different one in the header is refused.
+ */
+export function clientIdFromRequest(
+  bodyClientId: string | undefined,
+  authorization: string | null
+): { ok: true; clientId: string } | { ok: false; reason: string } {
+  let headerId: string | null = null;
+  const m = /^Basic\s+([A-Za-z0-9+/=_-]+)\s*$/i.exec(authorization || "");
+  if (m) {
+    let decoded = "";
+    try {
+      decoded = Buffer.from(m[1], "base64").toString("utf8");
+    } catch {
+      return { ok: false, reason: "malformed Basic authorization" };
+    }
+    const i = decoded.indexOf(":");
+    const raw = i === -1 ? decoded : decoded.slice(0, i);
+    try {
+      headerId = decodeURIComponent(raw.replace(/\+/g, " "));
+    } catch {
+      headerId = raw;
+    }
+  }
+  const bodyId = (bodyClientId || "").trim();
+  if (bodyId && headerId && bodyId !== headerId) return { ok: false, reason: "client_id in the body and the Authorization header differ" };
+  const clientId = bodyId || headerId || "";
+  return clientId ? { ok: true, clientId } : { ok: false, reason: "client_id is required" };
+}
