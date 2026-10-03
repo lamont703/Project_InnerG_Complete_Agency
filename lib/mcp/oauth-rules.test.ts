@@ -138,3 +138,25 @@ describe("hosted client documents (public/oauth/clients)", () => {
     expect(doc.token_endpoint_auth_method).toBe("none");
   });
 });
+
+describe("clientIdFromRequest (token endpoint)", () => {
+  const id = "https://shearquery.com/oauth/clients/meta-muse.json";
+  const basic = (user: string, pass = "") => "Basic " + Buffer.from(`${encodeURIComponent(user)}:${pass}`).toString("base64");
+  it("takes the client_id from the body, as Claude sends it", async () => {
+    const { clientIdFromRequest } = await import("./oauth-rules");
+    expect(clientIdFromRequest(id, null)).toEqual({ ok: true, clientId: id });
+  });
+  it("takes it from a Basic header with an empty secret, as Muse sends it", async () => {
+    const { clientIdFromRequest } = await import("./oauth-rules");
+    expect(clientIdFromRequest(undefined, basic(id))).toEqual({ ok: true, clientId: id });
+  });
+  it("ignores a secret — none is ever issued", async () => {
+    const { clientIdFromRequest } = await import("./oauth-rules");
+    expect(clientIdFromRequest(undefined, basic(id, "anything"))).toEqual({ ok: true, clientId: id });
+  });
+  it("refuses a body and header that disagree, and no client_id at all", async () => {
+    const { clientIdFromRequest } = await import("./oauth-rules");
+    expect(clientIdFromRequest("https://other.example/c.json", basic(id)).ok).toBe(false);
+    expect(clientIdFromRequest(undefined, null).ok).toBe(false);
+  });
+});

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { exchangeCode, refreshTokens, type TokenError } from "@/lib/mcp/oauth";
-import { resourceFor } from "@/lib/mcp/oauth-rules";
+import { resourceFor, clientIdFromRequest } from "@/lib/mcp/oauth-rules";
 import { originOf } from "@/lib/mcp/oauth-metadata";
 
 /**
@@ -12,7 +12,9 @@ import { originOf } from "@/lib/mcp/oauth-metadata";
  * in. JSON is accepted too, for clients that send it anyway.
  *
  * Public clients only: token_endpoint_auth_method is "none" and PKCE is the
- * proof, which is what Claude's CIMD client uses. Errors are RFC 6749 codes —
+ * proof, which is what Claude's CIMD client uses. A client that sends its id in an
+ * HTTP Basic header (Meta AI's Muse does, with an empty secret) is accepted; any
+ * secret is ignored, because none is ever issued. See clientIdFromRequest. Errors are RFC 6749 codes —
  * Claude treats invalid_grant on a refresh as "sign in again", and anything
  * else as a failure it cannot recover from.
  */
@@ -44,31 +46,34 @@ export async function POST(request: Request) {
   const body = await readBody(request);
   const canonicalResource = resourceFor(originOf(request));
 
-  // A client secret means a confidential client, which this server does not
-  // register. Refused rather than ignored, so a misconfigured client finds out.
-  if (body.client_secret || request.headers.get("authorization")) {
-    return fail({ error: "invalid_client", error_description: "This server accepts public clients only (PKCE, no client secret)." }, 401);
+  const who = clientIdFromRequest(body.client_id, request.headers.get("authorization"));
+  if (!who.ok) {
+    console.warn(`[oauth/token] refused: ${who.reason}`);
+    return fail({ error: "invalid_client", error_description: who.reason }, 401);
   }
+  const clientId = who.clientId;
 
   try {
     if (body.grant_type === "authorization_code") {
       const result = await exchangeCode({
         code: body.code || "",
         codeVerifier: body.code_verifier || "",
-        clientId: body.client_id || "",
+        clientId,
         redirectUri: body.redirect_uri || "",
         resource: body.resource ?? null,
         canonicalResource,
       });
+      if ("error" in result) console.warn(`[oauth/token] ${body.grant_type} refused for ${clientId}: ${result.error} — ${result.error_description}`);
       return "error" in result ? fail(result) : NextResponse.json(result, { headers });
     }
 
     if (body.grant_type === "refresh_token") {
       const result = await refreshTokens({
         refreshToken: body.refresh_token || "",
-        clientId: body.client_id || "",
+        clientId,
         canonicalResource,
       });
+      if ("error" in result) console.warn(`[oauth/token] ${body.grant_type} refused for ${clientId}: ${result.error} — ${result.error_description}`);
       return "error" in result ? fail(result) : NextResponse.json(result, { headers });
     }
 
